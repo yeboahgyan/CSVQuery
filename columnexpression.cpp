@@ -440,17 +440,31 @@ ColumnResult ColumnExpression::and_op(ColumnResult left, ColumnResult right) // 
 ColumnResult ColumnExpression::eq(ColumnResult left, ColumnResult right) // Equal
 {
     ColumnResult result;
-    if(left.token_type != TokenType::BOOLEAN){
-        result.token_type = TokenType::ERROR;
-        result.error = "Left operand should be a boolean!";
+    if(left.token_type == TokenType::NUMBER){
+
+        if(right.token_type == TokenType::NUMBER){
+            result.token_type = TokenType::BOOLEAN;
+            result.boolean_value = left.number_value == right.number_value;
+        }
+        else{
+            result.token_type = TokenType::ERROR;
+            result.error = "Right operand should be a number!";
+        }
     }
-    else if(right.token_type != TokenType::BOOLEAN){
-        result.token_type = TokenType::ERROR;
-        result.error = "Right operand should be a boolean!";
+    else if(right.token_type != TokenType::STRING){
+
+        if(right.token_type == TokenType::STRING){
+            result.token_type = TokenType::BOOLEAN;
+            result.boolean_value = left.string_value == right.string_value;
+        }
+        else{
+            result.token_type = TokenType::ERROR;
+            result.error = "Right operand should be a string!";
+        }
     }
     else{
-        result.token_type = TokenType::BOOLEAN;
-        result.boolean_value = left.boolean_value == right.boolean_value;
+        result.token_type = TokenType::ERROR;
+        result.error = "Left operand is should be a number or string!";
     }
 
     return result;
@@ -459,17 +473,20 @@ ColumnResult ColumnExpression::eq(ColumnResult left, ColumnResult right) // Equa
 ColumnResult ColumnExpression::gt(ColumnResult left, ColumnResult right) // Greater than
 {
     ColumnResult result;
-    if(left.token_type != TokenType::BOOLEAN){
-        result.token_type = TokenType::ERROR;
-        result.error = "Left operand should be a boolean!";
-    }
-    else if(right.token_type != TokenType::BOOLEAN){
-        result.token_type = TokenType::ERROR;
-        result.error = "Right operand should be a boolean!";
+    if(left.token_type == TokenType::NUMBER){
+
+        if(right.token_type == TokenType::NUMBER){
+            result.token_type = TokenType::BOOLEAN;
+            result.boolean_value = left.number_value > right.number_value;
+        }
+        else{
+            result.token_type = TokenType::ERROR;
+            result.error = "Right operand should be a number!";
+        }
     }
     else{
-        result.token_type = TokenType::BOOLEAN;
-        result.boolean_value = left.boolean_value > right.boolean_value;
+        result.token_type = TokenType::ERROR;
+        result.error = "Left operand is should be a number!";
     }
 
     return result;
@@ -478,17 +495,20 @@ ColumnResult ColumnExpression::gt(ColumnResult left, ColumnResult right) // Grea
 ColumnResult ColumnExpression::lt(ColumnResult left, ColumnResult right) // Less than
 {
     ColumnResult result;
-    if(left.token_type != TokenType::BOOLEAN){
-        result.token_type = TokenType::ERROR;
-        result.error = "Left operand should be a boolean!";
-    }
-    else if(right.token_type != TokenType::BOOLEAN){
-        result.token_type = TokenType::ERROR;
-        result.error = "Right operand should be a boolean!";
+    if(left.token_type == TokenType::NUMBER){
+
+        if(right.token_type == TokenType::NUMBER){
+            result.token_type = TokenType::BOOLEAN;
+            result.boolean_value = left.number_value < right.number_value;
+        }
+        else{
+            result.token_type = TokenType::ERROR;
+            result.error = "Right operand should be a number!";
+        }
     }
     else{
-        result.token_type = TokenType::BOOLEAN;
-        result.boolean_value = left.boolean_value < right.boolean_value;
+        result.token_type = TokenType::ERROR;
+        result.error = "Left operand is should be a number!";
     }
 
     return result;
@@ -497,17 +517,20 @@ ColumnResult ColumnExpression::lt(ColumnResult left, ColumnResult right) // Less
 ColumnResult ColumnExpression::ge(ColumnResult left, ColumnResult right) // Greater than or equal to
 {
     ColumnResult result;
-    if(left.token_type != TokenType::BOOLEAN){
-        result.token_type = TokenType::ERROR;
-        result.error = "Left operand should be a boolean!";
-    }
-    else if(right.token_type != TokenType::BOOLEAN){
-        result.token_type = TokenType::ERROR;
-        result.error = "Right operand should be a boolean!";
+    if(left.token_type == TokenType::NUMBER){
+
+        if(right.token_type == TokenType::NUMBER){
+            result.token_type = TokenType::BOOLEAN;
+            result.boolean_value = left.number_value >= right.number_value;
+        }
+        else{
+            result.token_type = TokenType::ERROR;
+            result.error = "Right operand should be a number!";
+        }
     }
     else{
-        result.token_type = TokenType::BOOLEAN;
-        result.boolean_value = left.boolean_value >= right.boolean_value;
+        result.token_type = TokenType::ERROR;
+        result.error = "Left operand is should be a number!";
     }
 
     return result;
@@ -516,17 +539,20 @@ ColumnResult ColumnExpression::ge(ColumnResult left, ColumnResult right) // Grea
 ColumnResult ColumnExpression::le(ColumnResult left, ColumnResult right) // Less than or equal to
 {
     ColumnResult result;
-    if(left.token_type != TokenType::BOOLEAN){
-        result.token_type = TokenType::ERROR;
-        result.error = "Left operand should be a boolean!";
-    }
-    else if(right.token_type != TokenType::BOOLEAN){
-        result.token_type = TokenType::ERROR;
-        result.error = "Right operand should be a boolean!";
+    if(left.token_type == TokenType::NUMBER){
+
+        if(right.token_type == TokenType::NUMBER){
+            result.token_type = TokenType::BOOLEAN;
+            result.boolean_value = left.number_value <= right.number_value;
+        }
+        else{
+            result.token_type = TokenType::ERROR;
+            result.error = "Right operand should be a number!";
+        }
     }
     else{
-        result.token_type = TokenType::BOOLEAN;
-        result.boolean_value = left.boolean_value <= right.boolean_value;
+        result.token_type = TokenType::ERROR;
+        result.error = "Left operand is should be a number!";
     }
 
     return result;
@@ -574,6 +600,42 @@ ColumnResult ColumnExpression::cond_expr(const QStringList& row)
 ColumnResult ColumnExpression::cond_term(const QStringList& row)
 {
     ColumnResult left;
+    auto left_column_term = get_column_term(true);
+    left = left_column_term.eval(row);
+
+    if(left.token_type == TokenType::ERROR){
+        left.error = "Error on line " + QString::number(left_column_term.get_line_number());
+        return left;
+    }
+
+    while(!column_terms.empty()){
+
+        auto right_column_term = get_column_term(true);
+        auto right_token = right_column_term.get_token();
+
+        if(right_token.token_type == TokenType::MULT){
+            ColumnResult right = primary(row);
+            left = mult(left, right);
+
+            if(left.token_type == TokenType::ERROR){
+                break;
+            }
+        }
+        else if(right_token.token_type == TokenType::DIV){
+            ColumnResult right = primary(row);
+            left = div(left, right);
+
+            if(left.token_type == TokenType::ERROR){
+                break;
+            }
+        }
+        else{
+            //return left;
+            this->column_terms.push_front(right_column_term);
+            break;
+        }
+        //right_token = left_column_term.get_token();
+    }
 
     return left;
 }
