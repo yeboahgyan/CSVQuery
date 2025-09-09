@@ -2,16 +2,63 @@
 
 ColumnExpression::ColumnExpression() {}
 
+ColumnTerm ColumnExpression::get_column_term(bool get){
+    if(get){
+        current_column_term = column_terms.front();
+        column_terms.pop_front();
+    }
+
+    return current_column_term;
+}
+
+bool ColumnExpression::iscolumn_or_literal(Token t) const{
+    if (t.token_type == TokenType::COLUMNNAME){
+        return true;
+    }
+
+    if(t.token_type == TokenType::COLUMNNUMBER){
+        return true;
+    }
+
+    if(t.token_type == TokenType::STRING){
+        return true;
+    }
+
+    if(t.token_type == TokenType::NUMBER){
+        return true;
+    }
+
+    return false;
+}
+
+double ColumnExpression::add(double num1, double num2){
+    return num1 + num2;
+}
+
+QString ColumnExpression::add(double num1, QString str){
+    return QString::number(num1) + str;
+}
+
+QString ColumnExpression::add(QString str, double num2){
+    return str + QString::number(num2);
+}
+
+QString ColumnExpression::add(QString str, QString str2){
+    return str + str2;
+}
+
 ColumnResult ColumnExpression::mult(ColumnResult left, ColumnResult right){
     ColumnResult result;
 
     if(left.token_type ==TokenType::NUMBER && right.token_type ==TokenType::NUMBER){
         result.token_type = TokenType::NUMBER;
         result.number_value = left.number_value * right.number_value;
+        result.line_number = left.line_number;
     }
     else{
         result.token_type = TokenType::ERROR;
-        result.error = "cannot multiply types";
+        result.error = "cannot multiply types on line " + QString::number(left.line_number);
+        throw std::logic_error(result.error.toStdString());
     }
     return result;
 }
@@ -23,14 +70,17 @@ ColumnResult ColumnExpression::div(ColumnResult left, ColumnResult right){
         result.token_type = TokenType::NUMBER;
         if(right.number_value == 0){
             result.token_type = TokenType::ERROR;
-            result.error = "divide by zero error";
+            result.error = "divide by zero error on line "+ QString::number(left.line_number);
+            throw std::logic_error(result.error.toStdString());
         }else{
             result.number_value = left.number_value / right.number_value;
+            result.line_number = left.line_number;
         }
     }
     else{
         result.token_type = TokenType::ERROR;
-        result.error = "cannot divide types";
+        result.error = "cannot divide types on line "+ QString::number(left.line_number);
+         throw std::logic_error(result.error.toStdString());
     }
     return result;
 }
@@ -42,10 +92,12 @@ ColumnResult ColumnExpression::minus(ColumnResult left, ColumnResult right){
     if(left.token_type ==TokenType::NUMBER && right.token_type ==TokenType::NUMBER){
         result.token_type = TokenType::NUMBER;
         result.number_value = left.number_value - right.number_value;
+        result.line_number = left.line_number;
     }
     else{
         result.token_type = TokenType::ERROR;
-        result.error = "cannot subtract types";
+        result.error = "cannot subtract types on line "+ QString::number(left.line_number);
+        throw std::logic_error(result.error.toStdString());
     }
     return result;
 }
@@ -59,11 +111,13 @@ ColumnResult ColumnExpression::add(ColumnResult left, ColumnResult right){
         if(right.token_type ==TokenType::STRING){
             result.token_type = TokenType::STRING;
             result.string_value = add(left.string_value, right.string_value);
+            result.line_number = left.line_number;
             //return result;
         }
         else{
             result.token_type = TokenType::STRING;
             result.string_value = add(left.string_value, right.number_value);
+            result.line_number = left.line_number;
             //return result;
         }
     }
@@ -71,17 +125,20 @@ ColumnResult ColumnExpression::add(ColumnResult left, ColumnResult right){
         if(right.token_type ==TokenType::STRING){
             result.token_type = TokenType::STRING;
             result.string_value = add(left.number_value, right.string_value);
+            result.line_number = left.line_number;
             //return result;
         }
         else{
             result.token_type = TokenType::NUMBER;
             result.number_value = add(left.number_value, right.number_value);
+            result.line_number = left.line_number;
             //return result;
         }
     }
     else{
         result.token_type = TokenType::ERROR;
-        result.error = "cannot add types";
+        result.error = "cannot add types on line "+ QString::number(left.line_number);;
+        throw std::logic_error(result.error.toStdString());
     }
 
     return result;
@@ -94,12 +151,7 @@ ColumnResult ColumnExpression::expr(const QStringList& row)
 
     auto left_column_term = get_column_term(true); //get left column term
     left = left_column_term.eval(row); //evaluate the term
-
-    if(left.token_type == TokenType::ERROR){
-        left.error = "Error on line " + QString::number(left_column_term.get_line_number());
-        return left;
-    }
-
+    left.line_number = left_column_term.get_line_number();
 
     while(!column_terms.empty()){ // read and compute all terms in column expression
 
@@ -108,34 +160,17 @@ ColumnResult ColumnExpression::expr(const QStringList& row)
 
         if(right_token.token_type == TokenType::PLUS){
             ColumnResult right = term(row);
-
-            if(right.token_type == TokenType::ERROR){
-                left.error = "Error on line " + QString::number(right_column_term.get_line_number());
-                break;
-            }
-
+            right.line_number = right_column_term.get_line_number();
 
             left = add(left, right);
 
-            if(left.token_type == TokenType::ERROR){
-                left.error = "Error on line " + QString::number(right_column_term.get_line_number());
-                break;
-            }
         }
         else if(right_token.token_type == TokenType::MINUS){
             ColumnResult right = term(row);
-
-            if(right.token_type == TokenType::ERROR){
-                left.error = "Error on line " + QString::number(right_column_term.get_line_number());
-                break;
-            }
+            right.line_number = right_column_term.get_line_number();
 
             left = minus(left, right);
 
-            if(left.token_type == TokenType::ERROR){
-                left.error = "Error on line " + QString::number(right_column_term.get_line_number());
-                break;
-            }
         }
         else{
             //return left;
@@ -154,6 +189,7 @@ ColumnResult ColumnExpression::term(const QStringList& row)
     ColumnResult left;
     auto left_column_term = get_column_term(true);
     left = left_column_term.eval(row);
+    left.line_number = left_column_term.get_line_number();
 
     if(left.token_type == TokenType::ERROR){
         left.error = "Error on line " + QString::number(left_column_term.get_line_number());
@@ -168,18 +204,13 @@ ColumnResult ColumnExpression::term(const QStringList& row)
         if(right_token.token_type == TokenType::MULT){
             ColumnResult right = primary(row);
             left = mult(left, right);
+            left.line_number = right_column_term.get_line_number();
 
-            if(left.token_type == TokenType::ERROR){
-                break;
-            }
         }
         else if(right_token.token_type == TokenType::DIV){
             ColumnResult right = primary(row);
             left = div(left, right);
-
-            if(left.token_type == TokenType::ERROR){
-                break;
-            }
+            left.line_number = right_column_term.get_line_number();
         }
         else{
             //return left;
@@ -204,15 +235,19 @@ ColumnResult ColumnExpression::primary(const QStringList& row)
 
     if(left_token.token_type == TokenType::NUMBER){
         left = left_column_term.eval(row);
+        left.line_number = left_column_term.get_line_number();
     }
     else if(left_token.token_type == TokenType::STRING){
         left = left_column_term.eval(row);
+        left.line_number = left_column_term.get_line_number();
     }
     else if(left_token.token_type == TokenType::COLUMNNAME){
         left = left_column_term.eval(row);
+        left.line_number = left_column_term.get_line_number();
     }
     else if(left_token.token_type == TokenType::COLUMNNUMBER){
         left = left_column_term.eval(row);
+        left.line_number = left_column_term.get_line_number();
     }
     else if(left_token.token_type == TokenType::MINUS){
         ColumnResult neg_1;
@@ -220,60 +255,53 @@ ColumnResult ColumnExpression::primary(const QStringList& row)
         neg_1.number_value = -1;
 
         left = mult(neg_1, primary(row));
+        left.line_number = left_column_term.get_line_number();
     }
     else if(left_token.token_type == TokenType::FUNCTION){
-        std::function<ColumnResult(QList<TokenType>, QList<std::any>)> f= funcs_table[left_token.string_value];
+        std::function<Term(QList<Term>)> f= left_token.func;
 
-        //read function arguments
-        auto next_column_term = get_column_term(true);
-        if(next_column_term.get_token().token_type != TokenType::LBRACKET){
-            left.error = "Expected a '('";
-            left.token_type = TokenType::ERROR;
-        }
-        else{
-            next_column_term = get_column_term(true);
-            QList<TokenType> arg_types;
-            QList<std::any> arg_vals;
-            while(next_column_term.get_token().token_type != TokenType::RBRACKET){
-                ColumnResult arg_result = this->expr(row);
-
-                if(arg_result.token_type == TokenType::ERROR){
-                    left.error = "Error reading arguments for function!";
-                    left.token_type = TokenType::ERROR;
-                }
-                else{
-                    arg_types.append(arg_result.token_type);
-                    if(arg_result.token_type == TokenType::NUMBER){
-                        arg_vals.append(arg_result.number_value);
-                    }
-                    else if(arg_result.token_type == TokenType::NUMBER){
-                        arg_vals.append(arg_result.string_value);
-                    }
-                    else{
-                        left.error = "Invalid token whilst reading function arguments!";
-                        left.token_type = TokenType::ERROR;
-                        break;
-                    }
-                }
+        //
+        QList<Token> func_args_tokens = left_token.func_args;
+        QList<ColumnExpression> colExprs;
+        ColumnExpression col_exp;
+        foreach(auto t, func_args_tokens){
+            ColumnTerm ct(t);
+            if(t.token_type == TokenType::COMMA){
+                colExprs.append(col_exp);
+                col_exp = {};
             }
-            left = f(arg_types, arg_vals); //function call
+            col_exp.add(ct);
         }
+        colExprs.append(col_exp); //add last expression
+
+        QList<ColumnResult> arg_results;
+        foreach(auto ce, colExprs){
+            auto r = ce.eval(row);
+            arg_results.append(r);
+        }
+
+        //call function
+        left = f(arg_results);
+        left.line_number = left_token.line_number;
 
     }
     else if(left_token.token_type == TokenType::LBRACKET){
         auto e = expr(row);
         auto next_token = get_column_term(true);
         if(next_token.get_token().token_type != TokenType::RBRACKET){
-            left.error = "Unexpected token";
+            left.error = "Expected a ) on line "+ QString::number(next_token.get_line_number());
             left.token_type = TokenType::ERROR;
+            throw std::logic_error(left.error.toStdString());
         }
         else{
             left = e;
+            left.line_number = e.line_number;
         }
     }
     else {
-        left.error = "Unexpected token";
+        left.error = "Syntax error on line "+ QString::number(left_column_term.get_line_number());
         left.token_type = TokenType::ERROR;
+        throw std::logic_error(left.error.toStdString());
     }
     return left;
 }

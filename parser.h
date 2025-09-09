@@ -5,18 +5,9 @@
 #include "columnexpression.h"
 #include "Types.h"
 #include "selectstatement.h"
+#include "tokenizer.h"
 
-QHash<QString, double> columns_table; // {COLUMNNANME, index}
 
-QHash<QString, double> numbers_table; // {name, number}
-
-QHash<QString, QString> strings_table; // {name, string}
-
-//QHash<QString, Function> funcs_table; // function name, function args, return_type
-
-QHash<QString, TokenType> symbol_table; //possible types, STRING, NUMBER, FUNCTION, COLUMNAME
-
-QHash<QString, int> out_file_use_count; //select out file, delete file, update file use count; enable future concurrency?
 
 class Parser
 {

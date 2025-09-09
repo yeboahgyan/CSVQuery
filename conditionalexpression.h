@@ -1,88 +1,48 @@
 #ifndef CONDITIONALEXPRESSION_H
 #define CONDITIONALEXPRESSION_H
 #include "Types.h"
-#include "columnterm.h"
+#include "expression.h"
 
 
 class ConditionalExpression
 {
-    QList<ColumnTerm> column_terms;
-    ColumnTerm current_column_term = {{TokenType::END}, 0};
+    QList<Term> terms;
+    QList<Term>::iterator current_term;
+    double item_left = 0;
 
-    ColumnResult expr(const QStringList& row);
-    ColumnResult term(const QStringList& row);
-    ColumnResult primary(const QStringList& row);
-
-    ColumnResult cond_expr(const QStringList& row); // Used for Where clause
-    ColumnResult cond_term(const QStringList& row);
-    ColumnResult cond_primary(const QStringList& row);
-
-    ColumnTerm get_column_term(bool get){
-        if(get){
-            current_column_term = column_terms.front();
-            column_terms.pop_front();
-        }
-
-        return current_column_term;
-    }
-
-    bool iscolumn_or_literal(Token t) const{
-        if (t.token_type == TokenType::COLUMNNAME){
-            return true;
-        }
-
-        if(t.token_type == TokenType::COLUMNNUMBER){
-            return true;
-        }
-
-        if(t.token_type == TokenType::STRING){
-            return true;
-        }
-
-        if(t.token_type == TokenType::NUMBER){
-            return true;
-        }
-
-        return false;
-    }
-
-    double add(double num1, double num2){
-        return num1 + num2;
-    }
-
-    QString add(double num1, QString str){
-        return QString::number(num1) + str;
-    }
-
-    QString add(QString str, double num2){
-        return str + QString::number(num2);
-    }
-
-    QString add(QString str, QString str2){
-        return str + str2;
-    }
+    //QHash<QString, QList<Term>::iterator> end_of_experssion;
 
 
-    ColumnResult mult(ColumnResult left, ColumnResult right);
-    ColumnResult div(ColumnResult left, ColumnResult right);
-    ColumnResult add(ColumnResult left, ColumnResult right);
-    ColumnResult minus(ColumnResult left, ColumnResult right);
+    void move_to_next_term();
 
-    ColumnResult or_op(ColumnResult left, ColumnResult right); // logical OR
-    ColumnResult and_op(ColumnResult left, ColumnResult right); // logical AND
-    ColumnResult eq(ColumnResult left, ColumnResult right); // Equal
-    ColumnResult gt(ColumnResult left, ColumnResult right); // Greater than
-    ColumnResult lt(ColumnResult left, ColumnResult right); // Less than
-    ColumnResult ge(ColumnResult left, ColumnResult right); // Greater than or equal to
-    ColumnResult le(ColumnResult left, ColumnResult right); // Less than or equal to
+    QList<Term>::iterator peak_next_term();
+
+    QList<Term>::iterator get_current_term() const;
+
+    //QList<Term>::iterator end() const;
+
+    Term or_op(Term left, Term right); // logical OR
+    Term and_op(Term left, Term right); // logical AND
+    Term eq(Term left, Term right); // Equal
+    Term neq(Term left, Term right); // Not Equal
+    Term gt(Term left, Term right); // Greater than
+    Term lt(Term left, Term right); // Less than
+    Term ge(Term left, Term right); // Greater than or equal to
+    Term le(Term left, Term right); // Less than or equal to
+
+    Term cond_expr(const QStringList& row, bool get);
+    Term cond_term(const QStringList& row, bool get);
+    Term cond_primary(const QStringList& row, bool get);
+
+    QList<Term> read_cond_expression();
+    Expression read_expression();
+
+
 public:
-    ConditionalExpression();
+    ConditionalExpression(const QList<Term>& ts);
 
-    void add(const ColumnTerm c){
-        column_terms.append(c);
-    }
 
-    ColumnResult eval(const QStringList& row );
+    Term eval(const QStringList& row );
 };
 
 #endif // CONDITIONALEXPRESSION_H

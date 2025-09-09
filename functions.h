@@ -2,26 +2,27 @@
 #define FUNCTIONS_H
 
 #include "Types.h"
+#include "term.h"
 
-ColumnResult trim(QList<TokenType>, QList<std::any>);
+Term trim(QList<Term>);
 
-ColumnResult length(QList<TokenType>, QList<std::any>);
+Term length(QList<Term>);
 
-ColumnResult substring(QList<TokenType>, QList<std::any>);
+Term substring(QList<Term>);
 
-ColumnResult left(QList<TokenType>, QList<std::any>);
+Term left(QList<Term>);
 
-ColumnResult right(QList<TokenType>, QList<std::any>);
+Term right(QList<Term>);
 
-ColumnResult date_gt(QList<TokenType>, QList<std::any>);
+Term date_gt(QList<Term>);
 
-ColumnResult date_lt(QList<TokenType>, QList<std::any>);
+Term date_lt(QList<Term>);
 
-ColumnResult date_ge(QList<TokenType>, QList<std::any>); //greater than or equal
+Term date_ge(QList<Term>); //greater than or equal
 
-ColumnResult date_le(QList<TokenType>, QList<std::any>); //less than or equal
+Term date_le(QList<Term>); //less than or equal
 
-ColumnResult date_eq(QList<TokenType>, QList<std::any>);
+Term date_eq(QList<Term>);
 
 
 

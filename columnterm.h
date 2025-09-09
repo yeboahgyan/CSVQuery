@@ -1,19 +1,20 @@
 #ifndef COLUMNTERM_H
 #define COLUMNTERM_H
 #include "Types.h"
+#include <stdexcept>
 
 class ColumnTerm{
     Token token;
-    double line_number;
+
 public:
-    ColumnTerm(Token t, double line_num): token{t}, line_number{line_num}{}
+    ColumnTerm(Token t): token{t}{}
 
     Token get_token() const {
         return token;
     }
 
     double get_line_number() const{
-        return line_number;
+        return token.line_number;
     }
 
     ColumnResult eval(const QStringList& row){
@@ -45,18 +46,20 @@ public:
 
         }
         else if(token.token_type == TokenType::COLUMNNAME){
-            if(!columns_table.contains(token.string_value)){
+            if(!columns_table.contains(token.string_value.toLower())){
                 result.token_type = TokenType::ERROR;
-                result.error = "Invalid column name "+token.string_value+" on line "+ QString::number(line_number);
-                return result;
+                result.error = "Unknown column name "+token.string_value+" on line "+ QString::number(token.line_number);
+                throw std::logic_error(result.error.toStdString());
+                //return result;
             }
             index = columns_table[token.string_value];
         }
 
         if(index < 0 || index > row.length()){
             result.token_type = TokenType::ERROR;
-            result.error = "Invalid column index "+QString::number(token.number_value)+" on line "+ QString::number(line_number);
-            return result;
+            result.error = "Invalid column index "+QString::number(token.number_value)+" on line "+ QString::number(token.line_number);
+            throw std::logic_error(result.error.toStdString());
+            //return result;
         }
 
         //return value at row index

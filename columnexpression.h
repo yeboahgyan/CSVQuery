@@ -7,7 +7,7 @@
 class ColumnExpression
 {
     QList<ColumnTerm> column_terms;
-    ColumnTerm current_column_term = {{TokenType::END}, 0};
+    ColumnTerm current_column_term = {{TokenType::END}};
 
     ColumnResult expr(const QStringList& row);
     ColumnResult term(const QStringList& row);
@@ -17,50 +17,17 @@ class ColumnExpression
     ColumnResult cond_term(const QStringList& row);
     ColumnResult cond_primary(const QStringList& row);
 
-    ColumnTerm get_column_term(bool get){
-        if(get){
-            current_column_term = column_terms.front();
-            column_terms.pop_front();
-        }
+    ColumnTerm get_column_term(bool get);
 
-        return current_column_term;
-    }
+    bool iscolumn_or_literal(Token t) const;
 
-    bool iscolumn_or_literal(Token t) const{
-        if (t.token_type == TokenType::COLUMNNAME){
-            return true;
-        }
+    double add(double num1, double num2);
 
-        if(t.token_type == TokenType::COLUMNNUMBER){
-            return true;
-        }
+    QString add(double num1, QString str);
 
-        if(t.token_type == TokenType::STRING){
-            return true;
-        }
+    QString add(QString str, double num2);
 
-        if(t.token_type == TokenType::NUMBER){
-            return true;
-        }
-
-        return false;
-    }
-
-    double add(double num1, double num2){
-        return num1 + num2;
-    }
-
-    QString add(double num1, QString str){
-        return QString::number(num1) + str;
-    }
-
-    QString add(QString str, double num2){
-        return str + QString::number(num2);
-    }
-
-    QString add(QString str, QString str2){
-        return str + str2;
-    }
+    QString add(QString str, QString str2);
 
 
     ColumnResult mult(ColumnResult left, ColumnResult right);

@@ -1,448 +1,307 @@
 #include "conditionalexpression.h"
+#include <stdexcept>
+#include <iostream>
+#include "term.h"
 
-ConditionalExpression::ConditionalExpression() {}
-
-ColumnResult ConditionalExpression::mult(ColumnResult left, ColumnResult right){
-    ColumnResult result;
-
-    if(left.token_type ==TokenType::NUMBER && right.token_type ==TokenType::NUMBER){
-        result.token_type = TokenType::NUMBER;
-        result.number_value = left.number_value * right.number_value;
-    }
-    else{
-        result.token_type = TokenType::ERROR;
-        result.error = "cannot multiply types";
-    }
-    return result;
-}
-
-ColumnResult ConditionalExpression::div(ColumnResult left, ColumnResult right){
-    ColumnResult result;
-
-    if(left.token_type ==TokenType::NUMBER && right.token_type ==TokenType::NUMBER){
-        result.token_type = TokenType::NUMBER;
-        if(right.number_value == 0){
-            result.token_type = TokenType::ERROR;
-            result.error = "divide by zero error";
-        }else{
-            result.number_value = left.number_value / right.number_value;
-        }
-    }
-    else{
-        result.token_type = TokenType::ERROR;
-        result.error = "cannot divide types";
-    }
-    return result;
-}
-
-
-ColumnResult ConditionalExpression::minus(ColumnResult left, ColumnResult right){
-    ColumnResult result;
-
-    if(left.token_type ==TokenType::NUMBER && right.token_type ==TokenType::NUMBER){
-        result.token_type = TokenType::NUMBER;
-        result.number_value = left.number_value - right.number_value;
-    }
-    else{
-        result.token_type = TokenType::ERROR;
-        result.error = "cannot subtract types";
-    }
-    return result;
-}
-
-
-ColumnResult ConditionalExpression::add(ColumnResult left, ColumnResult right){
-
-    ColumnResult result;
-
-    if(left.token_type ==TokenType::STRING){
-        if(right.token_type ==TokenType::STRING){
-            result.token_type = TokenType::STRING;
-            result.string_value = add(left.string_value, right.string_value);
-            //return result;
-        }
-        else{
-            result.token_type = TokenType::STRING;
-            result.string_value = add(left.string_value, right.number_value);
-            //return result;
-        }
-    }
-    else if(left.token_type ==TokenType::NUMBER){
-        if(right.token_type ==TokenType::STRING){
-            result.token_type = TokenType::STRING;
-            result.string_value = add(left.number_value, right.string_value);
-            //return result;
-        }
-        else{
-            result.token_type = TokenType::NUMBER;
-            result.number_value = add(left.number_value, right.number_value);
-            //return result;
-        }
-    }
-    else{
-        result.token_type = TokenType::ERROR;
-        result.error = "cannot add types";
-    }
-
-    return result;
-
-}
-
-ColumnResult ConditionalExpression::expr(const QStringList& row)
+ConditionalExpression::ConditionalExpression(const QList<Term>& ts)
+    : terms(ts)
 {
-    ColumnResult left;
-
-    auto left_column_term = get_column_term(true); //get left column term
-    left = left_column_term.eval(row); //evaluate the term
-
-    if(left.token_type == TokenType::ERROR){
-        left.error = "Error on line " + QString::number(left_column_term.get_line_number());
-        return left;
-    }
-
-
-    while(!column_terms.empty()){ // read and compute all terms in column expression
-
-        auto right_column_term = get_column_term(true);
-        auto right_token = right_column_term.get_token();
-
-        if(right_token.token_type == TokenType::PLUS){
-            ColumnResult right = term(row);
-
-            if(right.token_type == TokenType::ERROR){
-                left.error = "Error on line " + QString::number(right_column_term.get_line_number());
-                break;
-            }
-
-
-            left = add(left, right);
-
-            if(left.token_type == TokenType::ERROR){
-                left.error = "Error on line " + QString::number(right_column_term.get_line_number());
-                break;
-            }
-        }
-        else if(right_token.token_type == TokenType::MINUS){
-            ColumnResult right = term(row);
-
-            if(right.token_type == TokenType::ERROR){
-                left.error = "Error on line " + QString::number(right_column_term.get_line_number());
-                break;
-            }
-
-            left = minus(left, right);
-
-            if(left.token_type == TokenType::ERROR){
-                left.error = "Error on line " + QString::number(right_column_term.get_line_number());
-                break;
-            }
-        }
-        else{
-            //return left;
-            this->column_terms.push_front(right_column_term);
-            break;
-        }
-        //left_token = left_column_term.get_token();
-    }
-
-    return left;
+    current_term = terms.begin();
+    item_left = (terms.length() == 0)? 0 : terms.length() - 1;
 }
 
-
-ColumnResult ConditionalExpression::term(const QStringList& row)
+void ConditionalExpression::move_to_next_term()
 {
-    ColumnResult left;
-    auto left_column_term = get_column_term(true);
-    left = left_column_term.eval(row);
-
-    if(left.token_type == TokenType::ERROR){
-        left.error = "Error on line " + QString::number(left_column_term.get_line_number());
-        return left;
+    if(current_term == terms.end()){
+        return;
     }
 
-    while(!column_terms.empty()){
+    //auto n = current_term;
 
-        auto right_column_term = get_column_term(true);
-        auto right_token = right_column_term.get_token();
-
-        if(right_token.token_type == TokenType::MULT){
-            ColumnResult right = primary(row);
-            left = mult(left, right);
-
-            if(left.token_type == TokenType::ERROR){
-                break;
-            }
-        }
-        else if(right_token.token_type == TokenType::DIV){
-            ColumnResult right = primary(row);
-            left = div(left, right);
-
-            if(left.token_type == TokenType::ERROR){
-                break;
-            }
-        }
-        else{
-            //return left;
-            this->column_terms.push_front(right_column_term);
-            break;
-        }
-        //right_token = left_column_term.get_token();
+    if(item_left == 0){
+        current_term = terms.end();
+        return;
     }
 
-    return left;
+    ++current_term;
+    --item_left;
+    //return n;
 }
 
-
-ColumnResult ConditionalExpression::primary(const QStringList& row)
-{
-    ColumnResult left;
-    auto left_column_term = get_column_term(true);
-    Token left_token = left_column_term.get_token();
-
-    //left = left_column_term.eval(row);
-
-
-    if(left_token.token_type == TokenType::NUMBER){
-        left = left_column_term.eval(row);
-    }
-    else if(left_token.token_type == TokenType::STRING){
-        left = left_column_term.eval(row);
-    }
-    else if(left_token.token_type == TokenType::COLUMNNAME){
-        left = left_column_term.eval(row);
-    }
-    else if(left_token.token_type == TokenType::COLUMNNUMBER){
-        left = left_column_term.eval(row);
-    }
-    else if(left_token.token_type == TokenType::MINUS){
-        ColumnResult neg_1;
-        neg_1.token_type = TokenType::NUMBER;
-        neg_1.number_value = -1;
-
-        left = mult(neg_1, primary(row));
-    }
-    else if(left_token.token_type == TokenType::FUNCTION){
-        std::function<ColumnResult(QList<TokenType>, QList<std::any>)> f= funcs_table[left_token.string_value];
-
-        //read function arguments
-        auto next_column_term = get_column_term(true);
-        if(next_column_term.get_token().token_type != TokenType::LBRACKET){
-            left.error = "Expected a '('";
-            left.token_type = TokenType::ERROR;
-        }
-        else{
-            next_column_term = get_column_term(true);
-            QList<TokenType> arg_types;
-            QList<std::any> arg_vals;
-            while(next_column_term.get_token().token_type != TokenType::RBRACKET){
-                ColumnResult arg_result = this->expr(row);
-
-                if(arg_result.token_type == TokenType::ERROR){
-                    left.error = "Error reading arguments for function!";
-                    left.token_type = TokenType::ERROR;
-                }
-                else{
-                    arg_types.append(arg_result.token_type);
-                    if(arg_result.token_type == TokenType::NUMBER){
-                        arg_vals.append(arg_result.number_value);
-                    }
-                    else if(arg_result.token_type == TokenType::NUMBER){
-                        arg_vals.append(arg_result.string_value);
-                    }
-                    else{
-                        left.error = "Invalid token whilst reading function arguments!";
-                        left.token_type = TokenType::ERROR;
-                        break;
-                    }
-                }
-            }
-            left = f(arg_types, arg_vals); //function call
-        }
-
-    }
-    else if(left_token.token_type == TokenType::LBRACKET){
-        auto e = expr(row);
-        auto next_token = get_column_term(true);
-        if(next_token.get_token().token_type != TokenType::RBRACKET){
-            left.error = "Unexpected token";
-            left.token_type = TokenType::ERROR;
-        }
-        else{
-            left = e;
-        }
-    }
-    else {
-        left.error = "Unexpected token";
-        left.token_type = TokenType::ERROR;
-    }
-
-
-    return left;
+QList<Term>::iterator ConditionalExpression::get_current_term() const{
+    return current_term;
 }
 
-ColumnResult ConditionalExpression::eval(const QStringList& row ){
-    ColumnResult result;
-
-    result = cond_expr(row);
-
-    return result;
+QList<Term>::iterator ConditionalExpression::peak_next_term() {
+    QList<Term>::iterator n = current_term + 1;
+    return n;
 }
 
 //Where clause
-ColumnResult ConditionalExpression::or_op(ColumnResult left, ColumnResult right) // logical OR
+Term ConditionalExpression::or_op(Term left, Term right) // logical OR
 {
-    ColumnResult result;
-    if(left.token_type != TokenType::BOOLEAN){
-        result.token_type = TokenType::ERROR;
-        result.error = "Left operand should be a boolean!";
+    Term result;
+
+    if(left.get_token().token_type == TokenType::NUMBER){
+        if(right.get_token().token_type != TokenType::NUMBER){
+            QString error = "Right operand on line ";
+            error += QString::number(right.get_line_number());
+            error+= " should also be a number!";
+            throw std::logic_error(error.toStdString());
+        }
+
     }
-    else if(right.token_type != TokenType::BOOLEAN){
-        result.token_type = TokenType::ERROR;
-        result.error = "Right operand should be a boolean!";
+    else if(left.get_token().token_type == TokenType::STRING){
+        if(right.get_token().token_type != TokenType::STRING){
+            QString error = "Right operand on line ";
+            error += QString::number(right.get_line_number());
+            error+= " should also be a string!";
+            throw std::logic_error(error.toStdString());
+        }
+    }
+    else if(left.get_token().token_type == TokenType::BOOLEAN){
+        if(right.get_token().token_type != TokenType::BOOLEAN){
+            QString error = "Right operand on line ";
+            error += QString::number(right.get_line_number());
+            error+= " should also be a boolean!";
+            throw std::logic_error(error.toStdString());
+        }
+    }
+
+    Token t;
+    t.token_type = TokenType::BOOLEAN;
+    t.boolean_value = left.get_token().boolean_value || right.get_token().boolean_value;
+    result = Term(t);
+
+    return result;
+}
+
+Term ConditionalExpression::and_op(Term left, Term right) // logical AND
+{
+    Term result;
+
+    if(left.get_token().token_type == TokenType::BOOLEAN){
+        if(right.get_token().token_type != TokenType::BOOLEAN){
+            QString error = "Right operand on line ";
+            error += QString::number(right.get_line_number());
+            error+= " should also be a boolean!";
+            throw std::logic_error(error.toStdString());
+        }
+
+        Token t;
+        t.token_type = TokenType::BOOLEAN;
+        t.boolean_value = left.get_token().boolean_value && right.get_token().boolean_value;
+        result = Term(t);
     }
     else{
-        result.token_type = TokenType::BOOLEAN;
-        result.boolean_value = left.boolean_value || right.boolean_value;
+        QString error = "Left operand of AND on line ";
+        error += QString::number(right.get_line_number());
+        error+= " should be a boolean!";
+        throw std::logic_error(error.toStdString());
     }
 
     return result;
 }
 
-ColumnResult ConditionalExpression::and_op(ColumnResult left, ColumnResult right) // logical AND
+Term ConditionalExpression::eq(Term left, Term right) // Equal
 {
-    ColumnResult result;
-    if(left.token_type != TokenType::BOOLEAN){
-        result.token_type = TokenType::ERROR;
-        result.error = "Left operand should be a boolean!";
+    Term result;
+
+    Token t;
+    t.token_type = TokenType::BOOLEAN;
+
+    if(left.get_token().token_type == TokenType::NUMBER){
+        if(right.get_token().token_type != TokenType::NUMBER){
+            QString error = "Right operand on line ";
+            error += QString::number(right.get_line_number());
+            error+= " should also be a number!";
+            throw std::logic_error(error.toStdString());
+        }
+        t.boolean_value = left.get_token().number_value == right.get_token().number_value;
     }
-    else if(right.token_type != TokenType::BOOLEAN){
-        result.token_type = TokenType::ERROR;
-        result.error = "Right operand should be a boolean!";
+    else if(left.get_token().token_type == TokenType::STRING){
+        if(right.get_token().token_type != TokenType::STRING){
+            QString error = "Right operand on line ";
+            error += QString::number(right.get_line_number());
+            error+= " should also be a string!";
+            throw std::logic_error(error.toStdString());
+        }
+
+        t.boolean_value = left.get_token().string_value == right.get_token().string_value;
+    }
+    else if(left.get_token().token_type == TokenType::BOOLEAN){
+        if(right.get_token().token_type != TokenType::BOOLEAN){
+            QString error = "Right operand on line ";
+            error += QString::number(right.get_line_number());
+            error+= " should also be a boolean!";
+            throw std::logic_error(error.toStdString());
+        }
+        t.boolean_value = left.get_token().boolean_value == right.get_token().boolean_value;
     }
     else{
-        result.token_type = TokenType::BOOLEAN;
-        result.boolean_value = left.boolean_value && right.boolean_value;
+        QString error = "Unexpected left operand on line ";
+        error += QString::number(right.get_line_number());
+        throw std::logic_error(error.toStdString());
+    }
+
+    result = Term(t);
+
+    return result;
+}
+
+Term ConditionalExpression::neq(Term left, Term right) // Not Equal
+{
+    Term result;
+
+    Token t;
+    t.token_type = TokenType::BOOLEAN;
+
+    if(left.get_token().token_type == TokenType::NUMBER){
+        if(right.get_token().token_type != TokenType::NUMBER){
+            QString error = "Right operand on line ";
+            error += QString::number(right.get_line_number());
+            error+= " should also be a number!";
+            throw std::logic_error(error.toStdString());
+        }
+        t.boolean_value = left.get_token().number_value != right.get_token().number_value;
+    }
+    else if(left.get_token().token_type == TokenType::STRING){
+        if(right.get_token().token_type != TokenType::STRING){
+            QString error = "Right operand on line ";
+            error += QString::number(right.get_line_number());
+            error+= " should also be a string!";
+            throw std::logic_error(error.toStdString());
+        }
+
+        t.boolean_value = left.get_token().string_value != right.get_token().string_value;
+    }
+    else if(left.get_token().token_type == TokenType::BOOLEAN){
+        if(right.get_token().token_type != TokenType::BOOLEAN){
+            QString error = "Right operand on line ";
+            error += QString::number(right.get_line_number());
+            error+= " should also be a boolean!";
+            throw std::logic_error(error.toStdString());
+        }
+        t.boolean_value = left.get_token().boolean_value != right.get_token().boolean_value;
+    }
+    else{
+        QString error = "Unexpected left operand on line ";
+        error += QString::number(right.get_line_number());
+        throw std::logic_error(error.toStdString());
+    }
+
+    result = Term(t);
+
+    return result;
+}
+
+Term ConditionalExpression::gt(Term left, Term right) // Greater than
+{
+    Term result;
+    if(left.get_token().token_type == TokenType::NUMBER){
+
+        if(right.get_token().token_type == TokenType::NUMBER){
+            Token t;
+            t.token_type = TokenType::BOOLEAN;
+            t.boolean_value = left.get_token().number_value > right.get_token().number_value;
+            result = Term(t);
+        }
+        else{
+            QString error = "Right operand on line ";
+            error += QString::number(right.get_line_number());
+            error+= " should also be a number!";
+            throw std::logic_error(error.toStdString());
+        }
+    }
+    else{
+        QString error = "Left operand on line ";
+        error += QString::number(left.get_line_number());
+        error+= " should be a number!";
+        throw std::logic_error(error.toStdString());
     }
 
     return result;
 }
 
-ColumnResult ConditionalExpression::eq(ColumnResult left, ColumnResult right) // Equal
+Term ConditionalExpression::lt(Term left, Term right) // Less than
 {
-    ColumnResult result;
-    if(left.token_type == TokenType::NUMBER){
+    Term result;
+    if(left.get_token().token_type == TokenType::NUMBER){
 
-        if(right.token_type == TokenType::NUMBER){
-            result.token_type = TokenType::BOOLEAN;
-            result.boolean_value = left.number_value == right.number_value;
+        if(right.get_token().token_type == TokenType::NUMBER){
+            Token t;
+            t.token_type = TokenType::BOOLEAN;
+            t.boolean_value = left.get_token().number_value < right.get_token().number_value;
+            result = Term(t);
         }
         else{
-            result.token_type = TokenType::ERROR;
-            result.error = "Right operand should be a number!";
-        }
-    }
-    else if(right.token_type != TokenType::STRING){
-
-        if(right.token_type == TokenType::STRING){
-            result.token_type = TokenType::BOOLEAN;
-            result.boolean_value = left.string_value == right.string_value;
-        }
-        else{
-            result.token_type = TokenType::ERROR;
-            result.error = "Right operand should be a string!";
+            QString error = "Right operand on line ";
+            error += QString::number(right.get_line_number());
+            error+= " should also be a number!";
+            throw std::logic_error(error.toStdString());
         }
     }
     else{
-        result.token_type = TokenType::ERROR;
-        result.error = "Left operand is should be a number or string!";
+        QString error = "Left operand on line ";
+        error += QString::number(left.get_line_number());
+        error+= " should be a number!";
+        throw std::logic_error(error.toStdString());
     }
 
     return result;
 }
 
-ColumnResult ConditionalExpression::gt(ColumnResult left, ColumnResult right) // Greater than
+Term ConditionalExpression::ge(Term left, Term right) // Greater than or equal to
 {
-    ColumnResult result;
-    if(left.token_type == TokenType::NUMBER){
+    Term result;
+    if(left.get_token().token_type == TokenType::NUMBER){
 
-        if(right.token_type == TokenType::NUMBER){
-            result.token_type = TokenType::BOOLEAN;
-            result.boolean_value = left.number_value > right.number_value;
+        if(right.get_token().token_type == TokenType::NUMBER){
+            Token t;
+            t.token_type = TokenType::BOOLEAN;
+            t.boolean_value = left.get_token().number_value >= right.get_token().number_value;
+            result = Term(t);
         }
         else{
-            result.token_type = TokenType::ERROR;
-            result.error = "Right operand should be a number!";
+            QString error = "Right operand on line ";
+            error += QString::number(right.get_line_number());
+            error+= " should also be a number!";
+            throw std::logic_error(error.toStdString());
         }
     }
     else{
-        result.token_type = TokenType::ERROR;
-        result.error = "Left operand is should be a number!";
+        QString error = "Left operand on line ";
+        error += QString::number(left.get_line_number());
+        error+= " should be a number!";
+        throw std::logic_error(error.toStdString());
     }
 
     return result;
 }
 
-ColumnResult ConditionalExpression::lt(ColumnResult left, ColumnResult right) // Less than
+Term ConditionalExpression::le(Term left, Term right) // Less than or equal to
 {
-    ColumnResult result;
-    if(left.token_type == TokenType::NUMBER){
+    Term result;
+    if(left.get_token().token_type == TokenType::NUMBER){
 
-        if(right.token_type == TokenType::NUMBER){
-            result.token_type = TokenType::BOOLEAN;
-            result.boolean_value = left.number_value < right.number_value;
+        if(right.get_token().token_type == TokenType::NUMBER){
+            Token t;
+            t.token_type = TokenType::BOOLEAN;
+            t.boolean_value = left.get_token().number_value <= right.get_token().number_value;
+            result = Term(t);
         }
         else{
-            result.token_type = TokenType::ERROR;
-            result.error = "Right operand should be a number!";
+            QString error = "Right operand on line ";
+            error += QString::number(right.get_line_number());
+            error+= " should also be a number!";
+            throw std::logic_error(error.toStdString());
         }
     }
     else{
-        result.token_type = TokenType::ERROR;
-        result.error = "Left operand is should be a number!";
-    }
-
-    return result;
-}
-
-ColumnResult ConditionalExpression::ge(ColumnResult left, ColumnResult right) // Greater than or equal to
-{
-    ColumnResult result;
-    if(left.token_type == TokenType::NUMBER){
-
-        if(right.token_type == TokenType::NUMBER){
-            result.token_type = TokenType::BOOLEAN;
-            result.boolean_value = left.number_value >= right.number_value;
-        }
-        else{
-            result.token_type = TokenType::ERROR;
-            result.error = "Right operand should be a number!";
-        }
-    }
-    else{
-        result.token_type = TokenType::ERROR;
-        result.error = "Left operand is should be a number!";
-    }
-
-    return result;
-}
-
-ColumnResult ConditionalExpression::le(ColumnResult left, ColumnResult right) // Less than or equal to
-{
-    ColumnResult result;
-    if(left.token_type == TokenType::NUMBER){
-
-        if(right.token_type == TokenType::NUMBER){
-            result.token_type = TokenType::BOOLEAN;
-            result.boolean_value = left.number_value <= right.number_value;
-        }
-        else{
-            result.token_type = TokenType::ERROR;
-            result.error = "Right operand should be a number!";
-        }
-    }
-    else{
-        result.token_type = TokenType::ERROR;
-        result.error = "Left operand is should be a number!";
+        QString error = "Left operand on line ";
+        error += QString::number(left.get_line_number());
+        error+= " should be a number!";
+        throw std::logic_error(error.toStdString());
     }
 
     return result;
@@ -450,103 +309,62 @@ ColumnResult ConditionalExpression::le(ColumnResult left, ColumnResult right) //
 
 
 // Used for Where clause
-ColumnResult ConditionalExpression::cond_expr(const QStringList& row)
+Term ConditionalExpression::cond_expr(const QStringList& row, bool get)
 {
-    ColumnResult left = expr(row);
+    Term left = cond_term(row, get);
 
-    auto left_column_term = get_column_term(true); //get left column term
-    left = left_column_term.eval(row); //evaluate the term
+    std::cout<<"cond_expr() left: "<<left.get_token().to_string().toStdString()<<"\n";
 
-    if(left.token_type == TokenType::ERROR){
-        left.error = "Error on line " + QString::number(left_column_term.get_line_number());
-        return left;
-    }
-
-
-    while(!column_terms.empty()){ // read and compute all terms in column expression
-
-        auto right_column_term = get_column_term(true);
-        auto right_token = right_column_term.get_token();
-
-        if(right_token.token_type == TokenType::AND){
-            ColumnResult right = cond_term(row);
-
-            if(right.token_type == TokenType::ERROR){
-                left.error = "Error on line " + QString::number(right_column_term.get_line_number());
-                break;
-            }
-
-
+    while(current_term != terms.end()){ // read and compute all terms in column expression
+        //std::cout<<"expr() current term: "<<current_term->get_token().to_string().toStdString()<<"\n";
+        if(current_term->get_token().token_type == TokenType::AND){
+            Term right = cond_term(row, true);
+            std::cout<<"cond_expr() AND right: "<<right.get_token().to_string().toStdString()<<"\n";
             left = and_op(left, right);
-
-            if(left.token_type == TokenType::ERROR){
-                left.error = "Error on line " + QString::number(right_column_term.get_line_number());
-                break;
-            }
         }
-        else if(right_token.token_type == TokenType::OR){
-            ColumnResult right = cond_term(row);
-
-            if(right.token_type == TokenType::ERROR){
-                left.error = "Error on line " + QString::number(right_column_term.get_line_number());
-                break;
-            }
-
-            left = or_op(left, right);
-
-            if(left.token_type == TokenType::ERROR){
-                left.error = "Error on line " + QString::number(right_column_term.get_line_number());
-                break;
-            }
+        else if(current_term->get_token().token_type == TokenType::OR){
+            left = or_op(left, cond_term(row, true));
         }
         else{
-            //return left;
-            this->column_terms.push_front(right_column_term);
             break;
         }
-        //left_token = left_column_term.get_token();
+
     }
 
     return left;
 }
 
-ColumnResult ConditionalExpression::cond_term(const QStringList& row)
+Term ConditionalExpression::cond_term(const QStringList& row, bool get)
 {
-    ColumnResult left;
-    auto left_column_term = get_column_term(true);
-    left = left_column_term.eval(row);
+    Term left = cond_primary(row, get);
 
-    if(left.token_type == TokenType::ERROR){
-        left.error = "Error on line " + QString::number(left_column_term.get_line_number());
-        return left;
-    }
+    std::cout<<"cond_term() current left: "<<left.get_token().to_string().toStdString()<<"\n";
 
-    while(!column_terms.empty()){
-        auto next_column_term = get_column_term(true);
-        auto next_token = next_column_term.get_token();
+    while(current_term != terms.end()){
 
-        if(next_token.token_type == TokenType::ASSIGN){ //Equal to
-            auto right = expr(row);
+        if(current_term->get_token().token_type == TokenType::ASSIGN){ //Equal
+            Term right = cond_primary(row, true);
+            std::cout<<"cond_term() == right: "<<right.get_token().to_string().toStdString()<<"\n";
             left = eq(left, right);
         }
-        else if(next_token.token_type == TokenType::LESSTHAN){
-            auto right = expr(row);
-            left = lt(left, right);
+        else if(current_term->get_token().token_type == TokenType::NOTEQUALTO){
+            Term right = cond_primary(row, true);
+            std::cout<<"cond_term() != right: "<<right.get_token().to_string().toStdString()<<"\n";
+            left = neq(left, right);
         }
-        else if(next_token.token_type == TokenType::LESSTHANOREQUAL){
-            auto right = expr(row);
-            left = le(left, right);
+        else if(current_term->get_token().token_type == TokenType::LESSTHAN){
+            left = lt(left, cond_primary(row, true));
         }
-        else if(next_token.token_type == TokenType::GREATERTHAN){
-            auto right = expr(row);
-            left = gt(left, right);
+        else if(current_term->get_token().token_type == TokenType::GREATERTHAN){
+            left = gt(left, cond_primary(row, true));
         }
-        else if(next_token.token_type == TokenType::GREATERTHANOREQUAL){
-            auto right = expr(row);
-            left = ge(left, right);
+        else if(current_term->get_token().token_type == TokenType::LESSTHANOREQUAL){
+            left = le(left, cond_primary(row, true));
+        }
+        else if(current_term->get_token().token_type == TokenType::GREATERTHANOREQUAL){
+            left = ge(left, cond_primary(row, true));
         }
         else{
-            this->column_terms.push_front(next_column_term);
             break;
         }
     }
@@ -554,9 +372,114 @@ ColumnResult ConditionalExpression::cond_term(const QStringList& row)
     return left;
 }
 
-ColumnResult ConditionalExpression::cond_primary(const QStringList& row)
+
+Term ConditionalExpression::cond_primary(const QStringList& row, bool get)
 {
-    ColumnResult left;
+    if(get){
+        move_to_next_term();
+    }
+    Term left = *get_current_term();
+
+    //std::cout<<"cond_primary() current left: "<<left.get_token().to_string().toStdString()<<"\n";
+
+    if(left.get_token().token_type == TokenType::LBRACKET){
+        //auto e = cond_expr(row, true);
+        //left = e;
+        move_to_next_term(); //eat (
+        std::cout<<" token after ( is "<< current_term->get_token().to_string().toStdString()<<"\n";
+        auto ts = read_cond_expression();
+        ConditionalExpression ce(ts);
+        Term t = ce.eval(row);
+
+        if(current_term->get_token().token_type != TokenType::RBRACKET){
+            std::cout<<"next token "<<current_term->get_token().to_string().toStdString()<<"\n";
+            QString error = "Expected a ) on line "+ QString::number(current_term->get_token().line_number);
+            throw std::logic_error(error.toStdString());
+        }
+        else{
+            //left = e;
+
+            std::cout<<"ce result="<<t.get_token().to_string().toStdString()<<" {"<<t.get_token().string_value.toStdString()<<"}\n";
+
+            left = t;
+            move_to_next_term(); //eat )
+        }
+    }
+    //else if(left.get_token().token_type == TokenType::RBRACKET){
+        //move_to_next_term();
+    //}
+    else{
+        //left = expr(row, get);
+        //move_to_next_term();
+        //std::cout<<"Calling read_expression()\n";
+        Expression e = read_expression();
+        //std::cout<<"evaluating left side of conditional expression\n";
+        left = e.eval(row);
+        std::cout<<"ex result="<<left.get_token().to_string().toStdString()<<" {"<<left.get_token().string_value.toStdString()<<"}\n";
+        //move_to_next_term();
+        //std::cout<<"done.\n";
+    }
 
     return left;
 }
+
+Term ConditionalExpression::eval(const QStringList& row)
+{
+    Token t = {.token_type =  TokenType::END, .token_name = "TokenType::END"};
+    Term result(t);
+
+    //std::cout<<"ConditionalExpression::eval(): cond_expr()\n";
+    result = cond_expr(row, false);
+    //std::cout<<"done.\n";
+
+
+    return result;
+}
+
+QList<Term> ConditionalExpression::read_cond_expression()
+{
+    QList<Term> ts;
+
+    /*
+    QList<QString> relational_tokens = {"TokenType::ASSIGN", "TokenType::AND", "TokenType::OR", "TokenType::LESSTHAN", "TokenType::GREATERTHAN",
+                                        "TokenType::LESSTHANOREQUAL", "TokenType::GREATERTHANOREQUAL", "TokenType::NOTEQUALTO", "TokenType::RBRACKET"};
+    */
+    QList<QString> relational_tokens = {"TokenType::RBRACKET"};
+
+    while(current_term != terms.end()){
+        if(relational_tokens.contains(current_term->get_token().to_string())){
+            break;
+        }
+        Term t(*current_term);
+        ts.append(t);
+        move_to_next_term();
+    }
+    //Expression e(ts);
+    //return e;
+    return ts;
+}
+
+Expression ConditionalExpression::read_expression()
+{
+    QList<Term> ts;
+
+
+    QList<QString> relational_tokens = {"TokenType::ASSIGN", "TokenType::AND", "TokenType::OR", "TokenType::LESSTHAN", "TokenType::GREATERTHAN",
+                                        "TokenType::LESSTHANOREQUAL", "TokenType::GREATERTHANOREQUAL", "TokenType::NOTEQUALTO"};
+
+    //QList<QString> relational_tokens = {"TokenType::RBRACKET"};
+
+    while(current_term != terms.end()){
+        if(relational_tokens.contains(current_term->get_token().to_string())){
+            break;
+        }
+        Term t(*current_term);
+        ts.append(t);
+        move_to_next_term();
+    }
+    Expression e(ts);
+    return e;
+    //return ts;
+}
+
+

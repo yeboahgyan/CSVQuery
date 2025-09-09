@@ -1,3 +1,4 @@
+
 #include "parser.h"
 #include "conditionalexpression.h"
 #include <QFileInfo>
@@ -306,7 +307,7 @@ QList<ColumnExpression> Parser::read_column_expr(QList<Token> tokens)
                 break;
             }
 
-            ColumnTerm term(current_token, current_token.line_number);
+            ColumnTerm term(current_token);
             col_expr.add(term);
 
             if(tokens.empty()){
@@ -330,7 +331,7 @@ QList<ColumnExpression> Parser::read_column_expr(QList<Token> tokens)
 
 SelectStatement Parser::select_statement(QList<Token>& tokens)
 {
-    SelectStatement select;
+    SelectStatement select(tokens);
     Result result;
     if(tokens.empty()){
         result.hasOutput=false;
@@ -493,3 +494,4 @@ QList<Result> Parser::execute()
 
     return results;
 }
+
