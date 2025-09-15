@@ -1,10 +1,225 @@
 #include "selectstatement.h"
-
+#include <stdexcept>
+#include <QFileInfo>
+#include <iterator>
 
 SelectStatement::SelectStatement(const QList<Token>& tks)
     :
     tokens{tks}
-{}
+{
+    last_token_pos = tokens.cbegin();
+}
+
+void SelectStatement::throw_exception_if_unexpected_end()
+{
+    if(last_token_pos == tokens.cend()){
+        --last_token_pos; //get last but one token
+        double line_numer = (*last_token_pos).line_number;
+        QString str_num = QString::number(line_numer);
+
+        throw std::logic_error("Unexpected end to SELECT statement on line "+ str_num.toStdString());
+    }
+}
+
+QList<Expression> SelectStatement::read_column_expressions()
+{
+    QList<Term> terms;
+    QList<Expression> exps;
+
+    for(; last_token_pos != tokens.cend(); ++last_token_pos){
+
+        if((last_token_pos->token_type == TokenType::SEMICOLON) || (last_token_pos->token_type == TokenType::FROM)){
+            Expression exp(terms);
+            exps.append(exp);
+            break;
+        }
+
+        if(last_token_pos->token_type == TokenType::COMMA){
+            Expression exp(terms);
+            exps.append(exp);
+            terms = {};
+        }
+        else{
+
+            Term t(*last_token_pos);
+            terms.append(t);
+        }
+    }
+
+    throw_exception_if_unexpected_end();
+
+    if((last_token_pos->token_type != TokenType::SEMICOLON) || (last_token_pos->token_type != TokenType::FROM)){
+        double line_numer = (*last_token_pos).line_number;
+        QString str_num = QString::number(line_numer);
+
+        throw std::logic_error("Unexpected end to column list on line "+ str_num.toStdString());
+    }
+
+    return exps;
+}
+
+
+ std::shared_ptr<CSVFile> SelectStatement::read_file()
+{
+
+    throw_exception_if_unexpected_end();
+
+     QString f;
+     if((last_token_pos->token_type == TokenType::NAME) || (last_token_pos->token_type == TokenType::STRING)){
+         if(last_token_pos->token_type == TokenType::NAME){ // name
+             if(!symbol_table.contains(last_token_pos->string_value.toLower())){
+                 double line_numer = (*last_token_pos).line_number;
+                 QString str_num = QString::number(line_numer);
+
+                 throw std::logic_error("Unknown name on line "+ str_num.toStdString());
+             }
+
+             TokenType token_type = symbol_table[last_token_pos->string_value.toLower()];
+             if(token_type != TokenType::STRING){
+                 double line_numer = (*last_token_pos).line_number;
+                 QString str_num = QString::number(line_numer);
+
+                 throw std::logic_error("Invalid name on line "+ str_num.toStdString());
+             }
+
+             f = strings_table[last_token_pos->string_value.toLower()];
+         }
+         else{ //String
+             f = last_token_pos->string_value.toLower();
+         }
+
+         // check if provided string is a valid file
+         QFileInfo fileInfo(f);
+         if( !fileInfo.exists() || !fileInfo.isFile()){
+             double line_numer = (*last_token_pos).line_number;
+             QString str_num = QString::number(line_numer);
+
+             throw std::logic_error("Invalid file provided on line "+ str_num.toStdString());
+         }
+
+         //left_file = std::make_shared<CSVFile>(f);
+     }
+
+     return std::make_shared<CSVFile>(f);
+}
+
+std::shared_ptr<ConditionalExpression> SelectStatement::read_on_clause()
+{
+    throw_exception_if_unexpected_end();
+
+    QList<Term> terms;
+
+    if(last_token_pos->token_type != TokenType::ON){
+        //error
+    }
+
+    ++last_token_pos; //next token
+    throw_exception_if_unexpected_end();
+
+    if(last_token_pos->token_type != TokenType::COLUMNNAME ){
+        //error
+    }
+
+    Term left_t(*last_token_pos);
+    terms.append(left_t);
+
+    ++last_token_pos; //next token
+    throw_exception_if_unexpected_end();
+
+    if(last_token_pos->token_type != TokenType::ASSIGN){
+        //error
+    }
+
+    Term op_t(*last_token_pos);
+    terms.append(op_t);
+
+    ++last_token_pos; //next token
+    throw_exception_if_unexpected_end();
+
+    if(last_token_pos->token_type != TokenType::COLUMNNAME ){
+        //error
+    }
+
+    Term right_t(*last_token_pos);
+    terms.append(right_t);
+    terms.append(right_t);
+
+    return std::make_shared<ConditionalExpression>(terms);
+
+}
+
+
+void SelectStatement::parse()
+{
+    //read columns
+    column_exprs = read_column_expressions();
+
+    if(last_token_pos->token_type == TokenType::SEMICOLON){
+        return;
+    }
+
+    // FROM Clause
+    // check if there is a next token after FROM
+    ++last_token_pos;
+    if(last_token_pos == tokens.cend()){
+        --last_token_pos; //get last but one token
+        double line_numer = (*last_token_pos).line_number;
+        QString str_num = QString::number(line_numer);
+
+        throw std::logic_error("Unexpected end to SELECT statement on line "+ str_num.toStdString());
+    }
+
+
+    // read file name or path string and open file
+    this->left_file = read_file();
+
+    ++last_token_pos; // next token
+
+    if((last_token_pos == tokens.cend()) || (last_token_pos->token_type == TokenType::SEMICOLON)){
+        return;
+    }
+
+    // What is the next token?
+    if(last_token_pos->token_type == TokenType::INNERJOIN){
+        this->join_type = last_token_pos->token_type;
+
+        ++last_token_pos; // next token
+
+        this->right_file = read_file();
+
+        ++last_token_pos; // next token
+        this->on_clause = read_on_clause();
+    }
+    else if(last_token_pos->token_type == TokenType::OUTERJOIN){
+        this->join_type = last_token_pos->token_type;
+
+        ++last_token_pos; // next token
+
+        this->right_file = read_file();
+
+        ++last_token_pos; // next token
+        this->on_clause = read_on_clause();
+    }
+    else if(last_token_pos->token_type == TokenType::CROSSJOIN){
+        this->join_type = last_token_pos->token_type;
+
+        ++last_token_pos; // next token
+
+        this->right_file = read_file();
+    }
+    else if(last_token_pos->token_type == TokenType::WHERE){
+
+    }
+    else if(last_token_pos->token_type == TokenType::GROUPBY){
+
+    }
+    else{ // invalid token
+        double line_numer = (*last_token_pos).line_number;
+        QString str_num = QString::number(line_numer);
+
+        throw std::logic_error("Unexpected end to SELECT statement on line "+ str_num.toStdString());
+    }
+}
 
 
 Result SelectStatement::eval()
@@ -104,56 +319,6 @@ Result SelectStatement::inner_join_eval()
     return result;
 }
 
-
-bool SelectStatement::read_column_expressions()
-{
-    ColumnExpression col_expr;
-    Token from_token;
-
-    //get column tokens
-    QList<Token> col_tokens;
-    while(!tokens.empty()){
-        Token token = tokens.front();
-        tokens.pop_front();
-        if(token.token_type == TokenType::FROM){
-            from_token = token;
-            //tokens.push_front(token);
-            break;
-        }
-        col_tokens.append(token);
-    }
-
-    if(col_tokens.empty()){
-        error_msg = "No columns provided!";
-        return false;
-    }
-
-    Token last_token = col_tokens.last();
-    if(last_token.token_type == TokenType::COMMA){
-        error_msg = "Unexpected ',' at end of columns on line "+ QString::number(last_token.line_number);
-        return false;
-    }
-
-    // create column expressions
-    while(!col_tokens.empty()){
-        Token token = tokens.front();
-        tokens.pop_front();
-
-        ColumnTerm ct(token);
-
-        if(token.token_type == TokenType::COMMA){
-            column_exprs.append(col_expr);
-            col_expr = {};
-            continue;
-        }
-        col_expr.add(ct);
-
-    }
-
-    tokens.push_back(from_token); // from token back to token list
-
-    return true;
-}
 
 bool SelectStatement::get_file(bool is_out_file)
 {

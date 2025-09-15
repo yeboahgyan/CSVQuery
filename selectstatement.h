@@ -2,28 +2,39 @@
 #define SELECTSTATEMENT_H
 #include <QFileInfo>
 #include <QBuffer>
-
+#include <memory>
 #include "Types.h"
-#include "columnexpression.h"
 #include "conditionalexpression.h"
+#include "csvfile.h"
 
 
 class SelectStatement
 {
-    QList<ColumnExpression> column_exprs;
-    ConditionalExpression conditional_expr; // where clause
-    ColumnExpression on_clause;
-    QString out_file;
-    QList<QString> csv_files;
-    QList<Token> tokens;
-    QString error_msg;
+    QList<Expression> column_exprs; // columns
+    std::shared_ptr<ConditionalExpression> conditional_expr; // where clause
+    std::shared_ptr<ConditionalExpression> on_clause; // on clause for joins
+
+    QString out_file; // output file
+
+    std::shared_ptr<CSVFile> left_file;
+    std::shared_ptr<CSVFile> right_file;
+
+    QList<Token> tokens; // select statement tokens excluding select. Last token is a semi-colon
+    QList<Token>::const_iterator last_token_pos;
+
     bool has_join;
     bool has_where_clause;
     TokenType join_type;
+    void throw_exception_if_unexpected_end();
 public:
     SelectStatement(const QList<Token>& tks);
 
-    bool read_column_expressions();
+    QList<Expression> read_column_expressions();
+
+    std::shared_ptr<CSVFile> read_file();
+    std::shared_ptr<ConditionalExpression> read_on_clause();
+
+    void parse();
 
     bool get_file(bool is_out_file = false);
 
@@ -56,19 +67,10 @@ public:
     bool get_file_mem_map(std::shared_ptr<QFile> f, std::shared_ptr<QBuffer> b);
 
 
-    QString get_error() const{
-        return error_msg;
-    }
-
-    void add_column_expression(const ColumnExpression& col_expr){
-        column_exprs.append(col_expr);
-    }
-
-    void add_conditional_expr(const ConditionalExpression& cond_expr){
-        conditional_expr = cond_expr;
-    }
-
     Result eval();
+
+    void execute_and_save_to_file();
+    QList<QStringList> execute_and_return(int number_of_rows); // make it a coroutine
 };
 
 #endif // SELECTSTATEMENT_H
