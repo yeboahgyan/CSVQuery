@@ -6,6 +6,7 @@
 #include "Types.h"
 #include "conditionalexpression.h"
 #include "csvfile.h"
+//#include <optional>
 
 
 class SelectStatement
@@ -14,7 +15,7 @@ class SelectStatement
     std::shared_ptr<ConditionalExpression> conditional_expr; // where clause
     std::shared_ptr<ConditionalExpression> on_clause; // on clause for joins
 
-    QString out_file; // output file
+    std::shared_ptr<CSVFile> out_file; // output file
 
     std::shared_ptr<CSVFile> left_file;
     std::shared_ptr<CSVFile> right_file;
@@ -25,52 +26,29 @@ class SelectStatement
     bool has_join;
     bool has_where_clause;
     TokenType join_type;
+    bool wite_to_file;
     void throw_exception_if_unexpected_end();
-public:
-    SelectStatement(const QList<Token>& tks);
+
+    void handle_into_clause();
+    void handle_inner_join();
+    void handle_outer_join();
+    void handle_cross_join();
+    void handle_where_clause();
+    void handle_groupby_clause();
+    QMap<TokenType, std::function<void()>> optional_actions;
 
     QList<Expression> read_column_expressions();
-
-    std::shared_ptr<CSVFile> read_file();
+    std::shared_ptr<CSVFile> read_file(QIODeviceBase::OpenMode m = QIODevice::ReadOnly);
     std::shared_ptr<ConditionalExpression> read_on_clause();
+    std::shared_ptr<ConditionalExpression> read_where();
 
     void parse();
 
-    bool get_file(bool is_out_file = false);
+public:
+    SelectStatement(const QList<Token>& tks);
 
-    bool read_join(TokenType join_type);
-
-    bool read_where();
-
-    bool read_into();
-
-    void enable_join(bool yes_no){
-        has_join = yes_no;
-    }
-
-    void enable_where_clause(bool yes_no){
-        has_where_clause = yes_no;
-    }
-
-    void set_join_type(TokenType jt){
-        join_type = jt;
-    }
-
-    Result no_join_eval();
-
-    Result inner_join_eval();
-
-    Result outer_join_eval();
-
-    Result cross_join_eval();
-
-    bool get_file_mem_map(std::shared_ptr<QFile> f, std::shared_ptr<QBuffer> b);
-
-
-    Result eval();
-
-    void execute_and_save_to_file();
-    QList<QStringList> execute_and_return(int number_of_rows); // make it a coroutine
+    void execute(); //save result to file
+    QList<QStringList> execute(int number_of_rows); // make it a coroutine
 };
 
 #endif // SELECTSTATEMENT_H

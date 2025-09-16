@@ -1,13 +1,22 @@
 #include "selectstatement.h"
 #include <stdexcept>
 #include <QFileInfo>
-#include <iterator>
+
 
 SelectStatement::SelectStatement(const QList<Token>& tks)
     :
     tokens{tks}
 {
     last_token_pos = tokens.cbegin();
+
+    optional_actions[TokenType::CROSSJOIN] = [this](){handle_cross_join();};
+    optional_actions[TokenType::INNERJOIN] = [this](){handle_inner_join();};
+    optional_actions[TokenType::OUTERJOIN] = [this](){handle_outer_join();};
+    optional_actions[TokenType::INTO] = [this](){handle_into_clause();};
+    optional_actions[TokenType::WHERE] = [this](){handle_where_clause();};
+    optional_actions[TokenType::GROUPBY] = [this](){handle_groupby_clause();};
+
+    parse();
 }
 
 void SelectStatement::throw_exception_if_unexpected_end()
@@ -59,7 +68,24 @@ QList<Expression> SelectStatement::read_column_expressions()
 }
 
 
- std::shared_ptr<CSVFile> SelectStatement::read_file()
+std::shared_ptr<ConditionalExpression> SelectStatement::read_where()
+{
+    QList<Term> cond_terms;
+
+    for(; last_token_pos != tokens.cend(); ++last_token_pos){
+        if((last_token_pos->token_type == TokenType::SEMICOLON) || (last_token_pos->token_type == TokenType::END)){
+            break;
+        }
+
+        Term t(*last_token_pos);
+        cond_terms.append(t);
+    }
+
+    return std::make_shared<ConditionalExpression>(cond_terms);
+}
+
+
+ std::shared_ptr<CSVFile> SelectStatement::read_file(QIODeviceBase::OpenMode m)
 {
 
     throw_exception_if_unexpected_end();
@@ -100,7 +126,7 @@ QList<Expression> SelectStatement::read_column_expressions()
          //left_file = std::make_shared<CSVFile>(f);
      }
 
-     return std::make_shared<CSVFile>(f);
+     return std::make_shared<CSVFile>(f, m);
 }
 
 std::shared_ptr<ConditionalExpression> SelectStatement::read_on_clause()
@@ -118,6 +144,9 @@ std::shared_ptr<ConditionalExpression> SelectStatement::read_on_clause()
 
     if(last_token_pos->token_type != TokenType::COLUMNNAME ){
         //error
+        std::string error = "Expected a column in ON clause on line ";
+        error += std::to_string(last_token_pos->line_number);
+        throw std::logic_error(error);
     }
 
     Term left_t(*last_token_pos);
@@ -128,6 +157,9 @@ std::shared_ptr<ConditionalExpression> SelectStatement::read_on_clause()
 
     if(last_token_pos->token_type != TokenType::ASSIGN){
         //error
+        std::string error = "Comparison operator in an ON clause should be '=' on line ";
+        error += std::to_string(last_token_pos->line_number);
+        throw std::logic_error(error);
     }
 
     Term op_t(*last_token_pos);
@@ -138,6 +170,9 @@ std::shared_ptr<ConditionalExpression> SelectStatement::read_on_clause()
 
     if(last_token_pos->token_type != TokenType::COLUMNNAME ){
         //error
+        std::string error = "Expected a column in ON clause on line ";
+        error += std::to_string(last_token_pos->line_number);
+        throw std::logic_error(error);
     }
 
     Term right_t(*last_token_pos);
@@ -145,6 +180,145 @@ std::shared_ptr<ConditionalExpression> SelectStatement::read_on_clause()
     terms.append(right_t);
 
     return std::make_shared<ConditionalExpression>(terms);
+
+}
+
+
+
+void SelectStatement::handle_into_clause()
+{
+    ++last_token_pos; // next token
+
+    this->out_file = read_file(QIODevice::WriteOnly);
+    this->wite_to_file = true;
+}
+
+void SelectStatement::handle_inner_join()
+{
+    this->has_join = true;
+    this->join_type = last_token_pos->token_type;
+
+    ++last_token_pos; // next token
+
+    this->right_file = read_file();
+
+    ++last_token_pos; // next token
+    this->on_clause = read_on_clause();
+
+    ++last_token_pos; // next token
+
+    if(last_token_pos == tokens.cend()){
+        return;
+    }
+
+    if(last_token_pos->token_type == TokenType::END){
+        return;
+    }
+
+    QList<TokenType> valid_next_tokens = {TokenType::INTO, TokenType::WHERE, TokenType::GROUPBY};
+    if(!valid_next_tokens.contains(last_token_pos->token_type)){
+        //throw error
+        std::string error = "Unexpected token on line ";
+        error += std::to_string(last_token_pos->line_number);
+        throw std::logic_error(error);
+    }
+
+    optional_actions[last_token_pos->token_type](); //call handler function for the next valid token
+}
+
+void SelectStatement::handle_outer_join()
+{
+    this->has_join = true;
+    this->join_type = last_token_pos->token_type;
+
+    ++last_token_pos; // next token
+
+    this->right_file = read_file();
+
+    ++last_token_pos; // next token
+    this->on_clause = read_on_clause();
+
+    ++last_token_pos; // next token
+
+    if(last_token_pos == tokens.cend()){
+        return;
+    }
+
+    if(last_token_pos->token_type == TokenType::END){
+        return;
+    }
+
+    QList<TokenType> valid_next_tokens = {TokenType::INTO, TokenType::WHERE, TokenType::GROUPBY};
+    if(!valid_next_tokens.contains(last_token_pos->token_type)){
+        //throw error
+        std::string error = "Unexpected token on line ";
+        error += std::to_string(last_token_pos->line_number);
+        throw std::logic_error(error);
+    }
+
+    optional_actions[last_token_pos->token_type](); //call handler function for the next valid token
+}
+
+void SelectStatement::handle_cross_join()
+{
+    this->has_join = true;
+    this->join_type = last_token_pos->token_type;
+
+    ++last_token_pos; // next token
+
+    this->right_file = read_file();
+
+    ++last_token_pos; // next token
+
+    if(last_token_pos == tokens.cend()){
+        return;
+    }
+
+    if(last_token_pos->token_type == TokenType::END){
+        return;
+    }
+
+    QList<TokenType> valid_next_tokens = {TokenType::INTO, TokenType::WHERE, TokenType::GROUPBY};
+    if(!valid_next_tokens.contains(last_token_pos->token_type)){
+        //throw error
+        std::string error = "Unexpected token on line ";
+        error += std::to_string(last_token_pos->line_number);
+        throw std::logic_error(error);
+    }
+
+    optional_actions[last_token_pos->token_type](); //call handler function for the next valid token
+}
+
+void SelectStatement::handle_where_clause()
+{
+    this->has_where_clause = true;
+    ++last_token_pos; // next token
+
+    this->conditional_expr = read_where(); //clause clause
+
+    ++last_token_pos; // next token
+
+    if(last_token_pos == tokens.cend()){
+        return;
+    }
+
+    if(last_token_pos->token_type == TokenType::END){
+        return;
+    }
+
+    QList<TokenType> valid_next_tokens = {TokenType::GROUPBY, TokenType::INTO};
+    if(!valid_next_tokens.contains(last_token_pos->token_type)){
+        //throw error
+        std::string error = "Unexpected token on line ";
+        error += std::to_string(last_token_pos->line_number);
+        throw std::logic_error(error);
+    }
+
+    optional_actions[last_token_pos->token_type](); //call handler function for the next valid token
+}
+
+void SelectStatement::handle_groupby_clause()
+{
 
 }
 
@@ -181,37 +355,19 @@ void SelectStatement::parse()
 
     // What is the next token?
     if(last_token_pos->token_type == TokenType::INNERJOIN){
-        this->join_type = last_token_pos->token_type;
-
-        ++last_token_pos; // next token
-
-        this->right_file = read_file();
-
-        ++last_token_pos; // next token
-        this->on_clause = read_on_clause();
+        optional_actions[last_token_pos->token_type](); //call handler function for the next valid token
     }
     else if(last_token_pos->token_type == TokenType::OUTERJOIN){
-        this->join_type = last_token_pos->token_type;
-
-        ++last_token_pos; // next token
-
-        this->right_file = read_file();
-
-        ++last_token_pos; // next token
-        this->on_clause = read_on_clause();
+        optional_actions[last_token_pos->token_type](); //call handler function for the next valid token
     }
     else if(last_token_pos->token_type == TokenType::CROSSJOIN){
-        this->join_type = last_token_pos->token_type;
-
-        ++last_token_pos; // next token
-
-        this->right_file = read_file();
+        optional_actions[last_token_pos->token_type](); //call handler function for the next valid token
     }
     else if(last_token_pos->token_type == TokenType::WHERE){
-
+        optional_actions[last_token_pos->token_type](); //call handler function for the next valid token
     }
     else if(last_token_pos->token_type == TokenType::GROUPBY){
-
+        optional_actions[last_token_pos->token_type](); //call handler function for the next valid token
     }
     else{ // invalid token
         double line_numer = (*last_token_pos).line_number;
@@ -221,242 +377,3 @@ void SelectStatement::parse()
     }
 }
 
-
-Result SelectStatement::eval()
-{
-    //open files
-    //iterate over files
-    //pass row to conditionalexpression
-    //if true then pass row to columnexpression
-    //save result to result object or out_file
-    //return
-    Result result;
-
-    if(has_join){
-
-        if(join_type == TokenType::INNERJOIN){
-            result = inner_join_eval();
-        }
-        else if(join_type == TokenType::OUTERJOIN){
-            result = outer_join_eval();
-        }
-        else if(join_type == TokenType::CROSSJOIN){
-            result = cross_join_eval();
-        }
-
-    }else{
-        // no join
-        result = no_join_eval();
-    }
-
-    return result;
-}
-
-bool SelectStatement::get_file_mem_map(std::shared_ptr<QFile> f, std::shared_ptr<QBuffer> b)
-{
-    if (!f->open(QIODevice::ReadOnly)) {
-        // Handle error
-        return false;
-    }
-
-    uchar *mappedData = f->map(0, f->size());
-    if (!mappedData) {
-        // Handle error
-        f->close();
-        return false;
-    }
-
-    b->setData(reinterpret_cast<const char*>(mappedData), f->size());
-    b->open(QIODevice::ReadOnly);
-
-    return true;
-}
-
-Result SelectStatement::no_join_eval()
-{
-    Result result;
-
-    std::shared_ptr<QFile>f = std::make_shared<QFile>(csv_files.first());
-
-    std::shared_ptr<QBuffer> b = std::make_shared<QBuffer>();
-
-    if(!get_file_mem_map(f,b)){
-        result.successful =false;
-        result.error = "Error mapping "+csv_files.first() +" to memory";
-        return result;
-    }
-
-    QTextStream in(b.get());
-    while(!in.atEnd()){
-        QStringList row = in.readLine().split(',');
-
-        if(has_where_clause){
-            ColumnResult cres = conditional_expr.eval(row);
-            if(cres.token_type != TokenType::BOOLEAN){
-                result.successful = false;
-                result.error = "error parsing where clause";
-                return result;
-            }
-
-            if(cres.boolean_value == false){
-                continue; //skip row
-            }
-
-            //select column values
-            // write to out file if set
-        }
-    }
-
-    return result;
-}
-
-Result SelectStatement::inner_join_eval()
-{
-    Result result;
-
-
-
-    return result;
-}
-
-
-bool SelectStatement::get_file(bool is_out_file)
-{
-    Token token = tokens.front();
-    tokens.pop_front();
-
-    QList<TokenType> acceptable_tokens = {TokenType::NAME, TokenType::STRING};
-
-
-    if(!acceptable_tokens.contains(token.token_type)){
-        error_msg = "Unexpected value for file on line "+ QString::number(token.line_number);
-        return false;
-    }
-
-    QString file;
-    if(token.token_type == TokenType::STRING){
-        file = token.string_value;
-    }
-    else if(token.token_type == TokenType::NAME){
-        if(!symbol_table.contains(token.string_value)){
-            error_msg = "Unknown name "+ token.string_value + " on line "+ QString::number(token.line_number);
-            return false;
-        }
-
-        TokenType name_type = symbol_table[token.string_value];
-        if(name_type != TokenType::STRING){
-            error_msg = token.string_value + " is not an alias for a file path on line "+ QString::number(token.line_number);
-            return false;
-        }
-
-        file = strings_table[token.string_value];
-    }
-
-    QFileInfo fileInfo(file);
-    if( !fileInfo.exists() || !fileInfo.isFile()){
-
-        error_msg = "Provided path is not a valid file at line "+ QString::number(token.line_number);
-        return false;
-    }
-
-    if(is_out_file){
-        out_file = file;
-    }else{
-        csv_files.append(file);
-    }
-
-    return true;
-}
-
-bool SelectStatement::read_join(TokenType join_type)
-{
-    //get joined file
-    bool success = get_file();
-    if(!success){
-        return false;
-    }
-
-    if(join_type == TokenType::CROSSJOIN){
-        return true;
-    }
-
-    //eat ON token
-    Token token = tokens.front();
-    tokens.pop_front();
-
-    if(token.token_type != TokenType::ON){
-        error_msg = "Unexpected token after JOIN on line "+ QString::number(token.line_number);
-        return false;
-    }
-
-    //get first column term
-    token = tokens.front();
-    tokens.pop_front();
-
-    QList<TokenType> acceptable_tokens = {TokenType::COLUMNNAME, TokenType::COLUMNNUMBER};
-
-    if(!acceptable_tokens.contains(token.token_type)){
-        error_msg = "Expected a column after ON clause on line "+ QString::number(token.line_number);
-        return false;
-    }
-
-    //ColumnExpression col_expr;
-    ColumnTerm ct1{token};
-
-    on_clause.add(ct1);
-
-    //get assign term
-    token = tokens.front();
-    tokens.pop_front();
-
-    if(token.token_type != TokenType::ASSIGN){
-        error_msg = "Unexpected token after column in ON clause on line "+ QString::number(token.line_number);
-        return false;
-    }
-
-    //handle outer join
-    token.token_type = (join_type == TokenType::OUTERJOIN)? TokenType::NOTEQUALTO : TokenType::ASSIGN;
-
-    ColumnTerm ct2{token};
-    on_clause.add(ct2);
-
-    //get second column term
-    token = tokens.front();
-    tokens.pop_front();
-
-    if(!acceptable_tokens.contains(token.token_type)){
-        error_msg = "Expected a column after ON clause on line "+ QString::number(token.line_number);
-        return false;
-    }
-
-    ColumnTerm ct3{token};
-    on_clause.add(ct3);
-
-
-    return true;
-}
-
-bool SelectStatement::read_where()
-{
-    while(!tokens.empty()){
-        Token token = tokens.front();
-        tokens.pop_front();
-
-        if(token.token_type == TokenType::SEMICOLON){
-            break;
-        }
-        ColumnTerm ct(token);
-        conditional_expr.add(ct);
-    }
-    return true;
-}
-
-bool SelectStatement::read_into()
-{
-    //get joined file
-    bool success = get_file(true); // read out file name into this->out_file
-    if(!success){
-        return false;
-    }
-    return true;
-}
