@@ -30,9 +30,9 @@ class ConditionalExpression
     Term ge(Term left, Term right); // Greater than or equal to
     Term le(Term left, Term right); // Less than or equal to
 
-    Term cond_expr(const QStringList& row, bool get);
-    Term cond_term(const QStringList& row, bool get);
-    Term cond_primary(const QStringList& row, bool get);
+    Term cond_expr(const QMap<QString, QStringList>& data_rows, bool get);
+    Term cond_term(const QMap<QString, QStringList>& data_rows, bool get);
+    Term cond_primary(const QMap<QString, QStringList>& data_rows, bool get);
 
     QList<Term> read_cond_expression();
     Expression read_expression();
@@ -42,7 +42,7 @@ public:
     ConditionalExpression(const QList<Term>& ts);
 
 
-    Term eval(const QStringList& row );
+    Term eval(const QMap<QString, QStringList>& data_rows );
 };
 
 #endif // CONDITIONALEXPRESSION_H

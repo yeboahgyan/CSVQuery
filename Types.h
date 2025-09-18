@@ -5,7 +5,7 @@
 #include <QTextStream>
 #include <QList>
 #include <QHash>
-#include <any>
+//#include <any>
 //#include "term.h"
 #include <functional>
 //#include <map>
@@ -13,7 +13,7 @@
 
 enum class TokenType  : char /* char16_t*/ {
     NAME, NUMBER, STRING, BOOLEAN, SELECT, FROM, WHERE, AND, OR, INTO, UPDATE, DELETE, IMPORT, END, COLUMNNAME, COLUMNNUMBER, ERROR, FUNCTION,
-    ON, INNERJOIN, OUTERJOIN, CROSSJOIN, DOT, NOTEQUALTO, NOT, SET, GROUPBY,
+    ON, INNERJOIN, OUTERJOIN, CROSSJOIN, DOT, NOTEQUALTO, NOT, SET, GROUPBY, DOLLAR='$', AS,
     PLUS='+', MULT='*', MINUS='-', DIV='/', ASSIGN='=', LBRACKET='(', RBRACKET=')', LSQBRACKET='[', RSQBRACKET=']', COMMENT='#',
     SINGLEQOUTE='\'', DOUBLEQUOTE='"', COMMA=',', SEMICOLON=';', COLON=':', LESSTHAN='<', GREATERTHAN='>', LESSTHANOREQUAL, GREATERTHANOREQUAL
 };
@@ -104,6 +104,8 @@ extern QHash<QString, QList<TokenType>> func_args_type_list; // returns list of 
 extern QHash<QString, TokenType> symbol_table; //possible types, STRING, NUMBER, FUNCTION, COLUMNAME
 
 extern QHash<QString, int> out_file_use_count; //select out file, delete file, update file use count; enable future concurrency?
+
+extern QHash<QString, QList<QString>> import_defs; // def and column list; import statement loads data into it; read during annotated assigments
 
 
 

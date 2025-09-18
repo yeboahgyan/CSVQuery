@@ -23,6 +23,7 @@ Tokenizer::Tokenizer(std::shared_ptr<QTextStream> str)
     char_table['>'] = TokenType::GREATERTHAN;
     char_table['<'] = TokenType::LESSTHAN;
     char_table['!'] = TokenType::NOT;
+    char_table['$'] = TokenType::DOLLAR;
 }
 
 Token Tokenizer::read(QChar quote)
@@ -32,7 +33,9 @@ Token Tokenizer::read(QChar quote)
 
     if(quote == '*'){ // read till whitespace or operator character
         //std::cout<<"reading name...\n";
+        QChar previous_ch;
         while(true){
+            previous_ch = ch;
             (*stream) >> ch;
 
             if(ch.isSpace()){
@@ -43,12 +46,17 @@ Token Tokenizer::read(QChar quote)
             }
 
             if(char_table.contains(ch)){
-                //std::cout<<ch.toLatin1()<<" semi-colon\n";
-                stream->seek(stream->pos() - 1); //put char back in stream
-                //QChar c;
-                //(*stream)>> c;
-                //std::cout<<"\ndebug c="<<c.toLatin1()<<"\n";
-                break;
+
+                if(ch == '*'){ // allow names in format tablename.*
+                    if(previous_ch == '.'){
+                        //continue reading
+                    }
+                }
+                else
+                {
+                    stream->seek(stream->pos() - 1); //put char back in stream
+                    break;
+                }
             }
 
             str.append(ch);
@@ -200,9 +208,9 @@ Token Tokenizer::get()
         stream->seek(stream->pos() - 1); //put char back in stream
 
         token =  read();
-        std::cout<<"debug: " <<token <<" "<< token.string_value.toStdString()<<"\n";
+        //std::cout<<"debug: " <<token <<" "<< token.string_value.toStdString()<<"\n";
 
-        // is keyword
+        // is a keyword
         QStringList expected_joins = {"inner", "outer", "cross"};
         if(keywords.contains(token.string_value.toLower()) || expected_joins.contains(token.string_value.toLower())){
 
@@ -238,7 +246,10 @@ Token Tokenizer::get()
         }
         else if(symbol_table.contains(token.string_value.toLower())){ // is built in variable or function
             std::cout<<"found a built-in symbol "<<token.string_value.toStdString()<<"\n";
+
             TokenType name_type = symbol_table[token.string_value.toLower()];
+            token.token_type = name_type;
+
             if(name_type == TokenType::STRING){
                 QString string_value = strings_table[token.string_value.toLower()];
                 token.string_value = string_value;
@@ -251,6 +262,13 @@ Token Tokenizer::get()
                 token.string_value = QString::number(number_value);
                 token.token_type = TokenType::NUMBER;
                 token.token_name = "TokenType::NUMBER";
+            }
+            else if(name_type == TokenType::COLUMNNAME){
+                double index = columns_table[token.string_value.toLower()]; //get column index
+                token.number_value = index;
+                //token.string_value = QString::number(index);
+                token.token_type = TokenType::COLUMNNAME;
+                token.token_name = "TokenType::COLUMNNAME";
             }
             else if(name_type == TokenType::FUNCTION){
                 std::cout<<"symbol '"<<token.string_value.toStdString()<<"' is a function.\n";

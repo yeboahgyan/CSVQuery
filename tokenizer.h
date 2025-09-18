@@ -14,7 +14,9 @@ class Tokenizer
     static inline QHash<QString, TokenType> keywords = {{"select", TokenType::SELECT}, {"from", TokenType::FROM}, {"where", TokenType::WHERE},
                                                         {"and", TokenType::AND}, {"or", TokenType::OR}, {"into", TokenType::INTO}, {"update", TokenType::UPDATE},
                                                         {"delete", TokenType::DELETE}, {"import", TokenType::IMPORT}, {"into", TokenType::INTO}, {"set", TokenType::SET},
-                                                         {"inner join", TokenType::INNERJOIN}, {"outer join", TokenType::OUTERJOIN}, {"cross join", TokenType::CROSSJOIN}};
+                                                         {"inner join", TokenType::INNERJOIN}, {"outer join", TokenType::OUTERJOIN}, {"cross join", TokenType::CROSSJOIN},
+                                                        {"as", TokenType::AS}
+    };
 
     QList<TokenType> read_func_args();
 

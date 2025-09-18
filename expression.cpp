@@ -1,6 +1,7 @@
 #include "expression.h"
 #include <stdexcept>
 #include <iostream>
+#include <QMap>
 
 Expression::Expression(const QList<Term>& ts)
     : terms{ts}
@@ -201,9 +202,9 @@ Term Expression::add(Term left, Term right){
 
 }
 
-Term Expression::expr(const QStringList& row, bool get)
+Term Expression::expr(const QMap<QString, QStringList>& data_rows, bool get)
 {
-    Term left = term(row, get);
+    Term left = term(data_rows, get);
 
     //std::cout<<"expr() left: "<<left.get_token().number_value<<"\n";
 
@@ -211,10 +212,10 @@ Term Expression::expr(const QStringList& row, bool get)
         //std::cout<<"expr() current term: "<<current_term->get_token().to_string().toStdString()<<"\n";
 
         if(current_term->get_token().token_type == TokenType::PLUS){
-            left = add(left, term(row, true));
+            left = add(left, term(data_rows, true));
         }
        else if(current_term->get_token().token_type == TokenType::MINUS){
-            left = minus(left, term(row, true));
+            left = minus(left, term(data_rows, true));
         }
         else{
             break;
@@ -225,9 +226,9 @@ Term Expression::expr(const QStringList& row, bool get)
 }
 
 
-Term Expression::term(const QStringList& row, bool get)
+Term Expression::term(const QMap<QString, QStringList>& data_rows, bool get)
 {
-    Term left = primary(row, get);
+    Term left = primary(data_rows, get);
 
     //std::cout<<"term() current left: "<<left.get_token().to_string().toStdString()<<"\n";
 
@@ -237,10 +238,10 @@ Term Expression::term(const QStringList& row, bool get)
 
 
         if(current_term->get_token().token_type == TokenType::MULT){
-            left = mult(left, primary(row, true));
+            left = mult(left, primary(data_rows, true));
         }
         else if(current_term->get_token().token_type == TokenType::DIV){
-            left = div(left, primary(row, true));
+            left = div(left, primary(data_rows, true));
         }
         else{
             break;
@@ -251,7 +252,7 @@ Term Expression::term(const QStringList& row, bool get)
 }
 
 
-Term Expression::primary(const QStringList& row, bool get)
+Term Expression::primary(const QMap<QString, QStringList>& data_rows, bool get)
 {
     if(get){
         move_to_next_term();
@@ -304,12 +305,12 @@ Term Expression::primary(const QStringList& row, bool get)
         }
     }
     else if(left_token.token_type == TokenType::COLUMNNAME){
-        left = left.eval(row);
+        left = left.eval(data_rows);
         move_to_next_term();
         //left.line_number = left_column_term.get_line_number();
     }
     else if(left_token.token_type == TokenType::COLUMNNUMBER){
-        left = left.eval(row);
+        left = left.eval(data_rows);
         move_to_next_term();
         //left.line_number = left_column_term.get_line_number();
     }
@@ -317,7 +318,7 @@ Term Expression::primary(const QStringList& row, bool get)
         Token t = {.token_type = TokenType::NUMBER, .string_value="-1", .number_value=-1, .line_number=left_token.line_number, .token_name="TokenType::NUMBER"};
         Term neg_1(t);
 
-        left = mult(neg_1, primary(row, true));
+        left = mult(neg_1, primary(data_rows, true));
         //left.line_number = left_column_term.get_line_number();
     }
     else if(left_token.token_type == TokenType::FUNCTION){
@@ -344,7 +345,7 @@ Term Expression::primary(const QStringList& row, bool get)
 
         QList<Term> arg_results;
         foreach(auto ce, exprs){
-            auto r = ce.eval(row);
+            auto r = ce.eval(data_rows);
             arg_results.append(r);
         }
 
@@ -353,7 +354,7 @@ Term Expression::primary(const QStringList& row, bool get)
         move_to_next_term();
     }
     else if(left_token.token_type == TokenType::LBRACKET){
-        auto e = expr(row, true);
+        auto e = expr(data_rows, true);
 
         if(current_term->get_token().token_type != TokenType::RBRACKET){
             QString error = "Expected a ) on line "+ QString::number(current_term->get_token().line_number);
@@ -375,10 +376,11 @@ Term Expression::primary(const QStringList& row, bool get)
     return left;
 }
 
-Term Expression::eval(const QStringList& row ){
+Term Expression::eval(const QMap<QString, QStringList>& data_rows ){
 
     if(is_star()){
-        return eval_star_term(row);
+
+        return eval_star_term(data_rows);
     }
 
     Token t = {.token_type =  TokenType::END, .token_name = "TokenType::END"};
@@ -386,7 +388,7 @@ Term Expression::eval(const QStringList& row ){
 
     //next_term();
 
-    result = expr(row, false);
+    result = expr(data_rows, false);
 
     /*
     while(current_term != terms.end()){
@@ -400,4 +402,5 @@ Term Expression::eval(const QStringList& row ){
     return result;
 
 }
+
 

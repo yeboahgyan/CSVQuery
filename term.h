@@ -28,6 +28,8 @@ public:
 
     Token eval(const QStringList& row);
     Term eval_and_return_term(const QStringList& row);
+
+    Token eval(const QMap<QString, QStringList>& data_rows);
 };
 
 #endif // TERM_H

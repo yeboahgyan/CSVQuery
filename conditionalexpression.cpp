@@ -309,21 +309,21 @@ Term ConditionalExpression::le(Term left, Term right) // Less than or equal to
 
 
 // Used for Where clause
-Term ConditionalExpression::cond_expr(const QStringList& row, bool get)
+Term ConditionalExpression::cond_expr(const QMap<QString, QStringList>& data_rows, bool get)
 {
-    Term left = cond_term(row, get);
+    Term left = cond_term(data_rows, get);
 
     std::cout<<"cond_expr() left: "<<left.get_token().to_string().toStdString()<<"\n";
 
     while(current_term != terms.end()){ // read and compute all terms in column expression
         //std::cout<<"expr() current term: "<<current_term->get_token().to_string().toStdString()<<"\n";
         if(current_term->get_token().token_type == TokenType::AND){
-            Term right = cond_term(row, true);
+            Term right = cond_term(data_rows, true);
             std::cout<<"cond_expr() AND right: "<<right.get_token().to_string().toStdString()<<"\n";
             left = and_op(left, right);
         }
         else if(current_term->get_token().token_type == TokenType::OR){
-            left = or_op(left, cond_term(row, true));
+            left = or_op(left, cond_term(data_rows, true));
         }
         else{
             break;
@@ -334,35 +334,35 @@ Term ConditionalExpression::cond_expr(const QStringList& row, bool get)
     return left;
 }
 
-Term ConditionalExpression::cond_term(const QStringList& row, bool get)
+Term ConditionalExpression::cond_term(const QMap<QString, QStringList>& data_rows, bool get)
 {
-    Term left = cond_primary(row, get);
+    Term left = cond_primary(data_rows, get);
 
     std::cout<<"cond_term() current left: "<<left.get_token().to_string().toStdString()<<"\n";
 
     while(current_term != terms.end()){
 
         if(current_term->get_token().token_type == TokenType::ASSIGN){ //Equal
-            Term right = cond_primary(row, true);
+            Term right = cond_primary(data_rows, true);
             std::cout<<"cond_term() == right: "<<right.get_token().to_string().toStdString()<<"\n";
             left = eq(left, right);
         }
         else if(current_term->get_token().token_type == TokenType::NOTEQUALTO){
-            Term right = cond_primary(row, true);
+            Term right = cond_primary(data_rows, true);
             std::cout<<"cond_term() != right: "<<right.get_token().to_string().toStdString()<<"\n";
             left = neq(left, right);
         }
         else if(current_term->get_token().token_type == TokenType::LESSTHAN){
-            left = lt(left, cond_primary(row, true));
+            left = lt(left, cond_primary(data_rows, true));
         }
         else if(current_term->get_token().token_type == TokenType::GREATERTHAN){
-            left = gt(left, cond_primary(row, true));
+            left = gt(left, cond_primary(data_rows, true));
         }
         else if(current_term->get_token().token_type == TokenType::LESSTHANOREQUAL){
-            left = le(left, cond_primary(row, true));
+            left = le(left, cond_primary(data_rows, true));
         }
         else if(current_term->get_token().token_type == TokenType::GREATERTHANOREQUAL){
-            left = ge(left, cond_primary(row, true));
+            left = ge(left, cond_primary(data_rows, true));
         }
         else{
             break;
@@ -373,7 +373,7 @@ Term ConditionalExpression::cond_term(const QStringList& row, bool get)
 }
 
 
-Term ConditionalExpression::cond_primary(const QStringList& row, bool get)
+Term ConditionalExpression::cond_primary(const QMap<QString, QStringList>& data_rows, bool get)
 {
     if(get){
         move_to_next_term();
@@ -389,7 +389,7 @@ Term ConditionalExpression::cond_primary(const QStringList& row, bool get)
         std::cout<<" token after ( is "<< current_term->get_token().to_string().toStdString()<<"\n";
         auto ts = read_cond_expression();
         ConditionalExpression ce(ts);
-        Term t = ce.eval(row);
+        Term t = ce.eval(data_rows);
 
         if(current_term->get_token().token_type != TokenType::RBRACKET){
             std::cout<<"next token "<<current_term->get_token().to_string().toStdString()<<"\n";
@@ -414,7 +414,7 @@ Term ConditionalExpression::cond_primary(const QStringList& row, bool get)
         //std::cout<<"Calling read_expression()\n";
         Expression e = read_expression();
         //std::cout<<"evaluating left side of conditional expression\n";
-        left = e.eval(row);
+        left = e.eval(data_rows);
         std::cout<<"ex result="<<left.get_token().to_string().toStdString()<<" {"<<left.get_token().string_value.toStdString()<<"}\n";
         //move_to_next_term();
         //std::cout<<"done.\n";
@@ -423,13 +423,13 @@ Term ConditionalExpression::cond_primary(const QStringList& row, bool get)
     return left;
 }
 
-Term ConditionalExpression::eval(const QStringList& row)
+Term ConditionalExpression::eval(const QMap<QString, QStringList>& data_rows)
 {
     Token t = {.token_type =  TokenType::END, .token_name = "TokenType::END"};
     Term result(t);
 
     //std::cout<<"ConditionalExpression::eval(): cond_expr()\n";
-    result = cond_expr(row, false);
+    result = cond_expr(data_rows, false);
     //std::cout<<"done.\n";
 
 

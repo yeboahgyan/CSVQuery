@@ -8,12 +8,14 @@ CONFIG += c++20 cmdline
 
 SOURCES += \
         #columnexpression.cpp \
+        assignstatement.cpp \
         conditionalexpression.cpp \
         csvfile.cpp \
         expression.cpp \
         functions.cpp \
+        importstatement.cpp \
         main.cpp \
-        parser.cpp \
+        #parser.cpp \
         selectstatement.cpp \
         term.cpp \
         tokenizer.cpp \
@@ -26,6 +28,7 @@ else: unix:!android: target.path = /opt/$${TARGET}/bin
 
 HEADERS += \
     Types.h \
+    assignstatement.h \
     columnexpression.h \
     #columnterm.h \
     conditionalexpression.h \
@@ -33,7 +36,8 @@ HEADERS += \
     csvfile.h \
     expression.h \
     functions.h \
-    parser.h \
+    #parser.h \
+    importstatement.h \
     selectstatement.h \
     term.h \
     tokenizer.h

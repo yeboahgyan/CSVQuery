@@ -4,8 +4,15 @@
 CSVFile::CSVFile(const QString& file_path, QIODeviceBase::OpenMode mode)
 : QFile{file_path}
 {
+    QIODeviceBase::OpenMode flags;
+    if(mode == QIODevice::ReadOnly){
+        flags = mode | QIODevice::Text;
+    }
+    else if(mode == QIODevice::WriteOnly){
+        flags = (mode | QIODevice::Text | QIODevice::Truncate);
+    }
 
-    if (!open(mode)) {
+    if (!open(flags)) {
         throw std::logic_error("Failed to open file: "+file_path.toStdString());
     }
 

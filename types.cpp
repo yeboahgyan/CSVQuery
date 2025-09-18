@@ -17,6 +17,8 @@ QHash<QString, int> out_file_use_count; //select out file, delete file, update f
 
 QHash<QString, QList<TokenType>> func_args_type_list; // returns list of function argument type list
 
+QHash<QString, QList<QString>> import_defs; // def and column list; import statement loads data into it; read during annotated assigments
+
 
 QString Token::to_string() const
 {
@@ -68,6 +70,9 @@ QString Token::to_string() const
     case TokenType::GREATERTHAN: {str = "TokenType::GREATERTHAN";break;}
     case TokenType::LESSTHANOREQUAL: {str = "TokenType::LESSTHANOREQUAL";break;}
     case TokenType::GREATERTHANOREQUAL: {str = "TokenType::GREATERTHANOREQUAL";break;}
+    case TokenType::GROUPBY: {str = "TokenType::GROUPBY";break;}
+    case TokenType::DOLLAR: {str = "TokenType::DOLLAR";break;}
+    case TokenType::AS: {str = "TokenType::AS";break;}
     }
 
     return str;

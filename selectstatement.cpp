@@ -325,6 +325,9 @@ void SelectStatement::handle_groupby_clause()
 
 void SelectStatement::parse()
 {
+    //eat select
+    ++last_token_pos;
+
     //read columns
     column_exprs = read_column_expressions();
 

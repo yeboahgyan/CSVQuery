@@ -1,6 +1,7 @@
 #include "functions.h"
 #include <QDateTime>
 #include <stdexcept>
+#include <any>
 
 
 Term trim(QList<Term> args)

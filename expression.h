@@ -38,49 +38,69 @@ protected:
 
     QList<Term>::iterator end() const;
 
-    Term expr(const QStringList& row, bool get);
-    Term term(const QStringList& row, bool get);
-    Term primary(const QStringList& row, bool get);
+    //Term expr(const QStringList& row, bool get);
+    //Term term(const QStringList& row, bool get);
+    //Term primary(const QStringList& row, bool get);
 
-public:
-    Expression(const QList<Term>& ts);
-
-    void add(const Term t){
-        terms.append(t);
-    }
+    Term expr(const QMap<QString, QStringList>& data_rows, bool get);
+    Term term(const QMap<QString, QStringList>& data_rows, bool get);
+    Term primary(const QMap<QString, QStringList>& data_rows, bool get);
 
     bool is_star(){ // is * ? (select all columns)
         bool r = false;
 
-        if(terms.length() == 1){
-            Term t = terms.front();
-            if(t.get_token().token_type == TokenType::MULT){
-                return true;
+        if(terms.length() != 1){
+            return r;
+        }
+
+        Term t = terms.front();
+        if(t.get_token().token_type == TokenType::MULT){
+            return true;
+        }
+        else if(t.get_token().token_type == TokenType::NAME){ // check for name of format, file.*
+            QStringList name_parts =t.get_token().string_value.split(".");
+
+            if(name_parts.size() != 2){
+                r = false;
             }
-        }else{
-            r= false;
+
+            if(name_parts[1] != '*'){
+                r = false;
+            }
+                r = true;
         }
 
         return r;
     }
 
-    Term eval_star_term(const QStringList& row ){ // is * ? (select all columns)
+    Term eval_star_term(const QMap<QString, QStringList>& data_rows){ // is * ? (select all columns)
         Term t = terms.front();
 
         //if(is_star()){
-        return t.eval(row);
+        return t.eval(data_rows);
         //}
     }
 
-    double number_of_terms() const{
-        return terms.length();
-    }
+
 
     double get_iterator_pos() const {
         return item_left;
     }
 
-    Term eval(const QStringList& row );
+public:
+    Expression(const QList<Term>& ts);
+
+    double number_of_terms() const{
+        return terms.length();
+    }
+
+    void add(const Term t){
+        terms.append(t);
+    }
+
+    //Term eval(const QStringList& row );
+
+    Term eval(const QMap<QString, QStringList>& data_rows);
 };
 
 #endif // EXPRESSION_H
