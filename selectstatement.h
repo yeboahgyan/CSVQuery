@@ -6,7 +6,7 @@
 #include "Types.h"
 #include "conditionalexpression.h"
 #include "csvfile.h"
-//#include <optional>
+#include <optional>
 
 
 class SelectStatement
@@ -20,13 +20,17 @@ class SelectStatement
     std::shared_ptr<CSVFile> left_file;
     std::shared_ptr<CSVFile> right_file;
 
+    QMap<QString, QString> join_files_list; // {'left' : left_file_name, 'right' : right_file_name}
+
     QList<Token> tokens; // select statement tokens excluding select. Last token is a semi-colon
     QList<Token>::const_iterator last_token_pos;
+
+    double query_index; // holds the column index for right hand side file; this is used in building the lookup index
 
     bool has_join;
     bool has_where_clause;
     TokenType join_type;
-    bool wite_to_file;
+    bool write_to_file;
     void throw_exception_if_unexpected_end();
 
     void handle_into_clause();
@@ -43,12 +47,19 @@ class SelectStatement
     std::shared_ptr<ConditionalExpression> read_where();
 
     void parse();
+    QString selected_rows();
+    QStringList compute_columns(const QMap<QString, QStringList>& data_rows);
+
+    std::shared_ptr<QHash<QString,QList<qint64>>> build_index(const std::shared_ptr<CSVFile>& rhs, const int& column_index);
+
+    std::optional<QList<QStringList>> select_with_no_join();
+    std::optional<QList<QStringList>> select_with_inner_join();
 
 public:
     SelectStatement(const QList<Token>& tks);
 
-    void execute(); //save result to file
-    QList<QStringList> execute(int number_of_rows); // make it a coroutine
+   // void execute(); //save result to file
+    std::optional<QList<QStringList>> execute();
 };
 
 #endif // SELECTSTATEMENT_H

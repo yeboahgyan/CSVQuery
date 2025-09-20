@@ -44,3 +44,8 @@ void CSVFile::writeLine(const QString& text)
 {
     stream<< text <<"\n";
 }
+
+void CSVFile::write(const QString& text)
+{
+    stream<< text;
+}
