@@ -26,6 +26,11 @@ Expression AssignStatement::read_expression()
     QList<Term> ts;
 
     while(last_token_pos != tokens.cend()){
+
+        if((last_token_pos->token_type == TokenType::SEMICOLON) || (last_token_pos->token_type == TokenType::END)){
+            break;
+        }
+
         ts.append(Term(*last_token_pos));
         ++last_token_pos;
     }
