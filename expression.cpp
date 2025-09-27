@@ -277,31 +277,66 @@ Term Expression::primary(const QMap<QString, QStringList>& data_rows, bool get)
         Token token = left_token;
 
         if(!symbol_table.contains(token.string_value.toLower())){
-            QString error = "Unknown variable on line "+ QString::number(token.line_number);
-            throw std::logic_error(error.toStdString());
-        }
 
-        TokenType name_type = symbol_table[token.string_value.toLower()];
-        if(name_type == TokenType::STRING){
-            QString string_value = strings_table[token.string_value.toLower()];
-            token.string_value = string_value;
-            token.token_type = TokenType::STRING;
-            token.token_name = "TokenType::STRING";
+            QStringList name_parts = token.string_value.split('.');
 
-            left = Term(token);
-            move_to_next_term();
-        }
-        else if(name_type == TokenType::NUMBER){
-            double number_value = numbers_table[token.string_value.toLower()];
-            token.number_value = number_value;
-            token.token_type = TokenType::NUMBER;
-            token.token_name = "TokenType::NUMBER";
+            if(name_parts.size() == 2){ //check if name is format file.number
+                bool is_number;
+                double number = name_parts[1].toDouble(&is_number);
+                if(is_number){
+                    left_token.token_type = TokenType::COLUMNNAME;
+                    left_token.number_value = number;
+                    //left_token.string_value = name_parts[0];
 
-            left = Term(token);
-            move_to_next_term();
+                    Term t(left_token);
+                    left = t;
+                    left = left.eval(data_rows);
+                    move_to_next_term();
+                }
+                else if(name_parts[1] == "*"){
+                    left = left.eval(data_rows);
+                    move_to_next_term();
+                }
+                else{
+                    //error
+                    std::string error = "Uknown name on line ";
+                    error += QString::number(token.line_number).toStdString();
+                    throw std::logic_error(error);
+                }
+            }
+            else{
+                //error
+                std::string error = "Uknown name on line ";
+                error += QString::number(token.line_number).toStdString();
+                throw std::logic_error(error);
+            }
+
+            //QString error = "Unknown variable on line "+ QString::number(token.line_number);
+            //throw std::logic_error(error.toStdString());
         }
-        else if(name_type == TokenType::FUNCTION){
-            std::cout<<"Expression::primary() : checking if this is reached...\n";
+        else{
+            TokenType name_type = symbol_table[token.string_value.toLower()];
+            if(name_type == TokenType::STRING){
+                QString string_value = strings_table[token.string_value.toLower()];
+                token.string_value = string_value;
+                token.token_type = TokenType::STRING;
+                token.token_name = "TokenType::STRING";
+
+                left = Term(token);
+                move_to_next_term();
+            }
+            else if(name_type == TokenType::NUMBER){
+                double number_value = numbers_table[token.string_value.toLower()];
+                token.number_value = number_value;
+                token.token_type = TokenType::NUMBER;
+                token.token_name = "TokenType::NUMBER";
+
+                left = Term(token);
+                move_to_next_term();
+            }
+            else if(name_type == TokenType::FUNCTION){
+                //std::cout<<"Expression::primary() : checking if this is reached...\n";
+            }
         }
     }
     else if(left_token.token_type == TokenType::COLUMNNAME){
@@ -324,15 +359,15 @@ Term Expression::primary(const QMap<QString, QStringList>& data_rows, bool get)
     else if(left_token.token_type == TokenType::FUNCTION){
         std::function<Term(QList<Term>)> f= left_token.func;
 
-        std::cout<<"Expression::primary() : evaluating function \n";
+        //std::cout<<"Expression::primary() : evaluating function \n";
         QList<Token> func_args_tokens = left_token.func_args;
         QList<Expression> exprs;
         //Expression exp{};
         QList<Term> ts;
-        std::cout<<"print function tokens...\n";
+        //std::cout<<"print function tokens...\n";
         foreach(auto t, func_args_tokens){
             Term et(t);
-            std::cout<<"arg: "<<t.to_string().toStdString()<<"\n";
+            //std::cout<<"arg: "<<t.to_string().toStdString()<<"\n";
             if(t.token_type == TokenType::COMMA){
                 Expression exp(ts);
                 exprs.append(exp);
@@ -369,7 +404,7 @@ Term Expression::primary(const QMap<QString, QStringList>& data_rows, bool get)
         //don't do anything return
     //}
     else {
-        std::cout<<"Unexpected token "<< left_token.to_string().toStdString()<<"\n";
+        //std::cout<<"Unexpected token "<< left_token.to_string().toStdString()<<"\n";
         QString error = "$Syntax error on line "+ QString::number(current_term->get_token().line_number);
         throw std::logic_error(error.toStdString());
     }
@@ -380,7 +415,9 @@ Term Expression::eval(const QMap<QString, QStringList>& data_rows ){
 
     if(is_star()){
 
-        return eval_star_term(data_rows);
+        Term res = eval_star_term(data_rows);
+        reset_iterators();
+        return res;
     }
 
     Token t = {.token_type =  TokenType::END, .token_name = "TokenType::END"};
@@ -398,6 +435,8 @@ Term Expression::eval(const QMap<QString, QStringList>& data_rows ){
         result = expr(row, false);
         next_term();
     }*/
+
+    reset_iterators();
 
     return result;
 

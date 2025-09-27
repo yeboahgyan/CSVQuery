@@ -1,5 +1,6 @@
 #include "tokenizer.h"
 #include <stdexcept>
+#include <QDebug>
 
 
 Tokenizer::Tokenizer(std::shared_ptr<QTextStream> str)
@@ -146,7 +147,7 @@ Token Tokenizer::get()
 
     if(ch == '#'){ //Skip comment line
         QString str = stream->readLine();
-        std::cout<<"\n{comment: "<<str.toStdString()<<"}\n";
+        //std::cout<<"\n{comment: "<<str.toStdString()<<"}\n";
         line_number++;
 
         return get();
@@ -216,19 +217,21 @@ Token Tokenizer::get()
 
             if(expected_joins.contains(token.string_value.toLower())){ // is join
                 //std::cout<<"new token read!\n";
+                Token inner_token = token;
                 Token join_token =  read(); //read join
 
                 if(join_token.string_value.toLower() != "join"){
                     QString error_msg = "Unexpected name after join (" + join_token.string_value + ") on line "+ QString::number(line_number);
                     throw std::logic_error(error_msg.toStdString());
                 }
-
-                token.token_type = keywords[token.string_value.toLower()+" "+ join_token.string_value.toLower()];
+                //qDebug()<<"join: "<<token.string_value.toLower()+" "+ join_token.string_value.toLower();
+                token.token_type = keywords[inner_token.string_value.toLower()+" "+ join_token.string_value.toLower()];
 
                 if(token.token_type == TokenType::INNERJOIN){
                     token.token_name = "inner join";
                     token.string_value = "inner join";
                     token.token_name = token.to_string();
+
                 }else if(token.token_type == TokenType::OUTERJOIN){
                     token.token_name = "outer join";
                     token.string_value = "outer join";
@@ -245,7 +248,7 @@ Token Tokenizer::get()
             }
         }
         else if(symbol_table.contains(token.string_value.toLower())){ // is built in variable or function
-            std::cout<<"found a built-in symbol "<<token.string_value.toStdString()<<"\n";
+            //std::cout<<"found a built-in symbol "<<token.string_value.toStdString()<<"\n";
 
             TokenType name_type = symbol_table[token.string_value.toLower()];
             token.token_type = name_type;
@@ -271,7 +274,7 @@ Token Tokenizer::get()
                 token.token_name = "TokenType::COLUMNNAME";
             }
             else if(name_type == TokenType::FUNCTION){
-                std::cout<<"symbol '"<<token.string_value.toStdString()<<"' is a function.\n";
+                //std::cout<<"symbol '"<<token.string_value.toStdString()<<"' is a function.\n";
 
                 token.token_type = TokenType::FUNCTION;
                 token.token_name = "TokenType::FUNCTION";
@@ -291,7 +294,7 @@ Token Tokenizer::get()
                 }
 
                 int count = arg_types.length();
-                std::cout<<"number of args for "<<func_token.string_value.toLower().toStdString()<<" is "<<count<<"\n";
+                //std::cout<<"number of args for "<<func_token.string_value.toLower().toStdString()<<" is "<<count<<"\n";
 
                 next_token = get();
                 while(next_token.token_type != TokenType::RBRACKET){
@@ -340,7 +343,7 @@ Token Tokenizer::get()
 
                 //eat ) bracket
                 //next_token = get();
-                std::cout<<"\n token after function args: "<<next_token.to_string().toStdString()<<"\n";
+                //std::cout<<"\n token after function args: "<<next_token.to_string().toStdString()<<"\n";
                 if(next_token.token_type != TokenType::RBRACKET){
                     std::string error = "invalid function syntax on line ";
                     error += QString::number(line_number).toStdString();
@@ -351,6 +354,7 @@ Token Tokenizer::get()
         }
         else{ // it is an unknown name
             token.token_name = token.to_string();
+            //qDebug()<<"unknown name: "<<token.string_value;
         }
 
     }

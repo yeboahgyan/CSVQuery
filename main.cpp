@@ -12,6 +12,12 @@
 #include "conditionalexpression.h"
 #include "importstatement.h"
 #include "assignstatement.h"
+#include "csvfile.h"
+#include "selectstatement.h"
+//#include "pretty.h"
+//#include "tabulate/table.hpp"
+
+import pretty;
 
 void test_tokenizer();
 
@@ -22,6 +28,12 @@ void test_conditional_expression(QString& source, const QMap<QString, QStringLis
 void test_import(QString& source);
 
 void test_import_and_assigment();
+
+void test_csv_parser(const QString& csv);
+
+QList<Token> read_statement(Tokenizer& t);
+
+void test_select_statement();
 
 void set_builtin_funcs();
 
@@ -60,7 +72,14 @@ int main(int argc, char *argv[])
         //QString source = "import 'D:/Downloads/test_input/courses.def' as courses;";
         //test_import(source);
 
-        test_import_and_assigment();
+        //test_import_and_assigment();
+
+        //QString csv = "D:/Downloads/2018-census-totals-by-topic-national-highlights-csv/sex-2018-census-csv.csv";
+
+        //test_csv_parser(csv);
+        test_select_statement();
+
+
     }
     catch(std::logic_error l){
         std::cout<<"Error "<<l.what()<<"\n";
@@ -287,6 +306,144 @@ void test_import_and_assigment()
 
     qDebug()<<"Strings table: "<<strings_table;
     qDebug()<<"numbers table: "<<numbers_table;
+}
+
+void test_csv_parser(const QString& csv)
+{
+    CSVFile f(csv);
+
+    while(!f.end_of_file()){
+        QStringList row = f.readLine();
+        qDebug()<<"Number of rows: "<<row.size();
+        qDebug()<<row;
+        foreach(auto c, row){
+            std::cout<<'*'<<c.toStdString()<<'*'<<'\n';
+        }
+        qDebug()<<"----------";
+    }
+
+}
+
+
+QList<Token> read_statement(Tokenizer& t)
+{
+    QList<Token> tokens;
+    //QList<Expression> exps;
+
+    // Read import statement and Print tokens //
+    Token token = t.get();
+    while(token.token_type != TokenType::END){
+        if(token.token_type == TokenType::SEMICOLON){
+            std::cout<<";%%\n";
+            tokens.append(token);
+            break;
+        }else{
+            std::cout<< token << "{" <<token.string_value.toStdString() <<"} ";
+        }
+
+        //Term t(token);
+        tokens.append(token);
+        token = t.get();
+    }
+
+    return tokens;
+}
+
+void test_select_statement()
+{
+    QString source = " a = 'D:/Downloads/test_input/hello.csv'; b='D:/Downloads/test_input/hello2.csv'; c='D:/Downloads/test_input/hello3.csv';";
+        //source += " select a.1 +' '+ b.1, length(a.1 +' '+ b.1) from a inner join b on a.0 = b.0 where (a.0 != 'id') ;";
+        source += " select 'hello', 2+2, '= 4';";
+
+    std::shared_ptr<QTextStream> stream = std::make_shared<QTextStream>(&source);
+    Tokenizer tokenizer(stream);
+    QList<Term> terms;
+
+    QList<Token> assignment_tokens1 = read_statement(tokenizer);
+
+    AssignStatement assignment1(assignment_tokens1);
+    assignment1.execute();
+
+    QList<Token> assignment_tokens2 = read_statement(tokenizer);
+
+    AssignStatement assignment2(assignment_tokens2);
+    assignment2.execute();
+
+    QList<Token> assignment_tokens3 = read_statement(tokenizer);
+
+    AssignStatement assignment3(assignment_tokens3);
+    assignment3.execute();
+
+    QList<Token> select_tokens = read_statement(tokenizer);
+
+    qDebug() << "Select tokens: " << select_tokens.size();
+    foreach(auto t, select_tokens) {
+        qDebug() << "-" << t.to_string();
+    }
+
+    SelectStatement select(select_tokens);
+    std::optional<QList<QStringList>> res = select.execute();
+    qDebug()<<"execution done.";
+
+
+    //tabulate::Table table;
+    
+    auto table = pretty::Table();
+
+
+    if(res.has_value()){
+        //qDebug()<<res.value();
+        auto result = res.value();
+
+        if (res.has_value()) {
+            if (result.isEmpty()) {
+                std::cout << "Number of rows:" << result.size();
+                return;
+            }
+        }
+
+        std::vector<std::string> header;
+        int col_number = 1;
+        int number_of_cols = result[0].size();
+
+        for (int i = 0; i < number_of_cols; ++i) {
+            std::string str = "Col. ";
+            str += std::to_string(col_number);
+            qDebug() << str;
+            header.push_back(str);
+            col_number++;
+        }
+
+        if(!result.isEmpty()){
+
+            table.addRow(std::move(header));
+
+            foreach(auto row, result){
+                std::vector<std::string> r;
+
+                qDebug() << row;
+                if (row.isEmpty()) {
+                    continue;
+                }
+
+                foreach(auto col, row){
+                    //std::variant<std::string, const char *, string_view, tabulate::Table> c = col.toStdString();
+
+                    r.emplace_back(col.toStdString());
+                }
+                table.addRow(std::move(r));
+            }
+            pretty::Printer print;
+            //print.frame(pretty::FrameStyle::Basic);
+            print.frame(pretty::FrameStyle::LineRounded);
+            std::cout << print(table);
+            std::cout << "Number of rows:" << result.size();
+        }
+
+        //table.addRow({"1", "one"});
+        //table.addRow({ "2", "two" });
+        
+    }
 }
 
 void set_builtin_funcs()

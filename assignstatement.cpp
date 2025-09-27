@@ -38,9 +38,9 @@ void AssignStatement::process_expression(Expression& rhs)
     QMap<QString, QStringList> dummy;
     dummy["$"] = {""};
 
-    qDebug()<<"processing right hand side of assignment...";
+    //qDebug()<<"processing right hand side of assignment...";
     Term t = rhs.eval(dummy);
-    qDebug()<<"done.";
+    //qDebug()<<"done.";
     TokenType variable_type = t.get_token().token_type;
     symbol_table[variable_name] = variable_type;
 
@@ -66,32 +66,32 @@ void AssignStatement::execute()
     }
 
     variable_name = last_token_pos->string_value.toLower();
-    qDebug()<<"Read variable";
+    //qDebug()<<"Read variable";
 
     //next token
     ++last_token_pos;
     throw_exception_if_unexpected_end();
 
     if(last_token_pos->token_type == TokenType::ASSIGN){
-        qDebug()<<"Read assigment operator";
+        //qDebug()<<"Read assigment operator";
         //next token
         ++last_token_pos;
         throw_exception_if_unexpected_end();
 
         Expression e = read_expression();
-        qDebug()<<"Read expression";
+        //qDebug()<<"Read expression";
         process_expression(e);
-        qDebug()<<"processed expression";
+        //qDebug()<<"processed expression";
 
         symbol_table[variable_name] = assignment_value.get_token().token_type; //TokenType::STRING;
         //strings_table[variable_name] = assignment_value.get_token().string_value;
-        qDebug()<<"saved variable to symbol table 1";
+        //qDebug()<<"saved variable to symbol table 1";
     }
     else if(last_token_pos->token_type == TokenType::COLON){ // save column alias using imported names
         //next token
         ++last_token_pos;
         throw_exception_if_unexpected_end();
-        qDebug()<<"Read colon";
+        //qDebug()<<"Read colon";
 
         if(last_token_pos->token_type != TokenType::IMPORT){
             std::string error = "Invalid syntax on line ";
@@ -101,7 +101,7 @@ void AssignStatement::execute()
 
             throw std::logic_error(error);
         }
-        qDebug()<<"Read annotation";
+        //qDebug()<<"Read annotation";
         QString def_alias = last_token_pos->string_value.toLower();
         if(!import_defs.contains(def_alias)){
             std::string error = "Unknown import definition alias ";
@@ -113,7 +113,7 @@ void AssignStatement::execute()
         }
 
         QList<QString> column_list = import_defs[def_alias];
-        qDebug()<<"Retrieved annotation column list";
+        //qDebug()<<"Retrieved annotation column list";
 
         int index = 0;
         foreach(auto col_name, column_list){
@@ -123,13 +123,13 @@ void AssignStatement::execute()
             ++index;
         }
 
-        qDebug()<<"Added annotated column list to symbol table";
+        //qDebug()<<"Added annotated column list to symbol table";
 
         //next token
         ++last_token_pos;
         throw_exception_if_unexpected_end();
 
-        qDebug()<<"Read assignment";
+        //qDebug()<<"Read assignment";
 
         if(last_token_pos->token_type != TokenType::ASSIGN){
             std::string error = "Invalid syntax on line ";
@@ -145,9 +145,9 @@ void AssignStatement::execute()
         throw_exception_if_unexpected_end();
 
         Expression e = read_expression();
-        qDebug()<<"Read expression 2";
+        //qDebug()<<"Read expression 2";
         process_expression(e);
-        qDebug()<<"processed expression 2";
+        //qDebug()<<"processed expression 2";
 
         if(assignment_value.get_token().token_type != TokenType::STRING){
             std::string error = "Expected a string or for assignment on line ";
@@ -156,7 +156,7 @@ void AssignStatement::execute()
             throw std::logic_error(error);
         }
 
-        qDebug()<<"Read expression 2 value";
+        //qDebug()<<"Read expression 2 value";
 
         //valid file or path?
 
@@ -168,11 +168,11 @@ void AssignStatement::execute()
             throw std::logic_error(error);
         }
 
-        qDebug()<<"Read valid file";
+        //qDebug()<<"Read valid file";
 
 
         symbol_table[variable_name] = assignment_value.get_token().token_type;;
         //strings_table[variable_name] = assignment_value.get_token().string_value;
-        qDebug()<<"saved variable to symbol table";
+        //qDebug()<<"saved variable to symbol table";
     }
 }

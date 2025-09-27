@@ -14,6 +14,11 @@ protected:
 
     QHash<QString, QList<Term>::iterator> end_of_experssion;
 
+    void reset_iterators(){
+        current_term = terms.begin();
+        item_left = (terms.length() == 0)? 0 : terms.length() - 1;
+    }
+
 
     bool iscolumn_or_literal(Token t) const;
 

@@ -2,6 +2,7 @@
 #include "term.h"
 #include <QMap>
 #include <stdexcept>
+#include <QDebug>
 
 Token Term::eval(const QStringList& row){
     //ColumnResult result;
@@ -74,6 +75,47 @@ Token Term::eval(const QMap<QString, QStringList>& data_rows)
     if(num_of_rows == 1){
         row = data_rows["$"];
     }
+    else{
+        //check if name is of the format file.number
+        QString file_name;
+        QString column_name;
+        QStringList name_parts = token.string_value.split('.'); //columnname in format file.column
+
+        if(name_parts.size() != 2){
+            result.token_type = TokenType::ERROR;
+            result.error_msg = "Unknown column name "+token.string_value+" on line "+ QString::number(token.line_number);
+            throw std::logic_error(result.error_msg.toStdString());
+        }
+
+        file_name = name_parts[0];
+        column_name = name_parts[1];
+
+        if(!symbol_table.contains(file_name)){
+            result.token_type = TokenType::ERROR;
+            result.error_msg = "Unknown column name "+token.string_value+" on line "+ QString::number(token.line_number);
+            throw std::logic_error(result.error_msg.toStdString());
+        }
+
+        TokenType tk = symbol_table[file_name];
+        if(tk != TokenType::STRING){
+            result.token_type = TokenType::ERROR;
+            result.error_msg = "Unknown column name "+token.string_value+" on line "+ QString::number(token.line_number);
+            throw std::logic_error(result.error_msg.toStdString());
+        }
+
+        if(!strings_table.contains(file_name)){
+            result.token_type = TokenType::ERROR;
+            result.error_msg = "Unknown column name "+token.string_value+" on line "+ QString::number(token.line_number);
+            throw std::logic_error(result.error_msg.toStdString());
+        }
+
+        QString file_path = strings_table[file_name];
+
+        row = data_rows[file_path];
+        //qDebug()<<"row size: "<<row.size();
+
+
+    }
 
     //literal as is
     if(token.token_type == TokenType::MULT){
@@ -102,7 +144,7 @@ Token Term::eval(const QMap<QString, QStringList>& data_rows)
 
     //get column index
     if(token.token_type == TokenType::COLUMNNUMBER){
-
+        //qDebug()<<"I am here! "<<token.string_value;
         if(num_of_rows == 2){
             std::string error = "Ambigious column "+ token.string_value.toStdString() + " on line ";
             error+=  token.line_number;
@@ -113,13 +155,45 @@ Token Term::eval(const QMap<QString, QStringList>& data_rows)
 
     }
     else if(token.token_type == TokenType::COLUMNNAME){
-        if(!columns_table.contains(token.string_value.toLower())){
-            result.token_type = TokenType::ERROR;
-            result.error_msg = "Unknown column name "+token.string_value+" on line "+ QString::number(token.line_number);
-            throw std::logic_error(result.error_msg.toStdString());
-            //return result;
+        if(!columns_table.contains(token.string_value.toLower())){ //not in columns table
+
+            //check if name is of the format file.number
+            QString file_name;
+            QString column_name;
+            QStringList name_parts = token.string_value.split('.'); //columnname in format file.column
+
+            if(name_parts.size() != 2){
+                result.token_type = TokenType::ERROR;
+                result.error_msg = "Unknown column name "+token.string_value+" on line "+ QString::number(token.line_number);
+                throw std::logic_error(result.error_msg.toStdString());
+            }
+
+            file_name = name_parts[0];
+            column_name = name_parts[1];
+
+            bool is_number;
+            int value = column_name.toInt(&is_number);
+
+            /*
+            if(num_of_rows == 2){
+                row = data_rows[file_name];
+            }*/
+
+            if(column_name == '*'){ // if column name is of the form, file_name.*
+                result.token_type = TokenType::STRING;
+                result.string_value = row.join(',');
+                return result;
+            }
+            else if(is_number){
+                //qDebug()<<"column index: "<<value;
+                index = value;
+            }
+        }
+        else{
+            index = columns_table[token.string_value];
         }
 
+        /*
         QString file_name;
         QString column_name;
         QStringList name_parts = token.string_value.split('.'); //columnname in format file.column
@@ -175,13 +249,14 @@ Token Term::eval(const QMap<QString, QStringList>& data_rows)
             else{
                 index = columns_table[token.string_value];
             }
-        }
+        }*/
     }
     else if(token.token_type == TokenType::NAME){
         Token tk = token;
         Term t;
-
+        //qDebug()<<"evaluating a NAME Token \n";
         if(token.string_value.contains('.')){ // check if name is of the format, file.* or file.number
+            //qDebug()<<"name is "<<token.string_value;
 
             QStringList name_parts = token.string_value.split('.'); //columnname in format file.column
             if(name_parts.size() == 2){
@@ -195,8 +270,15 @@ Token Term::eval(const QMap<QString, QStringList>& data_rows)
                     row = data_rows["$"];
                 }
                 else if(data_rows.size() > 1){
-                    if(data_rows.contains(file_name)){
-                        row = data_rows[file_name];
+                    //qDebug()<<"data_rows: "<<data_rows;
+                    if(!strings_table.contains(file_name)){
+                        std::string error = "Unknown colunm name "+ token.string_value.toStdString() + " on line ";
+                        error+=  token.line_number;
+                        throw std::logic_error(error);
+                    }
+                    QString file_path = strings_table[file_name];
+                    if(data_rows.contains(file_path)){
+                        row = data_rows[file_path];
                     }
                     else{
                         std::string error = "Unknown colunm name "+ token.string_value.toStdString() + " on line ";
@@ -288,6 +370,7 @@ Token Term::eval(const QMap<QString, QStringList>& data_rows)
         return t.eval(row);
     }
 
+    //qDebug()<<"column index2: "<<index <<" row length: "<<row.length();
     if(index < 0 || index > row.length()){
         result.token_type = TokenType::ERROR;
         result.error_msg = "Invalid column index "+QString::number(token.number_value)+" on line "+ QString::number(token.line_number);

@@ -27,11 +27,14 @@ class SelectStatement
 
     double query_index; // holds the column index for right hand side file; this is used in building the lookup index
 
-    bool has_join;
-    bool has_where_clause;
+    bool has_from_clause = true;
+    bool has_join = false;
+    bool has_where_clause = false;
     TokenType join_type;
-    bool write_to_file;
+    bool write_to_file = false;
     void throw_exception_if_unexpected_end();
+
+    Term read_join_column();
 
     void handle_into_clause();
     void handle_inner_join();
@@ -47,13 +50,15 @@ class SelectStatement
     std::shared_ptr<ConditionalExpression> read_where();
 
     void parse();
-    QString selected_rows();
+    //QString selected_rows();
     QStringList compute_columns(const QMap<QString, QStringList>& data_rows);
 
     std::shared_ptr<QHash<QString,QList<qint64>>> build_index(const std::shared_ptr<CSVFile>& rhs, const int& column_index);
 
     std::optional<QList<QStringList>> select_with_no_join();
     std::optional<QList<QStringList>> select_with_inner_join();
+    std::optional<QList<QStringList>> select_with_outer_join();
+    void process_select(QList<QStringList>& result_ptr, QMap<QString, QStringList>& data_rows);
 
 public:
     SelectStatement(const QList<Token>& tks);

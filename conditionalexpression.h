@@ -12,6 +12,11 @@ class ConditionalExpression
 
     //QHash<QString, QList<Term>::iterator> end_of_experssion;
 
+    void reset_iterators(){
+        current_term = terms.begin();
+        item_left = (terms.length() == 0)? 0 : terms.length() - 1;
+    }
+
 
     void move_to_next_term();
 

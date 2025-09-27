@@ -19,7 +19,8 @@ SOURCES += \
         selectstatement.cpp \
         term.cpp \
         tokenizer.cpp \
-        types.cpp
+        types.cpp \
+        updatestatement.cpp
 
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin
@@ -40,4 +41,5 @@ HEADERS += \
     importstatement.h \
     selectstatement.h \
     term.h \
-    tokenizer.h
+    tokenizer.h \
+    updatestatement.h
