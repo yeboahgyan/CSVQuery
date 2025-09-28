@@ -7,6 +7,7 @@ UpdateStatement::UpdateStatement(const QList<Token>& tks)
     tokens(tks)
 {
     last_token_pos = tokens.begin();
+    parse();
 }
 
 void UpdateStatement::throw_exception_if_unexpected_end()
@@ -155,10 +156,10 @@ void UpdateStatement::read_column_update_list()
         throw_exception_if_unexpected_end();
 
         if(last_token_pos->token_type != TokenType::ASSIGN){
-            double line_numer = (*last_token_pos).line_number;
+            double line_numer = (--last_token_pos)->line_number;
             QString str_num = QString::number(line_numer);
 
-            throw std::logic_error("Invalid syntax in Update statement on line "+ str_num.toStdString());
+            throw std::logic_error("Expected the '=' operator. Invalid syntax in Update statement on line "+ str_num.toStdString());
         }
 
         ++last_token_pos; //next token
@@ -206,10 +207,10 @@ void UpdateStatement::parse()
 
     //next token should be Set
     if(last_token_pos->token_type != TokenType::SET){
-        double line_numer = (*last_token_pos).line_number;
+        double line_numer = (--last_token_pos)->line_number;
         QString str_num = QString::number(line_numer);
 
-        throw std::logic_error("Invalid syntax in Update statement on line "+ str_num.toStdString());
+        throw std::logic_error("Expected the SET keyword. Invalid syntax in Update statement on line "+ str_num.toStdString());
     }
 
     ++last_token_pos; //move to next token
@@ -225,22 +226,83 @@ void UpdateStatement::parse()
     //read where clause if any
     if(last_token_pos->token_type == TokenType::WHERE)
     {
+        ++last_token_pos; //move to next token
+        throw_exception_if_unexpected_end();
+
+        has_where_clause = true;
         where_expr = read_where_clause();
     }
 
-    ++last_token_pos; //move to next token
-
-    throw_exception_if_unexpected_end();
-
     if(last_token_pos->token_type !=  TokenType::INTO){
-        double line_numer = (*last_token_pos).line_number;
+        double line_numer = (--last_token_pos)->line_number;
         QString str_num = QString::number(line_numer);
 
-        throw std::logic_error("Invalid syntax in Update statement on line "+ str_num.toStdString());
+        throw std::logic_error("Expected an INTO clasuse. Invalid syntax in Update statement on line "+ str_num.toStdString());
     }
 
     ++last_token_pos; //move to next token
     throw_exception_if_unexpected_end();
 
     out_file = read_file(QIODevice::WriteOnly);
+}
+
+
+void UpdateStatement::execute()
+{
+    while(!left_file->end_of_file()){
+        QStringList row = left_file->readRow();
+
+        QMap<QString, QStringList> data_rows;
+        data_rows["$"] = row;
+
+
+        if(has_where_clause){
+            Term where_t = where_expr->eval(data_rows);
+            //qDebug()<<"Conditional evaluation done.";
+            qDebug()<<row<<" where clause result:"<< where_t.get_token().boolean_value;
+
+            if(where_t.get_token().boolean_value == true){
+
+                //columns = compute_columns(data_rows);
+                foreach(auto pair, column_update_list){
+                    Token t = pair.first;
+                    Term val_t = pair.second.eval(data_rows);
+
+                    if(t.number_value >= row.length() || t.number_value < 0){
+                        double line_numer = (*last_token_pos).line_number;
+                        QString str_num = QString::number(line_numer);
+
+                        throw std::logic_error("Invalid column index in Update statement on line "+ str_num.toStdString());
+                    }
+                    row[t.number_value] = val_t.get_token().string_value;
+                }
+
+                //write updated data to file
+                out_file->writeLine(row.join(','));
+
+            }
+            else{
+                //write data unchanged to file
+                out_file->writeLine(row.join(','));
+            }
+        }
+        else{ //no where clause
+            foreach(auto pair, column_update_list){
+                Token t = pair.first;
+                Term val_t = pair.second.eval(data_rows);
+
+                if(t.number_value >= row.length() || t.number_value < 0){
+                    double line_numer = (*last_token_pos).line_number;
+                    QString str_num = QString::number(line_numer);
+
+                    throw std::logic_error("Invalid column index in Update statement on line "+ str_num.toStdString());
+                }
+                row[t.number_value] = val_t.get_token().string_value;
+            }
+
+            out_file->writeLine(row.join(','));
+
+        }
+    }
+
 }

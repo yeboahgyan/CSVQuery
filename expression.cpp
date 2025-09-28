@@ -406,6 +406,8 @@ Term Expression::primary(const QMap<QString, QStringList>& data_rows, bool get)
     else {
         //std::cout<<"Unexpected token "<< left_token.to_string().toStdString()<<"\n";
         QString error = "$Syntax error on line "+ QString::number(current_term->get_token().line_number);
+        error += " ";
+        error += current_term->get_token().to_string();
         throw std::logic_error(error.toStdString());
     }
     return left;

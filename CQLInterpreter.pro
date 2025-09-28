@@ -15,7 +15,7 @@ SOURCES += \
         functions.cpp \
         importstatement.cpp \
         main.cpp \
-        #parser.cpp \
+        parser.cpp \
         selectstatement.cpp \
         term.cpp \
         tokenizer.cpp \
@@ -37,7 +37,7 @@ HEADERS += \
     csvfile.h \
     expression.h \
     functions.h \
-    #parser.h \
+    parser.h \
     importstatement.h \
     selectstatement.h \
     term.h \

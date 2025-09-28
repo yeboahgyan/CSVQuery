@@ -16,6 +16,8 @@ class UpdateStatement
     std::shared_ptr<CSVFile> left_file;
     std::shared_ptr<CSVFile> out_file; // output file
 
+    bool has_where_clause = false;
+
     void throw_exception_if_unexpected_end();
 
     Token read_column();
@@ -34,6 +36,8 @@ class UpdateStatement
 
 public:
     UpdateStatement(const QList<Token>& tks);
+
+    void execute();
 };
 
 #endif // UPDATESTATEMENT_H

@@ -24,6 +24,7 @@ Token Term::eval(const QStringList& row){
     if(token.token_type == TokenType::NUMBER){
         result.token_type = TokenType::NUMBER;
         result.number_value = token.number_value;
+        result.string_value = QString::number(token.number_value);
         return result;
     }
 
@@ -139,6 +140,7 @@ Token Term::eval(const QMap<QString, QStringList>& data_rows)
     if(token.token_type == TokenType::NUMBER){
         result.token_type = TokenType::NUMBER;
         result.number_value = token.number_value;
+        result.string_value = QString::number(token.number_value);
         return result;
     }
 

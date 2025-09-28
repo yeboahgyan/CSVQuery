@@ -14,10 +14,11 @@
 #include "assignstatement.h"
 #include "csvfile.h"
 #include "selectstatement.h"
+#include "updatestatement.h"
 //#include "pretty.h"
 //#include "tabulate/table.hpp"
 
-import pretty;
+//import pretty;
 
 void test_tokenizer();
 
@@ -353,7 +354,8 @@ void test_select_statement()
 {
     QString source = " a = 'D:/Downloads/test_input/hello.csv'; b='D:/Downloads/test_input/hello2.csv'; c='D:/Downloads/test_input/hello3.csv';";
         //source += " select a.1 +' '+ b.1, length(a.1 +' '+ b.1) from a inner join b on a.0 = b.0 where (a.0 != 'id') ;";
-        source += " select 'hello', 2+2, '= 4';";
+        //source += " select 'hello', 2+2, '= 4';";
+        source += " update a set [1] = 'Kwadwo' where [0] = '2' into c;";
 
     std::shared_ptr<QTextStream> stream = std::make_shared<QTextStream>(&source);
     Tokenizer tokenizer(stream);
@@ -374,20 +376,24 @@ void test_select_statement()
     AssignStatement assignment3(assignment_tokens3);
     assignment3.execute();
 
-    QList<Token> select_tokens = read_statement(tokenizer);
+    //QList<Token> select_tokens = read_statement(tokenizer);
+    QList<Token> update_tokens = read_statement(tokenizer);
 
+    /*
     qDebug() << "Select tokens: " << select_tokens.size();
     foreach(auto t, select_tokens) {
         qDebug() << "-" << t.to_string();
-    }
+    }*/
 
-    SelectStatement select(select_tokens);
-    std::optional<QList<QStringList>> res = select.execute();
-    qDebug()<<"execution done.";
+    //SelectStatement select(select_tokens);
+    //std::optional<QList<QStringList>> res = select.execute();
+    //qDebug()<<"execution done.";
+    UpdateStatement update(update_tokens);
+    update.execute();
 
 
     //tabulate::Table table;
-    
+    /*
     auto table = pretty::Table();
 
 
@@ -443,7 +449,7 @@ void test_select_statement()
         //table.addRow({"1", "one"});
         //table.addRow({ "2", "two" });
         
-    }
+    }*/
 }
 
 void set_builtin_funcs()
