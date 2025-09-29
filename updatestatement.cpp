@@ -279,6 +279,7 @@ void UpdateStatement::execute()
 
                 //write updated data to file
                 out_file->writeLine(row.join(','));
+                ++NUMBER_OF_AFFECTED_ROWS;
 
             }
             else{
@@ -301,6 +302,7 @@ void UpdateStatement::execute()
             }
 
             out_file->writeLine(row.join(','));
+            ++NUMBER_OF_AFFECTED_ROWS;
 
         }
     }

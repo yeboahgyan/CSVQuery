@@ -39,6 +39,7 @@ void ImportStatement::read_def_file(const QString& file, const QString& alias)
         if(line == ""){
             continue;
         }
+        ++NUMBER_OF_COLUMN_NAMES;
         import_defs[alias].append(line.toLower());
     }
 

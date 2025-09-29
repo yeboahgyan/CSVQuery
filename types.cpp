@@ -19,6 +19,15 @@ QHash<QString, QList<TokenType>> func_args_type_list; // returns list of functio
 
 QHash<QString, QList<QString>> import_defs; // def and column list; import statement loads data into it; read during annotated assigments
 
+// This is used for tab completion in main.cpp
+std::vector<std::string> commands = {
+        "SELECT", "FROM", "UPDATE", "IMPORT", "WHERE",
+        "INTO", "INNER JOIN", "OUTER JOIN", "ON", "SET",
+        "TRIM", "LENGTH", "SUBSTRING", "LEFT", "RIGHT", "AS",
+        "DATE_GT", "DATE_GE", "DATE_LT", "DATE_LE", "DATE_EQ",
+        "QUIT", "EXIT"
+};
+
 
 QString Token::to_string() const
 {

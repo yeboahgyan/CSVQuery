@@ -3,9 +3,10 @@
 #include <QFileInfo>
 
 
-SelectStatement::SelectStatement(const QList<Token>& tks)
+SelectStatement::SelectStatement(const QList<Token>& tks, unsigned int max_rows_per_page)
     :
     tokens{tks}
+    , NUMBER_OF_ROWS_PER_PAGE{max_rows_per_page}
 {
     last_token_pos = tokens.cbegin();
 
@@ -556,9 +557,11 @@ std::optional<QList<QStringList>> SelectStatement::select_with_no_join()
                 //write to file?
                 if(write_to_file){
                     out_file->writeLine(columns.join(','));
+                    ++NUMBER_OF_ROWS;
                 }
                 else{
                     result.append(columns);
+                    ++NUMBER_OF_ROWS;
                 }
             }
         }
@@ -568,9 +571,11 @@ std::optional<QList<QStringList>> SelectStatement::select_with_no_join()
             //write to file?
             if(write_to_file){
                 out_file->writeLine(columns.join(','));
+                ++NUMBER_OF_ROWS;
             }
             else{
                 result.append(columns);
+                ++NUMBER_OF_ROWS;
             }
         }
 
@@ -614,9 +619,11 @@ std::shared_ptr<QHash<QString,QList<qint64>> > SelectStatement::build_index(cons
         //write to file?
         if(write_to_file){
             out_file->writeLine(columns.join(','));
+            ++NUMBER_OF_ROWS;
         }
         else{
             result.append(columns);
+            ++NUMBER_OF_ROWS;
         }
     }
     else{ //no where clause
@@ -625,9 +632,11 @@ std::shared_ptr<QHash<QString,QList<qint64>> > SelectStatement::build_index(cons
         //write to file?
         if(write_to_file){
             out_file->writeLine(columns.join(','));
+            ++NUMBER_OF_ROWS;
         }
         else{
             result.append(columns);
+            ++NUMBER_OF_ROWS;
         }
     }
 
@@ -676,6 +685,10 @@ std::optional<QList<QStringList>> SelectStatement::select_with_inner_join()
             }*/
 
             process_select(result, data_rows);
+
+            if ((write_to_file == false) && (NUMBER_OF_ROWS % NUMBER_OF_ROWS_PER_PAGE == 0)) { // paginate
+                return result;
+            }
         }
         //columns = {}; //reset; is it necessary since it is redefined in the loop?
     }
@@ -727,6 +740,11 @@ std::optional<QList<QStringList>> SelectStatement::select_with_outer_join()
             data_rows[join_files_list["right"]] = row;
 
             process_select(result, data_rows);
+
+            if ((write_to_file == false) && (NUMBER_OF_ROWS % NUMBER_OF_ROWS_PER_PAGE == 0)) { // paginate
+                return result;
+            }
+
             continue;
         }
 
@@ -745,6 +763,10 @@ std::optional<QList<QStringList>> SelectStatement::select_with_outer_join()
             }*/
 
             process_select(result, data_rows);
+
+            if ((write_to_file == false) && (NUMBER_OF_ROWS % NUMBER_OF_ROWS_PER_PAGE == 0)) { // paginate
+                return result;
+            }
         }
         //columns = {}; //reset; is it necessary since it is redefined in the loop?
     }

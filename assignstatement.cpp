@@ -125,6 +125,8 @@ void AssignStatement::execute()
             QString name = variable_name+'.'+col_name;
             symbol_table[name] = TokenType::COLUMNNAME;
             columns_table[name] = index;
+
+            commands.push_back(name.toStdString()); //add new name for tab completion
             ++index;
         }
 

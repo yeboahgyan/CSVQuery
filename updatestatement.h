@@ -18,6 +18,8 @@ class UpdateStatement
 
     bool has_where_clause = false;
 
+    unsigned int NUMBER_OF_AFFECTED_ROWS = 0;
+
     void throw_exception_if_unexpected_end();
 
     Token read_column();
@@ -38,6 +40,10 @@ public:
     UpdateStatement(const QList<Token>& tks);
 
     void execute();
+
+    unsigned int get_number_of_rows() const {
+        return NUMBER_OF_AFFECTED_ROWS;
+    }
 };
 
 #endif // UPDATESTATEMENT_H

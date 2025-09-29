@@ -7,6 +7,7 @@
 #include <QDebug>
 #include <algorithm> // For std::transform
 #include <cctype>    // For std::toupper
+#include <regex>
 
 #include "tokenizer.h"
 #include "functions.h"
@@ -17,6 +18,7 @@
 #include "csvfile.h"
 #include "selectstatement.h"
 #include "updatestatement.h"
+#include "types.h"
 //#include "pretty.h"
 //#include "tabulate/table.hpp"
 
@@ -90,17 +92,10 @@ int main(int argc, char *argv[])
 
         replxx::Replxx rx;
         
-        std::vector<std::string> commands = {
-        "SELECT", "FROM", "UPDATE", "IMPORT", "WHERE",
-        "INTO", "INNER JOIN", "OUTER JOIN", "ON", "SET",
-        "TRIM", "LENGTH", "SUBSTRING", "LEFT", "RIGHT", "AS",
-        "DATE_GT", "DATE_GE", "DATE_LT", "DATE_LE", "DATE_EQ",
-        "QUIT", "EXIT"
-        };
 
         // Completion callback
         rx.set_completion_callback(
-            [&commands](std::string const& context, int& contextLen) -> replxx::Replxx::completions_t {
+            [/*&commands */ ](std::string const& context, int& contextLen) -> replxx::Replxx::completions_t {
                 replxx::Replxx::completions_t results;
 
                 // Find the current "word" (last token)
@@ -118,6 +113,70 @@ int main(int argc, char *argv[])
                     }
                 }
                 return results;
+            }
+        );
+
+        // Syntax highlighter
+        rx.set_highlighter_callback(
+            [/*&commands */](std::string const& context, replxx::Replxx::colors_t& colors) {
+                colors.resize(context.size(), replxx::Replxx::Color::DEFAULT);
+
+                // Highlight SQL-like keywords (case-insensitive)
+                for (auto const& cmd : commands) {
+                    std::regex word("\\b" + cmd + "\\b", std::regex_constants::icase);
+                    auto words_begin = std::sregex_iterator(context.begin(), context.end(), word);
+                    auto words_end = std::sregex_iterator();
+
+                    for (auto it = words_begin; it != words_end; ++it) {
+                        auto pos = it->position();
+                        auto len = it->length();
+                        for (int i = 0; i < len; ++i) {
+                            colors[pos + i] = replxx::Replxx::Color::BRIGHTCYAN;
+                        }
+                    }
+                }
+                
+                // Highlight numbers
+                /*
+                std::regex num(R"((?<![A-Za-z_])\d+(?![A-Za-z_]))");
+                //std::regex num(R"((?<![A-Za-z_])\d+(?![A-Za-z_]))");
+                auto nums_begin = std::sregex_iterator(context.begin(), context.end(), num);
+                auto nums_end = std::sregex_iterator();
+
+                for (auto it = nums_begin; it != nums_end; ++it) {
+                    auto pos = it->position();
+                    auto len = it->length();
+                    for (int i = 0; i < len; ++i) {
+                        colors[pos + i] = replxx::Replxx::Color::BRIGHTBLUE;
+                    }
+                }*/
+
+                /*
+                // Highlight columns [0]
+                std::regex column(R"(\[\d+\])");
+                auto column_begin = std::sregex_iterator(context.begin(), context.end(), column);
+                auto column_end = std::sregex_iterator();
+
+                for (auto it = column_begin; it != column_end; ++it) {
+                    auto pos = it->position();
+                    auto len = it->length();
+                    for (int i = 0; i < len; ++i) {
+                        colors[pos + i] = replxx::Replxx::Color::LIGHTGRAY;
+                    }
+                }*/
+                
+                // Highlight strings
+                std::regex strings(R"((['"])([^'"]*)\1)");
+                auto strings_begin = std::sregex_iterator(context.begin(), context.end(), strings);
+                auto strings_end = std::sregex_iterator();
+
+                for (auto it = strings_begin; it != strings_end; ++it) {
+                    auto pos = it->position();
+                    auto len = it->length();
+                    for (int i = 0; i < len; ++i) {
+                        colors[pos + i] = replxx::Replxx::Color::BROWN;
+                    }
+                }
             }
         );
 

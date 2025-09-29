@@ -25,6 +25,9 @@ class SelectStatement
     QList<Token> tokens; // select statement tokens excluding select. Last token is a semi-colon
     QList<Token>::const_iterator last_token_pos;
 
+    unsigned int NUMBER_OF_ROWS_PER_PAGE; //used for pagination
+    unsigned int NUMBER_OF_ROWS = 0; //number of rows read
+
     double query_index; // holds the column index for right hand side file; this is used in building the lookup index
 
     bool has_from_clause = true;
@@ -61,10 +64,14 @@ class SelectStatement
     void process_select(QList<QStringList>& result_ptr, QMap<QString, QStringList>& data_rows);
 
 public:
-    SelectStatement(const QList<Token>& tks);
+    SelectStatement(const QList<Token>& tks, unsigned int max_rows_per_page = 100);
 
    // void execute(); //save result to file
     std::optional<QList<QStringList>> execute();
+
+    unsigned int get_number_of_rows() const {
+        return NUMBER_OF_ROWS;
+    }
 };
 
 #endif // SELECTSTATEMENT_H

@@ -108,5 +108,9 @@ extern QHash<QString, int> out_file_use_count; //select out file, delete file, u
 extern QHash<QString, QList<QString>> import_defs; // def and column list; import statement loads data into it; read during annotated assigments
 
 
+// This is used for tab completion in main.cpp
+extern std::vector<std::string> commands;
+
+
 
 #endif // TYPES_H
