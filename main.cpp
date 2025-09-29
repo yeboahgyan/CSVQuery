@@ -5,6 +5,8 @@
 #include <QTextStream>
 #include <QMap>
 #include <QDebug>
+#include <algorithm> // For std::transform
+#include <cctype>    // For std::toupper
 
 #include "tokenizer.h"
 #include "functions.h"
@@ -19,6 +21,7 @@
 //#include "tabulate/table.hpp"
 
 //import pretty;
+#include <replxx.hxx>
 
 void test_tokenizer();
 
@@ -56,9 +59,9 @@ int main(int argc, char *argv[])
     set_builtin_funcs();
 
     try{
-        QStringList row = {"empty string", "20", "hello"};
-        QMap<QString, QStringList> data_rows;
-        data_rows["$"] = row;
+        //QStringList row = {"empty string", "20", "hello"};
+        //QMap<QString, QStringList> data_rows;
+        //data_rows["$"] = row;
 
         //QString source = "2+2,\n left('super', 3),\n 4*3,\n 3*length('super')";
         //QString source1 = "*,[0], 2+2, 5+2,(2+10)/2,\nlength([1]+ [1]),length(trim(' kwame'))";
@@ -78,13 +81,90 @@ int main(int argc, char *argv[])
         //QString csv = "D:/Downloads/2018-census-totals-by-topic-national-highlights-csv/sex-2018-census-csv.csv";
 
         //test_csv_parser(csv);
-        test_select_statement();
+        //test_select_statement();
 
+        //std::cout<<"CSVQuery 0.1\n\n\n";
+        //std::cout << ">>";
+        //std::string input;
+        //std::cin >> input;
+
+        replxx::Replxx rx;
+        
+        std::vector<std::string> commands = {
+        "SELECT", "FROM", "UPDATE", "IMPORT", "WHERE",
+        "INTO", "INNER JOIN", "OUTER JOIN", "ON", "SET",
+        "TRIM", "LENGTH", "SUBSTRING", "LEFT", "RIGHT", "AS",
+        "DATE_GT", "DATE_GE", "DATE_LT", "DATE_LE", "DATE_EQ",
+        "QUIT", "EXIT"
+        };
+
+        // Completion callback
+        rx.set_completion_callback(
+            [&commands](std::string const& context, int& contextLen) -> replxx::Replxx::completions_t {
+                replxx::Replxx::completions_t results;
+
+                // Find the current "word" (last token)
+                size_t start = context.find_last_of(" \t\n");
+                std::string prefix = (start == std::string::npos) ? context : context.substr(start + 1);
+                contextLen = static_cast<int>(prefix.size());
+
+                std::transform(prefix.begin(), prefix.end(), prefix.begin(),
+                    [](unsigned char c) { return std::toupper(c); });
+
+                // Suggest matches
+                for (auto const& cmd : commands) {
+                    if (cmd.compare(0, prefix.size(), prefix) == 0) {
+                        results.push_back(cmd);
+                    }
+                }
+                return results;
+            }
+        );
+
+        std::string buffer;
+
+        int line_number = 1;
+        while (true) {
+            std::string prompt_main = std::to_string(line_number) + " csvQ> ";
+            std::string prompt_continue = std::to_string(line_number) + " ...Q> ";
+            const char* input = rx.input(buffer.empty() ? prompt_main : prompt_continue);
+
+            if (!input) break;  // EOF
+
+            buffer += input;
+            buffer += "\n";
+            ++line_number;
+
+            //if (input == nullptr) {  // Ctrl+D / EOF
+            //    break;
+           // }
+
+            std::string line(input);
+
+            std::transform(line.begin(), line.end(), line.begin(),
+                [](unsigned char c) { return std::tolower(c); });
+
+            if (line == "exit" || line == "quit") {
+                break;
+            }
+            //std::cout << "buffer.back:" << buffer.back() << "\n";
+
+
+            if (!buffer.empty() && buffer.at(buffer.size()-2) == ';') {
+                // Command complete
+                std::cout << "Executing: " << buffer << "\n";
+                buffer.clear();
+            }
+        }
 
     }
     catch(std::logic_error l){
-        std::cout<<"Error "<<l.what()<<"\n";
-        }
+        std::cout<<"Parser error "<<l.what()<<"\n";
+    }
+    catch(...){
+        std::cout<< "There was an exception!";
+    }
+
     //test_tokenizer();
 
     return 0;

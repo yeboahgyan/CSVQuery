@@ -9,6 +9,7 @@ CONFIG += c++20 cmdline
 SOURCES += \
         #columnexpression.cpp \
         assignstatement.cpp \
+        commandprompt.cpp \
         conditionalexpression.cpp \
         csvfile.cpp \
         expression.cpp \
@@ -32,6 +33,7 @@ HEADERS += \
     assignstatement.h \
     columnexpression.h \
     #columnterm.h \
+    commandprompt.h \
     conditionalexpression.h \
     #conditionalterm.h \
     csvfile.h \
