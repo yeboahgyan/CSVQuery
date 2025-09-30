@@ -11,11 +11,14 @@ class Parser
 {
     Tokenizer tokenizer;
 
-    QList<Token> read_statement();
-
 public:
     Parser(std::shared_ptr<QTextStream>& stream);
-    std::optional<QList<QStringList>> execute(const QList<Token>& statement_tokens);
+    QList<Token> read_statement();
+    std::pair<int, std::optional<QList<QStringList>> > execute(const QList<Token>& statement_tokens);
+
+    Token current_token() const {
+        return tokenizer.current_token();
+    }
 };
 
 #endif // PARSER_H

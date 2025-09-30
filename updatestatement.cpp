@@ -32,7 +32,7 @@ std::shared_ptr<CSVFile> UpdateStatement::read_file(QIODeviceBase::OpenMode m)
                 double line_numer = (*last_token_pos).line_number;
                 QString str_num = QString::number(line_numer);
 
-                throw std::logic_error("Unknown name on line "+ str_num.toStdString());
+                throw std::logic_error("Unknown name "+last_token_pos->string_value.toStdString() + " on line " + str_num.toStdString());
             }
 
             TokenType token_type = symbol_table[last_token_pos->string_value.toLower()];

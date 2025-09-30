@@ -586,6 +586,10 @@ std::optional<QList<QStringList>> SelectStatement::select_with_no_join()
         return std::nullopt;
     }
 
+    if (result.isEmpty()) {
+        return std::nullopt;
+    }
+
     return result;
 }
 
@@ -697,6 +701,10 @@ std::optional<QList<QStringList>> SelectStatement::select_with_inner_join()
         return std::nullopt;
     }
 
+    if (result.isEmpty()) {
+        return std::nullopt;
+    }
+
     return result;
 }
 
@@ -772,6 +780,10 @@ std::optional<QList<QStringList>> SelectStatement::select_with_outer_join()
     }
 
     if(write_to_file){
+        return std::nullopt;
+    }
+
+    if (result.isEmpty()) {
         return std::nullopt;
     }
 

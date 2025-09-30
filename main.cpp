@@ -19,6 +19,8 @@
 #include "selectstatement.h"
 #include "updatestatement.h"
 #include "types.h"
+#include "parser.h"
+#include <QTextStream>
 //#include "pretty.h"
 //#include "tabulate/table.hpp"
 
@@ -91,6 +93,14 @@ int main(int argc, char *argv[])
         //std::cin >> input;
 
         replxx::Replxx rx;
+
+        std::vector<std::string> keywords = {
+        "SELECT", "FROM", "UPDATE", "IMPORT", "WHERE",
+        "INTO", "INNER JOIN", "OUTER JOIN", "ON", "SET",
+        "TRIM", "LENGTH", "SUBSTRING", "LEFT", "RIGHT", "AS",
+        "DATE_GT", "DATE_GE", "DATE_LT", "DATE_LE", "DATE_EQ",
+        "QUIT", "EXIT"
+        };
         
 
         // Completion callback
@@ -118,11 +128,11 @@ int main(int argc, char *argv[])
 
         // Syntax highlighter
         rx.set_highlighter_callback(
-            [/*&commands */](std::string const& context, replxx::Replxx::colors_t& colors) {
+            [&keywords](std::string const& context, replxx::Replxx::colors_t& colors) {
                 colors.resize(context.size(), replxx::Replxx::Color::DEFAULT);
 
                 // Highlight SQL-like keywords (case-insensitive)
-                for (auto const& cmd : commands) {
+                for (auto const& cmd : keywords) {
                     std::regex word("\\b" + cmd + "\\b", std::regex_constants::icase);
                     auto words_begin = std::sregex_iterator(context.begin(), context.end(), word);
                     auto words_end = std::sregex_iterator();
@@ -181,17 +191,23 @@ int main(int argc, char *argv[])
         );
 
         std::string buffer;
+        std::string newlines;
 
         int line_number = 1;
         while (true) {
             std::string prompt_main = std::to_string(line_number) + " csvQ> ";
-            std::string prompt_continue = std::to_string(line_number) + " ...Q> ";
+            std::string prompt_continue = std::to_string(line_number) + "->] ";
             const char* input = rx.input(buffer.empty() ? prompt_main : prompt_continue);
 
             if (!input) break;  // EOF
 
+            if (buffer.empty()) {
+                buffer = newlines; //help parser keep track of line numbers
+            }
+
             buffer += input;
             buffer += "\n";
+            newlines += "\n";
             ++line_number;
 
             //if (input == nullptr) {  // Ctrl+D / EOF
@@ -208,17 +224,113 @@ int main(int argc, char *argv[])
             }
             //std::cout << "buffer.back:" << buffer.back() << "\n";
 
-
-            if (!buffer.empty() && buffer.at(buffer.size()-2) == ';') {
+            QString source = QString::fromStdString(buffer);
+            //std::cout << "'" << source.trimmed().back().toLatin1() << "'\n";
+            if (!source.trimmed().isEmpty() && source.trimmed().back() == ';') { //buffer.at(buffer.size() - 2) == ';')
                 // Command complete
-                std::cout << "Executing: " << buffer << "\n";
+                //std::cout << "Executing: " << buffer << "\n";
+                std::shared_ptr<QTextStream> ts = std::make_shared<QTextStream>(&source);
+                Parser parser(ts);
+
+                while (true) {
+                    try {
+                        QList<Token> tokens = parser.read_statement();
+
+                        if (tokens.isEmpty()) {
+                            break;
+                        }
+                        //std::pair<int, std::optional<QList<QStringList>>> result = parser.execute(tokens);
+
+                        Token action = tokens.front();
+
+                        if (action.token_type == TokenType::IMPORT) {
+                            ImportStatement import(tokens);
+                            import.execute();
+                            std::cout << "Number of names loaded:" << import.num_of_columns_loaded() << "\n";
+                        }
+                        else if (action.token_type == TokenType::NAME) {
+                            //std::cout << "assigning...\n";
+                            AssignStatement assign(tokens);
+                            assign.execute();
+                        }
+                        else if (action.token_type == TokenType::UPDATE) {
+                            UpdateStatement update(tokens);
+                            update.execute();
+                            std::cout << "Number of rows updated:" << update.get_number_of_rows() << "\n";
+                        }
+                        else if (action.token_type == TokenType::SELECT) {
+                            SelectStatement select(tokens);
+                            std::optional<QList<QStringList>> result = select.execute();
+
+                            if (result.has_value()) {
+                                //print result
+                                //
+                                std::cout << "Number of rows read:" << select.get_number_of_rows() << "\n";
+                                std::cout << "Enter any key to show the next page or x to stop\n";
+
+                                const char* input = rx.input("->] ");
+
+                                if (!input) break;  // EOF
+
+                                std::string line(input);
+
+                                if (line == "x" || line == "X") {
+                                    continue;
+                                }
+
+                                //loop until end of file
+                                while (true) {
+                                    result = select.execute();
+
+                                    if (result.has_value()) {
+                                        //print result
+                                        //
+                                        std::cout << "Number of rows read:" << select.get_number_of_rows() << "\n";
+                                        std::cout << "Enter any key to show the next page or x to stop\n";
+
+                                        const char* input = rx.input("->] ");
+
+                                        if (!input) break;  // EOF
+
+                                        std::string line(input);
+
+                                        if (line == "x" || line == "X") {
+                                            break;
+                                        }
+                                    }
+                                    else {
+                                        break;
+                                    }
+                                }
+                            }
+                            else {
+                                std::cout << "Number of rows read:" << select.get_number_of_rows() << "\n";
+                            }
+                        }
+
+
+
+                        if (parser.current_token().token_type == TokenType::END) {
+                            break;
+                        }
+                    }
+                    catch (std::logic_error l) {
+                        std::cout << "Parser error 1: " << l.what() << "\n";
+                    }
+
+                }
+                // Add to history
+                if (!line.empty()) {
+                    rx.history_add(line);
+                }
+
                 buffer.clear();
             }
         }
 
     }
     catch(std::logic_error l){
-        std::cout<<"Parser error "<<l.what()<<"\n";
+        std::cout<<"Parser error 2 "<<l.what()<<"\n";
     }
     catch(...){
         std::cout<< "There was an exception!";

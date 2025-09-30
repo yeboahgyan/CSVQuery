@@ -36,13 +36,14 @@ QList<Token> Parser::read_statement()
 }
 
 
-std::optional<QList<QStringList>> Parser::execute(const QList<Token>& statement_tokens)
+std::pair<int, std::optional<QList<QStringList>>> Parser::execute(const QList<Token>& statement_tokens)
 {
-    std::optional<QList<QStringList>> result = std::nullopt;
+    std::pair<int, std::optional<QList<QStringList>>> result = { 0, std::nullopt };
 
     if(statement_tokens.front().token_type == TokenType::IMPORT){
         ImportStatement import(statement_tokens);
         import.execute();
+        result.first = import.num_of_columns_loaded();
     }
     else if(statement_tokens.front().token_type == TokenType::ASSIGN){
         AssignStatement assign(statement_tokens);
@@ -50,11 +51,13 @@ std::optional<QList<QStringList>> Parser::execute(const QList<Token>& statement_
     }
     else if(statement_tokens.front().token_type == TokenType::SELECT){
         SelectStatement select(statement_tokens);
-        result = select.execute();
+        result.second = select.execute();
+        result.first = select.get_number_of_rows();
     }
     else if(statement_tokens.front().token_type == TokenType::UPDATE){
         UpdateStatement update(statement_tokens);
         update.execute();
+        result.first = update.get_number_of_rows();
     }
     else{
         QString error = "Unkown statement on line ";
