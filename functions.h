@@ -4,27 +4,29 @@
 #include "Types.h"
 #include "term.h"
 
-Term trim(QList<Term>);
+namespace csvquery {
 
-Term length(QList<Term>);
+	Term trim(QList<Term>);
 
-Term substring(QList<Term>);
+	Term length(QList<Term>);
 
-Term left(QList<Term>);
+	Term substring(QList<Term>);
 
-Term right(QList<Term>);
+	Term left(QList<Term>);
 
-Term date_gt(QList<Term>);
+	Term right(QList<Term>);
 
-Term date_lt(QList<Term>);
+	Term date_gt(QList<Term>);
 
-Term date_ge(QList<Term>); //greater than or equal
+	Term date_lt(QList<Term>);
 
-Term date_le(QList<Term>); //less than or equal
+	Term date_ge(QList<Term>); //greater than or equal
 
-Term date_eq(QList<Term>);
+	Term date_le(QList<Term>); //less than or equal
+
+	Term date_eq(QList<Term>);
 
 
-
+}
 
 #endif // FUNCTIONS_H

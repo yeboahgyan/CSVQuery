@@ -3,28 +3,32 @@
 
 #include "Types.h"
 
-class ImportStatement
-{
-    const QList<Token> tokens;
-    QList<Token>::const_iterator last_token_pos;
-    QString def_alias;
+namespace csvquery {
 
-    unsigned int NUMBER_OF_COLUMN_NAMES = 0;
+    class ImportStatement
+    {
+        const QList<Token> tokens;
+        QList<Token>::const_iterator last_token_pos;
+        QString def_alias;
 
-    void throw_exception_if_unexpected_end();
+        unsigned int NUMBER_OF_COLUMN_NAMES = 0;
 
-    void read_def_file(const QString& file, const QString& alias); //reads def columns and saves in import_defs table
+        void throw_exception_if_unexpected_end();
+
+        void read_def_file(const QString& file, const QString& alias); //reads def columns and saves in import_defs table
 
 
-public:
-    ImportStatement(const QList<Token>& tks);
+    public:
+        ImportStatement(const QList<Token>& tks);
 
-    void execute();
+        void execute();
 
-    unsigned int num_of_columns_loaded() const {
-        return NUMBER_OF_COLUMN_NAMES;
-    }
+        unsigned int num_of_columns_loaded() const {
+            return NUMBER_OF_COLUMN_NAMES;
+        }
 
-};
+    };
+
+}
 
 #endif // IMPORTSTATEMENT_H

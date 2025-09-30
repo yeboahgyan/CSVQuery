@@ -3,26 +3,30 @@
 
 #include "Types.h"
 #include "expression.h"
+#include "Term.h"
 
-class AssignStatement
-{
-    const QList<Token> tokens;
-    QList<Token>::const_iterator last_token_pos;
-    QString variable_name;
-    Term assignment_value;
+namespace csvquery {
 
-    void throw_exception_if_unexpected_end();
+    class AssignStatement
+    {
+        const QList<Token> tokens;
+        QList<Token>::const_iterator last_token_pos;
+        QString variable_name;
+        Term assignment_value;
 
-    Expression read_expression();
+        void throw_exception_if_unexpected_end();
 
-    void process_expression(Expression& rhs);
+        Expression read_expression();
 
-    void parse();
+        void process_expression(Expression& rhs);
 
-public:
-    AssignStatement(const QList<Token>& tks);
+        void parse();
 
-    void execute();
-};
+    public:
+        AssignStatement(const QList<Token>& tks);
+
+        void execute();
+    };
+}
 
 #endif // ASSIGNSTATEMENT_H

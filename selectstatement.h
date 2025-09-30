@@ -9,69 +9,78 @@
 #include <optional>
 
 
-class SelectStatement
-{
-    QList<Expression> column_exprs; // columns
-    std::shared_ptr<ConditionalExpression> conditional_expr; // where clause
-    std::shared_ptr<ConditionalExpression> on_clause; // on clause for joins
+namespace csvquery {
 
-    std::shared_ptr<CSVFile> out_file; // output file
 
-    std::shared_ptr<CSVFile> left_file;
-    std::shared_ptr<CSVFile> right_file;
+    class SelectStatement
+    {
+        QList<Expression> column_exprs; // columns
+        std::shared_ptr<ConditionalExpression> conditional_expr; // where clause
+        std::shared_ptr<ConditionalExpression> on_clause; // on clause for joins
 
-    QMap<QString, QString> join_files_list; // {'left' : left_file_name, 'right' : right_file_name}
+        std::shared_ptr<CSVFile> out_file; // output file
 
-    QList<Token> tokens; // select statement tokens excluding select. Last token is a semi-colon
-    QList<Token>::const_iterator last_token_pos;
+        std::shared_ptr<CSVFile> left_file;
+        std::shared_ptr<CSVFile> right_file;
 
-    unsigned int NUMBER_OF_ROWS_PER_PAGE; //used for pagination
-    unsigned int NUMBER_OF_ROWS = 0; //number of rows read
+        QMap<QString, QString> join_files_list; // {'left' : left_file_name, 'right' : right_file_name}
 
-    double query_index; // holds the column index for right hand side file; this is used in building the lookup index
+        QList<Token> tokens; // select statement tokens excluding select. Last token is a semi-colon
+        QList<Token>::const_iterator last_token_pos;
 
-    bool has_from_clause = true;
-    bool has_join = false;
-    bool has_where_clause = false;
-    TokenType join_type;
-    bool write_to_file = false;
-    void throw_exception_if_unexpected_end();
+        unsigned int NUMBER_OF_ROWS_PER_PAGE; //used for pagination
+        unsigned int NUMBER_OF_ROWS = 0; //number of rows read
 
-    Term read_join_column();
+        double query_index; // holds the column index for right hand side file; this is used in building the lookup index
+        bool run_only_once = false; //used for when select is executed wihout a from clause
 
-    void handle_into_clause();
-    void handle_inner_join();
-    void handle_outer_join();
-    void handle_cross_join();
-    void handle_where_clause();
-    void handle_groupby_clause();
-    QMap<TokenType, std::function<void()>> optional_actions;
+        bool has_from_clause = true;
+        bool has_join = false;
+        bool has_where_clause = false;
+        TokenType join_type;
+        bool write_to_file = false;
+        void throw_exception_if_unexpected_end();
 
-    QList<Expression> read_column_expressions();
-    std::shared_ptr<CSVFile> read_file(QIODeviceBase::OpenMode m = QIODevice::ReadOnly);
-    std::shared_ptr<ConditionalExpression> read_on_clause();
-    std::shared_ptr<ConditionalExpression> read_where();
+        Term read_join_column();
 
-    void parse();
-    //QString selected_rows();
-    QStringList compute_columns(const QMap<QString, QStringList>& data_rows);
+        void handle_into_clause();
+        void handle_inner_join();
+        void handle_outer_join();
+        void handle_cross_join();
+        void handle_where_clause();
+        void handle_groupby_clause();
+        QMap<TokenType, std::function<void()>> optional_actions;
 
-    std::shared_ptr<QHash<QString,QList<qint64>>> build_index(const std::shared_ptr<CSVFile>& rhs, const int& column_index);
+        QList<Expression> read_column_expressions();
+        std::shared_ptr<CSVFile> read_file(QIODeviceBase::OpenMode m = QIODevice::ReadOnly);
+        std::shared_ptr<ConditionalExpression> read_on_clause();
+        std::shared_ptr<ConditionalExpression> read_where();
 
-    std::optional<QList<QStringList>> select_with_no_join();
-    std::optional<QList<QStringList>> select_with_inner_join();
-    std::optional<QList<QStringList>> select_with_outer_join();
-    void process_select(QList<QStringList>& result_ptr, QMap<QString, QStringList>& data_rows);
+        void parse();
+        //QString selected_rows();
+        QStringList compute_columns(const QMap<QString, QStringList>& data_rows);
 
-public:
-    SelectStatement(const QList<Token>& tks, unsigned int max_rows_per_page = 100);
+        std::shared_ptr<QHash<QString, QList<qint64>>> build_index(const std::shared_ptr<CSVFile>& rhs, const int& column_index);
 
-   // void execute(); //save result to file
-    std::optional<QList<QStringList>> execute();
+        std::optional<QList<QStringList>> select_with_no_join();
+        std::optional<QList<QStringList>> select_with_inner_join();
+        std::optional<QList<QStringList>> select_with_outer_join();
+        void process_select(QList<QStringList>& result_ptr, QMap<QString, QStringList>& data_rows);
 
-    unsigned int get_number_of_rows() const {
-        return NUMBER_OF_ROWS;
-    }
-};
+    public:
+        SelectStatement(const QList<Token>& tks, unsigned int max_rows_per_page = 100);
 
+        // void execute(); //save result to file
+        std::optional<QList<QStringList>> execute();
+
+        unsigned int get_number_of_rows() const {
+            return NUMBER_OF_ROWS;
+        }
+
+        unsigned int get_max_rows_per_page() const {
+            return NUMBER_OF_ROWS_PER_PAGE;
+        }
+    };
+
+}
 #endif // SELECTSTATEMENT_H

@@ -1,4 +1,4 @@
-#include <QCoreApplication>
+﻿#include <QCoreApplication>
 #include <QHash>
 #include <QList>
 #include <QString>
@@ -22,9 +22,16 @@
 #include "parser.h"
 #include <QTextStream>
 //#include "pretty.h"
-//#include "tabulate/table.hpp"
 
-//import pretty;
+#include <tabulate/table.hpp>
+//using namespace tabulate;
+
+//#include "tabulate.h"
+
+#include <QFileInfo>
+
+
+import pretty;
 #include <replxx.hxx>
 
 void test_tokenizer();
@@ -39,11 +46,21 @@ void test_import_and_assigment();
 
 void test_csv_parser(const QString& csv);
 
-QList<Token> read_statement(Tokenizer& t);
+QList<csvquery::Token> read_statement(csvquery::Tokenizer& t);
 
 void test_select_statement();
 
 void set_builtin_funcs();
+
+void print(const std::optional<QList<QStringList>>& res);
+
+void print_table(const std::optional<QList<QStringList>>& res);
+
+void paginate(csvquery::SelectStatement& select, replxx::Replxx& rx);
+
+void execute_source_file(QString& source);
+
+int MAX_ROWS_PER_PAGE = 100;
 
 int main(int argc, char *argv[])
 {
@@ -59,6 +76,10 @@ int main(int argc, char *argv[])
 
     // If you do not need a running Qt event loop, remove the call
     // to a.exec() or use the Non-Qt Plain C++ Application template.
+
+    std::cout << "\t\t\t\t CSVQuery\n\n";
+    std::cout << "\t\t\t\t[version 0.1.0]\n\n";
+    std::cout << "\t\t\t\tKwame Yeboah-Gyan, 2025\n\n\n\n\n";
 
     set_builtin_funcs();
 
@@ -92,6 +113,20 @@ int main(int argc, char *argv[])
         //std::string input;
         //std::cin >> input;
 
+        if (a.arguments().length() > 1) {
+            QString source_path = a.arguments().at(1);
+
+            QFileInfo fileInfo(source_path);
+
+            if (!fileInfo.exists()) {
+                std::cout << "The provided file does not exist!" << std::endl;
+                return 0;
+            }
+
+            execute_source_file(source_path);
+            return 0;
+        }
+
         replxx::Replxx rx;
 
         std::vector<std::string> keywords = {
@@ -117,7 +152,7 @@ int main(int argc, char *argv[])
                     [](unsigned char c) { return std::toupper(c); });
 
                 // Suggest matches
-                for (auto const& cmd : commands) {
+                for (auto const& cmd : csvquery::commands) {
                     if (cmd.compare(0, prefix.size(), prefix) == 0) {
                         results.push_back(cmd);
                     }
@@ -230,87 +265,57 @@ int main(int argc, char *argv[])
                 // Command complete
                 //std::cout << "Executing: " << buffer << "\n";
                 std::shared_ptr<QTextStream> ts = std::make_shared<QTextStream>(&source);
-                Parser parser(ts);
+                csvquery::Parser parser(ts);
 
                 while (true) {
                     try {
-                        QList<Token> tokens = parser.read_statement();
+                        QList<csvquery::Token> tokens = parser.read_statement();
 
                         if (tokens.isEmpty()) {
                             break;
                         }
                         //std::pair<int, std::optional<QList<QStringList>>> result = parser.execute(tokens);
 
-                        Token action = tokens.front();
+                        csvquery::Token action = tokens.front();
 
-                        if (action.token_type == TokenType::IMPORT) {
-                            ImportStatement import(tokens);
+                        if (action.token_type == csvquery::TokenType::IMPORT) {
+                            csvquery::ImportStatement import(tokens);
                             import.execute();
-                            std::cout << "Number of names loaded:" << import.num_of_columns_loaded() << "\n";
+                            std::cout << "Number of names loaded: " << import.num_of_columns_loaded() << "\n";
                         }
-                        else if (action.token_type == TokenType::NAME) {
+                        else if (action.token_type == csvquery::TokenType::NAME) {
                             //std::cout << "assigning...\n";
-                            AssignStatement assign(tokens);
+                            csvquery::AssignStatement assign(tokens);
                             assign.execute();
                         }
-                        else if (action.token_type == TokenType::UPDATE) {
-                            UpdateStatement update(tokens);
+                        else if (action.token_type == csvquery::TokenType::UPDATE) {
+                            csvquery::UpdateStatement update(tokens);
                             update.execute();
-                            std::cout << "Number of rows updated:" << update.get_number_of_rows() << "\n";
+                            std::cout << "Number of rows updated: " << update.get_number_of_rows() << "\n";
                         }
-                        else if (action.token_type == TokenType::SELECT) {
-                            SelectStatement select(tokens);
+                        else if (action.token_type == csvquery::TokenType::SELECT) {
+                            int max_rows_per_page = MAX_ROWS_PER_PAGE;
+                            csvquery::SelectStatement select(tokens, max_rows_per_page);
                             std::optional<QList<QStringList>> result = select.execute();
 
                             if (result.has_value()) {
                                 //print result
-                                //
-                                std::cout << "Number of rows read:" << select.get_number_of_rows() << "\n";
-                                std::cout << "Enter any key to show the next page or x to stop\n";
-
-                                const char* input = rx.input("->] ");
-
-                                if (!input) break;  // EOF
-
-                                std::string line(input);
-
-                                if (line == "x" || line == "X") {
-                                    continue;
-                                }
-
-                                //loop until end of file
-                                while (true) {
-                                    result = select.execute();
-
-                                    if (result.has_value()) {
-                                        //print result
-                                        //
-                                        std::cout << "Number of rows read:" << select.get_number_of_rows() << "\n";
-                                        std::cout << "Enter any key to show the next page or x to stop\n";
-
-                                        const char* input = rx.input("->] ");
-
-                                        if (!input) break;  // EOF
-
-                                        std::string line(input);
-
-                                        if (line == "x" || line == "X") {
-                                            break;
-                                        }
-                                    }
-                                    else {
-                                        break;
-                                    }
-                                }
+                                //print(result);
+                                print_table(result);
+                                std::cout << "\nNumber of rows read: " << select.get_number_of_rows() << "\n\n";
+                                //if (max_rows_per_page < select.get_number_of_rows()) {
+                                paginate(select, rx);
+                                //}
+                                
                             }
                             else {
-                                std::cout << "Number of rows read:" << select.get_number_of_rows() << "\n";
+                                std::cout << "Number of rows read: " << select.get_number_of_rows() << "\n\n";
                             }
                         }
 
 
 
-                        if (parser.current_token().token_type == TokenType::END) {
+                        if (parser.current_token().token_type == csvquery::TokenType::END) {
                             break;
                         }
                     }
@@ -346,11 +351,11 @@ void test_tokenizer()
     QString source = "import 'hello.def'; select *.araba, *, file.0, 2*(fi), [0] from x #where [len] <= 2;\n\n\n  delete from x where [0] > 20 and [1] = 'hello'; select table.* from y\n\n";
     std::shared_ptr<QTextStream> stream = std::make_shared<QTextStream>(&source);
 
-    Tokenizer tokenizer(stream);
+    csvquery::Tokenizer tokenizer(stream);
 
-    Token token = tokenizer.get();
-    while(token.token_type != TokenType::END){
-        if(token.token_type == TokenType::SEMICOLON){
+    csvquery::Token token = tokenizer.get();
+    while(token.token_type != csvquery::TokenType::END){
+        if(token.token_type == csvquery::TokenType::SEMICOLON){
             std::cout<<";%%\n";
         }else{
             std::cout<< token << "{" <<token.string_value.toStdString() <<"} ";
@@ -366,40 +371,40 @@ void test_expression(QString& source, const QMap<QString, QStringList>& data_row
     //QString source = "*,[0], 2+2, 5+2,(2+10)/2,\nlength([1]+ [1]),length(trim(' kwame'))";
     std::shared_ptr<QTextStream> stream = std::make_shared<QTextStream>(&source);
 
-    Tokenizer tokenizer(stream);
-    QList<Term> terms;
-    QList<Expression> exps;
+    csvquery::Tokenizer tokenizer(stream);
+    QList<csvquery::Term> terms;
+    QList<csvquery::Expression> exps;
 
-    Token token = tokenizer.get();
-    while(token.token_type != TokenType::END){
-        if(token.token_type == TokenType::SEMICOLON){
+    csvquery::Token token = tokenizer.get();
+    while(token.token_type != csvquery::TokenType::END){
+        if(token.token_type == csvquery::TokenType::SEMICOLON){
             std::cout<<";%%\n";
         }else{
             std::cout<< token << "{" <<token.string_value.toStdString() <<"} ";
         }
 
-        if(token.token_type == TokenType::COMMA){
-            Expression exp(terms);
+        if(token.token_type == csvquery::TokenType::COMMA){
+            csvquery::Expression exp(terms);
             exps.append(exp);
             terms = {};
         }
         else{
 
-            Term t(token);
+            csvquery::Term t(token);
             terms.append(t);
         }
         token = tokenizer.get();
     }
 
-    if(token.token_type == TokenType::END){
-        Expression exp(terms);
+    if(token.token_type == csvquery::TokenType::END){
+        csvquery::Expression exp(terms);
         exps.append(exp);
     }
     std::cout<< token << "\n"; //print END token
 
     //evaluate expressions
     //QStringList row = {"empty string", "20", "hello"};
-    QList<Term> results;
+    QList<csvquery::Term> results;
     foreach (auto e, exps) {
         //if(e.is_star()){
         //    results.append(e.eval_star_term(row));
@@ -414,10 +419,10 @@ void test_expression(QString& source, const QMap<QString, QStringList>& data_row
     //print results
     foreach(auto t, results){
         std::cout<<"Answer: "<<t.get_token().to_string().toStdString()<<"(";
-        if(t.get_token().token_type == TokenType::NUMBER){
+        if(t.get_token().token_type == csvquery::TokenType::NUMBER){
             std::cout<<t.get_token().number_value<<")";
         }
-        else if(t.get_token().token_type == TokenType::STRING){
+        else if(t.get_token().token_type == csvquery::TokenType::STRING){
             std::cout<<t.get_token().string_value.toStdString()<<")";
         }
         std::cout<< "\n";
@@ -429,38 +434,38 @@ void test_conditional_expression(QString& source, const QMap<QString, QStringLis
     //QString source = "[2]='hello'";
     std::shared_ptr<QTextStream> stream = std::make_shared<QTextStream>(&source);
 
-    Tokenizer tokenizer(stream);
-    QList<Term> terms;
+    csvquery::Tokenizer tokenizer(stream);
+    QList<csvquery::Term> terms;
     //QList<Expression> exps;
 
     // Read and Print tokens //
-    Token token = tokenizer.get();
-    while(token.token_type != TokenType::END){
-        if(token.token_type == TokenType::SEMICOLON){
+    csvquery::Token token = tokenizer.get();
+    while(token.token_type != csvquery::TokenType::END){
+        if(token.token_type == csvquery::TokenType::SEMICOLON){
             std::cout<<";%%\n";
             break;
         }else{
             std::cout<< token << "{" <<token.string_value.toStdString() <<"} ";
         }
 
-        Term t(token);
+        csvquery::Term t(token);
         terms.append(t);
         token = tokenizer.get();
     }
 
-    ConditionalExpression cond_expr(terms);
+    csvquery::ConditionalExpression cond_expr(terms);
 
     std::cout<< token << "\n"; //print END token
 
     //evaluate expressions
     //QStringList row = {"empty string", "20", "hello"};
     //std::cout<<"evaluating cond_expr.eval(row)\n";
-    Term result = cond_expr.eval(data_rows);
+    csvquery::Term result = cond_expr.eval(data_rows);
     //std::cout<<"done.\n";
 
     //Print result
     std::cout<<"Answer: "<<result.get_token().to_string().toStdString()<<"(";
-    if(result.get_token().token_type == TokenType::BOOLEAN){
+    if(result.get_token().token_type == csvquery::TokenType::BOOLEAN){
         QString str = (result.get_token().boolean_value == true)? "TRUE" : "FALSE";
         std::cout<<str.toStdString()<<")";
     }
@@ -469,15 +474,15 @@ void test_conditional_expression(QString& source, const QMap<QString, QStringLis
 
 void test_import(QString& source){
     std::shared_ptr<QTextStream> stream = std::make_shared<QTextStream>(&source);
-    Tokenizer tokenizer(stream);
-    QList<Term> terms;
-    QList<Token> tokens;
+    csvquery::Tokenizer tokenizer(stream);
+    QList<csvquery::Term> terms;
+    QList<csvquery::Token> tokens;
     //QList<Expression> exps;
 
     // Read and Print tokens //
-    Token token = tokenizer.get();
-    while(token.token_type != TokenType::END){
-        if(token.token_type == TokenType::SEMICOLON){
+    csvquery::Token token = tokenizer.get();
+    while(token.token_type != csvquery::TokenType::END){
+        if(token.token_type == csvquery::TokenType::SEMICOLON){
             std::cout<<";%%\n";
             break;
         }else{
@@ -489,10 +494,10 @@ void test_import(QString& source){
         token = tokenizer.get();
     }
 
-    ImportStatement import(tokens);
+    csvquery::ImportStatement import(tokens);
     import.execute();
 
-    qDebug()<<import_defs;
+    qDebug()<< csvquery::import_defs;
 }
 
 void test_import_and_assigment()
@@ -500,15 +505,15 @@ void test_import_and_assigment()
     QString source = "import 'D:/Downloads/test_input/courses.def' as courses; \n a:courses = 'D:/Downloads/test_input/hello.csv';";
 
     std::shared_ptr<QTextStream> stream = std::make_shared<QTextStream>(&source);
-    Tokenizer tokenizer(stream);
-    QList<Term> terms;
-    QList<Token> tokens;
+    csvquery::Tokenizer tokenizer(stream);
+    QList<csvquery::Term> terms;
+    QList<csvquery::Token> tokens;
     //QList<Expression> exps;
 
     // Read import statement and Print tokens //
-    Token token = tokenizer.get();
-    while(token.token_type != TokenType::END){
-        if(token.token_type == TokenType::SEMICOLON){
+    csvquery::Token token = tokenizer.get();
+    while(token.token_type != csvquery::TokenType::END){
+        if(token.token_type == csvquery::TokenType::SEMICOLON){
             std::cout<<";%%\n";
             tokens.append(token);
             break;
@@ -521,16 +526,16 @@ void test_import_and_assigment()
         token = tokenizer.get();
     }
 
-    ImportStatement import(tokens);
+    csvquery::ImportStatement import(tokens);
     import.execute();
 
-    qDebug()<<"Imported defs: "<<import_defs;
+    qDebug()<<"Imported defs: "<< csvquery::import_defs;
 
     // Read assigment statement and Print tokens //
     token = tokenizer.get();
     tokens ={};
-    while(token.token_type != TokenType::END){
-        if(token.token_type == TokenType::SEMICOLON){
+    while(token.token_type != csvquery::TokenType::END){
+        if(token.token_type == csvquery::TokenType::SEMICOLON){
             std::cout<<";%%\n";
             tokens.append(token);
             break;
@@ -545,24 +550,24 @@ void test_import_and_assigment()
 
     qDebug()<<"Evaluating assigment";
 
-    AssignStatement assignment(tokens);
+    csvquery::AssignStatement assignment(tokens);
     assignment.execute();
-    qDebug()<<"columns table"<<columns_table;
+    qDebug()<<"columns table"<< csvquery::columns_table;
     qDebug()<<"symbols table";
 
-    foreach (auto s, symbol_table.keys()) {
-        TokenType t = symbol_table[s];
-        Token tk(t);
+    foreach (auto s, csvquery::symbol_table.keys()) {
+        csvquery::TokenType t = csvquery::symbol_table[s];
+        csvquery::Token tk(t);
         qDebug()<<s <<": "<<tk.to_string();
     }
 
-    qDebug()<<"Strings table: "<<strings_table;
-    qDebug()<<"numbers table: "<<numbers_table;
+    qDebug()<<"Strings table: "<< csvquery::strings_table;
+    qDebug()<<"numbers table: "<< csvquery::numbers_table;
 }
 
 void test_csv_parser(const QString& csv)
 {
-    CSVFile f(csv);
+    csvquery::CSVFile f(csv);
 
     while(!f.end_of_file()){
         QStringList row = f.readLine();
@@ -577,15 +582,15 @@ void test_csv_parser(const QString& csv)
 }
 
 
-QList<Token> read_statement(Tokenizer& t)
+QList<csvquery::Token> read_statement(csvquery::Tokenizer& t)
 {
-    QList<Token> tokens;
+    QList<csvquery::Token> tokens;
     //QList<Expression> exps;
 
     // Read import statement and Print tokens //
-    Token token = t.get();
-    while(token.token_type != TokenType::END){
-        if(token.token_type == TokenType::SEMICOLON){
+    csvquery::Token token = t.get();
+    while(token.token_type != csvquery::TokenType::END){
+        if(token.token_type == csvquery::TokenType::SEMICOLON){
             std::cout<<";%%\n";
             tokens.append(token);
             break;
@@ -609,26 +614,26 @@ void test_select_statement()
         source += " update a set [1] = 'Kwadwo' where [0] = '2' into c;";
 
     std::shared_ptr<QTextStream> stream = std::make_shared<QTextStream>(&source);
-    Tokenizer tokenizer(stream);
-    QList<Term> terms;
+    csvquery::Tokenizer tokenizer(stream);
+    QList<csvquery::Term> terms;
 
-    QList<Token> assignment_tokens1 = read_statement(tokenizer);
+    QList<csvquery::Token> assignment_tokens1 = read_statement(tokenizer);
 
-    AssignStatement assignment1(assignment_tokens1);
+    csvquery::AssignStatement assignment1(assignment_tokens1);
     assignment1.execute();
 
-    QList<Token> assignment_tokens2 = read_statement(tokenizer);
+    QList<csvquery::Token> assignment_tokens2 = read_statement(tokenizer);
 
-    AssignStatement assignment2(assignment_tokens2);
+    csvquery::AssignStatement assignment2(assignment_tokens2);
     assignment2.execute();
 
-    QList<Token> assignment_tokens3 = read_statement(tokenizer);
+    QList<csvquery::Token> assignment_tokens3 = read_statement(tokenizer);
 
-    AssignStatement assignment3(assignment_tokens3);
+    csvquery::AssignStatement assignment3(assignment_tokens3);
     assignment3.execute();
 
     //QList<Token> select_tokens = read_statement(tokenizer);
-    QList<Token> update_tokens = read_statement(tokenizer);
+    QList<csvquery::Token> update_tokens = read_statement(tokenizer);
 
     /*
     qDebug() << "Select tokens: " << select_tokens.size();
@@ -639,7 +644,7 @@ void test_select_statement()
     //SelectStatement select(select_tokens);
     //std::optional<QList<QStringList>> res = select.execute();
     //qDebug()<<"execution done.";
-    UpdateStatement update(update_tokens);
+    csvquery::UpdateStatement update(update_tokens);
     update.execute();
 
 
@@ -703,6 +708,267 @@ void test_select_statement()
     }*/
 }
 
+void print(const std::optional<QList<QStringList>>& res)
+{
+    auto table = pretty::Table();
+
+
+    if (res.has_value()) {
+        //qDebug()<<res.value();
+        auto result = res.value();
+
+        if (res.has_value()) {
+            if (result.isEmpty()) {
+                std::cout << "Number of rows:" << result.size();
+                return;
+            }
+        }
+
+        std::vector<std::string> header;
+        int col_number = 1;
+        int number_of_cols = result[0].size();
+
+        for (int i = 0; i < number_of_cols; ++i) {
+            std::string str = "Col. ";
+            str += std::to_string(col_number);
+            qDebug() << str;
+            header.push_back(str);
+            col_number++;
+        }
+
+        qDebug() << "header: " << header;
+
+        if (!result.isEmpty()) {
+
+            table.addRow(std::move(header));
+
+            foreach(auto row, result) {
+                std::vector<std::string> r;
+
+                qDebug() << "row:" << row;
+                if (row.isEmpty()) {
+                    continue;
+                }
+
+                foreach(auto col, row) {
+                    //std::variant<std::string, const char *, string_view, tabulate::Table> c = col.toStdString();
+                    qDebug() << "Col:" << col;
+                    r.emplace_back(col.toStdString());
+                }
+                table.addRow(std::move(r));
+            }
+            pretty::Printer print;
+            //print.frame(pretty::FrameStyle::Basic);
+            print.frame(pretty::FrameStyle::LineRounded);
+            std::cout << print(table);
+            //std::cout << "Number of rows:" << result.size();
+        }
+
+        //table.addRow({"1", "one"});
+        //table.addRow({ "2", "two" });
+    }
+}
+
+void print_table(const std::optional<QList<QStringList>>& res)
+{
+    tabulate::Table table;
+
+    using Row_t = std::vector<std::variant<std::string, const char*, std::string_view, tabulate::Table>>;
+
+
+    if (res.has_value()) {
+        //qDebug()<<res.value();
+        auto result = res.value();
+
+        if (res.has_value()) {
+            if (result.isEmpty()) {
+                std::cout << "Number of rows:" << result.size();
+                return;
+            }
+        }
+
+        std::vector<std::string> header;
+        int col_number = 1;
+        int number_of_cols = result[0].size();
+        Row_t header_row;
+        for (int i = 0; i < number_of_cols; ++i) {
+            std::string str = "Col. ";
+            str += std::to_string(col_number);
+            //qDebug() << str;
+            header_row.push_back(str);
+            col_number++;
+        }
+
+        //qDebug() << "header: " << header;
+
+        if (!result.isEmpty()) {
+
+            table.add_row(header_row);
+
+            foreach(auto row, result) {
+                //std::vector<std::string> r;
+                Row_t r;
+
+                //qDebug() << "row:" << row;
+                if (row.isEmpty()) {
+                    continue;
+                }
+
+                foreach(auto col, row) {
+                    //std::variant<std::string, const char *, string_view, tabulate::Table> c = col.toStdString();
+                    //qDebug() << "Col:" << col;
+                    r.emplace_back(col.toStdString());
+                }
+                table.add_row(r);
+            }
+            //pretty::Printer print;
+            //print.frame(pretty::FrameStyle::Basic);
+            //print.frame(pretty::FrameStyle::LineRounded);
+
+            // Iterate over cells in the first row
+            for (auto& cell : table[0]) {
+                cell.format()
+                    .font_style({ tabulate::FontStyle::bold })
+                    .font_align(tabulate::FontAlign::center)
+                    .font_color(tabulate::Color::yellow);
+            }
+            
+          
+
+            std::cout <<"\n" << table << "\n";
+            //std::cout << "Number of rows:" << result.size();
+        }
+
+        //table.addRow({"1", "one"});
+        //table.addRow({ "2", "two" });
+    }
+}
+
+void paginate(csvquery::SelectStatement& select, replxx::Replxx& rx)
+{
+    /*
+    std::cout << "Enter any key to show the next page or x to stop\n";
+
+    const char* input = rx.input("->] ");
+
+    if (!input) return;  // EOF
+
+    std::string line(input);
+
+    if (line == "x" || line == "X") {
+        return;
+    }*/
+
+    //loop until end of file
+    while (true) {
+        std::optional<QList<QStringList>> result = select.execute();
+
+        if (result.has_value()) {
+
+            std::cout << "Enter any key to show the next page or x to stop\n";
+
+            const char* input = rx.input("->] ");
+
+            if (!input) return;  // EOF
+
+            std::string line(input);
+
+            if (line == "x" || line == "X") {
+                return;
+            }
+
+            //print result
+            print_table(result);
+            std::cout << "Number of rows read:" << select.get_number_of_rows() << "\n";
+
+            /*
+            if (select.get_max_rows_per_page() > select.get_number_of_rows()) {
+                std::cout << "Enter any key to show the next page or x to stop\n";
+
+                const char* input = rx.input("->] ");
+
+                if (!input) break;  // EOF
+
+                std::string line(input);
+
+                if (line == "x" || line == "X") {
+                    break;
+                }
+                continue;
+            }*/
+
+        }
+        else {
+            break;
+        }
+    }
+}
+
+void execute_source_file(QString& source) {
+    replxx::Replxx rx;
+    std::shared_ptr<QTextStream> ts = std::make_shared<QTextStream>(&source);
+    csvquery::Parser parser(ts);
+
+    while (true) {
+        try {
+            QList<csvquery::Token> tokens = parser.read_statement();
+
+            if (tokens.isEmpty()) {
+                break;
+            }
+            //std::pair<int, std::optional<QList<QStringList>>> result = parser.execute(tokens);
+
+            csvquery::Token action = tokens.front();
+
+            if (action.token_type == csvquery::TokenType::IMPORT) {
+                csvquery::ImportStatement import(tokens);
+                import.execute();
+                std::cout << "Number of names loaded: " << import.num_of_columns_loaded() << "\n";
+            }
+            else if (action.token_type == csvquery::TokenType::NAME) {
+                //std::cout << "assigning...\n";
+                csvquery::AssignStatement assign(tokens);
+                assign.execute();
+            }
+            else if (action.token_type == csvquery::TokenType::UPDATE) {
+                csvquery::UpdateStatement update(tokens);
+                update.execute();
+                std::cout << "Number of rows updated: " << update.get_number_of_rows() << "\n";
+            }
+            else if (action.token_type == csvquery::TokenType::SELECT) {
+                int max_rows_per_page = MAX_ROWS_PER_PAGE;
+                csvquery::SelectStatement select(tokens, max_rows_per_page);
+                std::optional<QList<QStringList>> result = select.execute();
+
+                if (result.has_value()) {
+                    //print result
+                    //print(result);
+                    print_table(result);
+                    std::cout << "\nNumber of rows read: " << select.get_number_of_rows() << "\n\n";
+                    //if (max_rows_per_page < select.get_number_of_rows()) {
+                    paginate(select, rx);
+                    //}
+
+                }
+                else {
+                    std::cout << "Number of rows read: " << select.get_number_of_rows() << "\n\n";
+                }
+            }
+
+
+
+            if (parser.current_token().token_type == csvquery::TokenType::END) {
+                break;
+            }
+        }
+        catch (std::logic_error l) {
+            std::cout << "Parser error 1: " << l.what() << "\n";
+        }
+
+    }
+}
+
+
 void set_builtin_funcs()
 {
     //extern QHash<QString, std::function<Term(QList<Term>)> > funcs_table; // function name, "pointer to function"
@@ -711,54 +977,54 @@ void set_builtin_funcs()
     //extern QHash<QString, QList<TokenType>> func_args_type_list; // returns list of function argument type list
 
 
-    symbol_table["trim"] = TokenType::FUNCTION;
-    symbol_table["length"] = TokenType::FUNCTION;
-    symbol_table["substring"] = TokenType::FUNCTION;
-    symbol_table["left"] = TokenType::FUNCTION;
-    symbol_table["right"] = TokenType::FUNCTION;
-    symbol_table["date_gt"] = TokenType::FUNCTION;
-    symbol_table["date_lt"] = TokenType::FUNCTION;
-    symbol_table["date_ge"] = TokenType::FUNCTION;
-    symbol_table["date_le"] = TokenType::FUNCTION;
-    symbol_table["date_eq"] = TokenType::FUNCTION;
+    csvquery::symbol_table["trim"] = csvquery::TokenType::FUNCTION;
+    csvquery::symbol_table["length"] = csvquery::TokenType::FUNCTION;
+    csvquery::symbol_table["substring"] = csvquery::TokenType::FUNCTION;
+    csvquery::symbol_table["left"] = csvquery::TokenType::FUNCTION;
+    csvquery::symbol_table["right"] = csvquery::TokenType::FUNCTION;
+    csvquery::symbol_table["date_gt"] = csvquery::TokenType::FUNCTION;
+    csvquery::symbol_table["date_lt"] = csvquery::TokenType::FUNCTION;
+    csvquery::symbol_table["date_ge"] = csvquery::TokenType::FUNCTION;
+    csvquery::symbol_table["date_le"] = csvquery::TokenType::FUNCTION;
+    csvquery::symbol_table["date_eq"] = csvquery::TokenType::FUNCTION;
 
-    std::function<Term(QList<Term>)> _trim = trim;
-    std::function<Term(QList<Term>)> _length = length;
-    std::function<Term(QList<Term>)> _substring = substring;
-    std::function<Term(QList<Term>)> _left = left;
-    std::function<Term(QList<Term>)> _right = right;
-    std::function<Term(QList<Term>)> _date_gt = date_gt;
-    std::function<Term(QList<Term>)> _date_lt = date_lt;
-    std::function<Term(QList<Term>)> _date_ge = date_ge;
-    std::function<Term(QList<Term>)> _date_le = date_le;
-    std::function<Term(QList<Term>)> _date_eq = date_eq;
+    std::function<csvquery::Term(QList<csvquery::Term>)> _trim = csvquery::trim;
+    std::function<csvquery::Term(QList<csvquery::Term>)> _length = csvquery::length;
+    std::function<csvquery::Term(QList<csvquery::Term>)> _substring = csvquery::substring;
+    std::function<csvquery::Term(QList<csvquery::Term>)> _left = csvquery::left;
+    std::function<csvquery::Term(QList<csvquery::Term>)> _right = csvquery::right;
+    std::function<csvquery::Term(QList<csvquery::Term>)> _date_gt = csvquery::date_gt;
+    std::function<csvquery::Term(QList<csvquery::Term>)> _date_lt = csvquery::date_lt;
+    std::function<csvquery::Term(QList<csvquery::Term>)> _date_ge = csvquery::date_ge;
+    std::function<csvquery::Term(QList<csvquery::Term>)> _date_le = csvquery::date_le;
+    std::function<csvquery::Term(QList<csvquery::Term>)> _date_eq = csvquery::date_eq;
 
-    funcs_table["trim"] = _trim;
-    funcs_table["length"] = _length;
-    funcs_table["substring"] = _substring;
-    funcs_table["left"] = _left;
-    funcs_table["right"] = _right;
-    funcs_table["date_gt"] = _date_gt;
-    funcs_table["date_lt"] = _date_lt;
-    funcs_table["date_ge"] = _date_ge;
-    funcs_table["date_le"] = _date_le;
-    funcs_table["date_eq"] = _date_eq;
+    csvquery::funcs_table["trim"] = _trim;
+    csvquery::funcs_table["length"] = _length;
+    csvquery::funcs_table["substring"] = _substring;
+    csvquery::funcs_table["left"] = _left;
+    csvquery::funcs_table["right"] = _right;
+    csvquery::funcs_table["date_gt"] = _date_gt;
+    csvquery::funcs_table["date_lt"] = _date_lt;
+    csvquery::funcs_table["date_ge"] = _date_ge;
+    csvquery::funcs_table["date_le"] = _date_le;
+    csvquery::funcs_table["date_eq"] = _date_eq;
 
-    QList<TokenType> only_string_arg = {TokenType::STRING};
-    QList<TokenType> string_and_number = {TokenType::STRING, TokenType::NUMBER};
-    QList<TokenType> str_num_num = {TokenType::STRING, TokenType::NUMBER, TokenType::NUMBER};
-    QList<TokenType> date_comp_arg_types = {TokenType::STRING, TokenType::STRING, TokenType::STRING, TokenType::STRING};
+    QList<csvquery::TokenType> only_string_arg = { csvquery::TokenType::STRING};
+    QList<csvquery::TokenType> string_and_number = { csvquery::TokenType::STRING, csvquery::TokenType::NUMBER};
+    QList<csvquery::TokenType> str_num_num = { csvquery::TokenType::STRING, csvquery::TokenType::NUMBER, csvquery::TokenType::NUMBER};
+    QList<csvquery::TokenType> date_comp_arg_types = { csvquery::TokenType::STRING, csvquery::TokenType::STRING, csvquery::TokenType::STRING, csvquery::TokenType::STRING};
 
-    func_args_type_list["trim"] = only_string_arg;
-    func_args_type_list["length"] = only_string_arg;
-    func_args_type_list["substring"] = str_num_num;
-    func_args_type_list["left"] = string_and_number;
-    func_args_type_list["right"] = string_and_number;
-    func_args_type_list["date_gt"] = date_comp_arg_types;
-    func_args_type_list["date_lt"] = date_comp_arg_types;
-    func_args_type_list["date_ge"] = date_comp_arg_types;
-    func_args_type_list["date_le"] = date_comp_arg_types;
-    func_args_type_list["date_eq"] = date_comp_arg_types;
+    csvquery::func_args_type_list["trim"] = only_string_arg;
+    csvquery::func_args_type_list["length"] = only_string_arg;
+    csvquery::func_args_type_list["substring"] = str_num_num;
+    csvquery::func_args_type_list["left"] = string_and_number;
+    csvquery::func_args_type_list["right"] = string_and_number;
+    csvquery::func_args_type_list["date_gt"] = date_comp_arg_types;
+    csvquery::func_args_type_list["date_lt"] = date_comp_arg_types;
+    csvquery::func_args_type_list["date_ge"] = date_comp_arg_types;
+    csvquery::func_args_type_list["date_le"] = date_comp_arg_types;
+    csvquery::func_args_type_list["date_eq"] = date_comp_arg_types;
 
 
 }

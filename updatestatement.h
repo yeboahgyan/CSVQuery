@@ -7,43 +7,48 @@
 #include "csvfile.h"
 #include <utility>
 
-class UpdateStatement
-{
-    const QList<Token> tokens;
-    QList<Token>::const_iterator last_token_pos;
-    QList<std::pair<Token, Expression>> column_update_list;
-    std::shared_ptr<ConditionalExpression> where_expr; // where clause
-    std::shared_ptr<CSVFile> left_file;
-    std::shared_ptr<CSVFile> out_file; // output file
 
-    bool has_where_clause = false;
+namespace csvquery {
 
-    unsigned int NUMBER_OF_AFFECTED_ROWS = 0;
+    class UpdateStatement
+    {
+        const QList<Token> tokens;
+        QList<Token>::const_iterator last_token_pos;
+        QList<std::pair<Token, Expression>> column_update_list;
+        std::shared_ptr<ConditionalExpression> where_expr; // where clause
+        std::shared_ptr<CSVFile> left_file;
+        std::shared_ptr<CSVFile> out_file; // output file
 
-    void throw_exception_if_unexpected_end();
+        bool has_where_clause = false;
 
-    Token read_column();
+        unsigned int NUMBER_OF_AFFECTED_ROWS = 0;
 
-    Expression read_expression();
+        void throw_exception_if_unexpected_end();
 
-    void read_column_update_list();
+        Token read_column();
 
-    std::shared_ptr<ConditionalExpression> read_where_clause();
+        Expression read_expression();
 
-    std::shared_ptr<CSVFile> read_file(QIODeviceBase::OpenMode m = QIODevice::ReadOnly);
+        void read_column_update_list();
 
-    void process_expression(Expression& rhs);
+        std::shared_ptr<ConditionalExpression> read_where_clause();
 
-    void parse();
+        std::shared_ptr<CSVFile> read_file(QIODeviceBase::OpenMode m = QIODevice::ReadOnly);
 
-public:
-    UpdateStatement(const QList<Token>& tks);
+        void process_expression(Expression& rhs);
 
-    void execute();
+        void parse();
 
-    unsigned int get_number_of_rows() const {
-        return NUMBER_OF_AFFECTED_ROWS;
-    }
-};
+    public:
+        UpdateStatement(const QList<Token>& tks);
+
+        void execute();
+
+        unsigned int get_number_of_rows() const {
+            return NUMBER_OF_AFFECTED_ROWS;
+        }
+    };
+
+}
 
 #endif // UPDATESTATEMENT_H

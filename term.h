@@ -3,33 +3,36 @@
 
 #include "Types.h"
 
-class Term{
-    Token token;
+namespace csvquery {
 
-public:
-    Term()
-    {
-        token = {.token_type= TokenType::END, .token_name="TokenType::END"};
+    class Term {
+        Token token;
+
+    public:
+        Term()
+        {
+            token = { .token_type = TokenType::END, .token_name = "TokenType::END" };
+        };
+
+        Term(Token t) : token{ t } {}
+
+        Token get_token() const {
+            return token;
+        }
+
+        TokenType get_token_type() const {
+            return token.token_type;
+        }
+
+        double get_line_number() const {
+            return token.line_number;
+        }
+
+        Token eval(const QStringList& row);
+        Term eval_and_return_term(const QStringList& row);
+
+        Token eval(const QMap<QString, QStringList>& data_rows);
     };
 
-    Term(Token t): token{t}{}
-
-    Token get_token() const {
-        return token;
-    }
-
-    TokenType get_token_type() const{
-        return token.token_type;
-    }
-
-    double get_line_number() const{
-        return token.line_number;
-    }
-
-    Token eval(const QStringList& row);
-    Term eval_and_return_term(const QStringList& row);
-
-    Token eval(const QMap<QString, QStringList>& data_rows);
-};
-
+}
 #endif // TERM_H
