@@ -16,15 +16,17 @@ namespace csvquery {
 
 	Term right(QList<Term>);
 
-	Term date_gt(QList<Term>);
+	Term date_gt(QList<Term>); // date greater then
 
-	Term date_lt(QList<Term>);
+	Term date_lt(QList<Term>); // date less than
 
-	Term date_ge(QList<Term>); //greater than or equal
+	Term date_ge(QList<Term>); // date greater than or equal
 
-	Term date_le(QList<Term>); //less than or equal
+	Term date_le(QList<Term>); // date less than or equal
 
-	Term date_eq(QList<Term>);
+	Term date_eq(QList<Term>); // date equal
+
+	Term number(QList<Term>); // convert string to number or throw exception
 
 
 }

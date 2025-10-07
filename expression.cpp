@@ -99,7 +99,68 @@ namespace csvquery {
     Term Expression::mult(Term left, Term right) {
         Term result;
 
-        if (left.get_token_type() == TokenType::NUMBER && right.get_token_type() == TokenType::NUMBER) {
+        if (left.get_token_type() == TokenType::NUMBER && right.get_token_type() == TokenType::STRING) {
+            int count = static_cast<int>(left.get_token().number_value);
+            QString str = right.get_token().string_value;
+
+            if (count <= 0) { // multiplication by 0 or negative gives an empty string
+                //str = "";
+                Token t{ .token_type = TokenType::STRING, .token_name = "TokenType::STRING" };
+                t.line_number = left.get_token().line_number;
+                t.string_value = "";
+                result = Term(t);
+            }
+            else if (count == 1) {
+                Token t{ .token_type = TokenType::STRING, .token_name = "TokenType::STRING" };
+                t.line_number = left.get_token().line_number;
+                t.string_value = str;
+                result = Term(t);
+            }
+            else{
+                -- count;
+                QString temp = str;
+                for (int i = 0; i < count; ++i) {
+                    str += temp;
+                }
+
+                Token t{ .token_type = TokenType::STRING, .token_name = "TokenType::STRING" };
+                t.line_number = left.get_token().line_number;
+                t.string_value = str;
+                result = Term(t);
+            }
+            
+        }
+        else if (left.get_token_type() == TokenType::STRING && right.get_token_type() == TokenType::NUMBER) {
+            int count = static_cast<int>(right.get_token().number_value);
+            QString str = left.get_token().string_value;
+
+            if (count <= 0) { // multiplication by 0 or negative gives an empty string
+                //str = "";
+                Token t{ .token_type = TokenType::STRING, .token_name = "TokenType::STRING" };
+                t.line_number = left.get_token().line_number;
+                t.string_value = "";
+                result = Term(t);
+            }
+            else if (count == 1) {
+                Token t{ .token_type = TokenType::STRING, .token_name = "TokenType::STRING" };
+                t.line_number = left.get_token().line_number;
+                t.string_value = str;
+                result = Term(t);
+            }
+            else {
+                --count;
+                QString temp = str;
+                for (int i = 0; i < count; ++i) {
+                    str += temp;
+                }
+
+                Token t{ .token_type = TokenType::STRING, .token_name = "TokenType::STRING" };
+                t.line_number = left.get_token().line_number;
+                t.string_value = str;
+                result = Term(t);
+            }
+        }
+        else if (left.get_token_type() == TokenType::NUMBER && right.get_token_type() == TokenType::NUMBER) {
             Token t{ .token_type = TokenType::NUMBER, .token_name = "TokenType::NUMBER" };
             t.number_value = left.get_token().number_value * right.get_token().number_value;
             t.line_number = left.get_token().line_number;

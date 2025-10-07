@@ -142,7 +142,7 @@ int main(int argc, char *argv[])
         "INTO", "INNER JOIN", "OUTER JOIN", "ON", "SET", "LIKE", "NOT LIKE",
         "TRIM", "LENGTH", "SUBSTRING", "LEFT", "RIGHT", "AS",
         "DATE_GT", "DATE_GE", "DATE_LT", "DATE_LE", "DATE_EQ",
-        "QUIT", "EXIT", "AND", "OR"
+        "QUIT", "EXIT", "AND", "OR", "NUMBER"
         };
         
 
@@ -1055,6 +1055,7 @@ void set_builtin_funcs()
     csvquery::symbol_table["date_ge"] = csvquery::TokenType::FUNCTION;
     csvquery::symbol_table["date_le"] = csvquery::TokenType::FUNCTION;
     csvquery::symbol_table["date_eq"] = csvquery::TokenType::FUNCTION;
+    csvquery::symbol_table["number"] = csvquery::TokenType::FUNCTION;
 
     std::function<csvquery::Term(QList<csvquery::Term>)> _trim = csvquery::trim;
     std::function<csvquery::Term(QList<csvquery::Term>)> _length = csvquery::length;
@@ -1066,6 +1067,7 @@ void set_builtin_funcs()
     std::function<csvquery::Term(QList<csvquery::Term>)> _date_ge = csvquery::date_ge;
     std::function<csvquery::Term(QList<csvquery::Term>)> _date_le = csvquery::date_le;
     std::function<csvquery::Term(QList<csvquery::Term>)> _date_eq = csvquery::date_eq;
+    std::function<csvquery::Term(QList<csvquery::Term>)> _number = csvquery::number;
 
     csvquery::funcs_table["trim"] = _trim;
     csvquery::funcs_table["length"] = _length;
@@ -1077,6 +1079,7 @@ void set_builtin_funcs()
     csvquery::funcs_table["date_ge"] = _date_ge;
     csvquery::funcs_table["date_le"] = _date_le;
     csvquery::funcs_table["date_eq"] = _date_eq;
+    csvquery::funcs_table["number"] = _number;
 
     QList<csvquery::TokenType> only_string_arg = { csvquery::TokenType::STRING};
     QList<csvquery::TokenType> string_and_number = { csvquery::TokenType::STRING, csvquery::TokenType::NUMBER};
@@ -1093,6 +1096,7 @@ void set_builtin_funcs()
     csvquery::func_args_type_list["date_ge"] = date_comp_arg_types;
     csvquery::func_args_type_list["date_le"] = date_comp_arg_types;
     csvquery::func_args_type_list["date_eq"] = date_comp_arg_types;
+    csvquery::func_args_type_list["number"] = only_string_arg;
 
 
 }

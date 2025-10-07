@@ -27,7 +27,7 @@ namespace csvquery {
             "INTO", "INNER JOIN", "OUTER JOIN", "ON", "SET", "LIKE",
             "TRIM", "LENGTH", "SUBSTRING", "LEFT", "RIGHT", "AS",
             "DATE_GT", "DATE_GE", "DATE_LT", "DATE_LE", "DATE_EQ",
-            "QUIT", "EXIT"
+            "QUIT", "EXIT", "NUMBER"
     };
 
 

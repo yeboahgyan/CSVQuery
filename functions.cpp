@@ -18,11 +18,13 @@ namespace csvquery {
         int expected_num_of_args = 1;
 
         if (arg_types != expected_arg_types) {
-            QString error = "trim(string) expects 1 string argument!";
+            QString error = "trim(string) expects 1 string argument on line ";
+            error += QString::number(args.at(0).get_token().line_number);
             throw std::logic_error(error.toStdString());
         }
         else if (args.length() != expected_num_of_args) {
-            QString error = "trim(string) expects 1 string argument!";
+            QString error = "trim(string) expects 1 string argument on line ";
+            error += QString::number(args.at(0).get_token().line_number);
             throw std::logic_error(error.toStdString());
         }
         else {
@@ -34,7 +36,8 @@ namespace csvquery {
                 result = Term(t);
             }
             catch (const std::bad_any_cast& e) {
-                QString error = "trim(string) expects a string argument!";
+                QString error = "trim(string) expects a string argument on line ";
+                error += QString::number(args.at(0).get_token().line_number);
                 throw std::logic_error(error.toStdString() + e.what());
             }
         }
@@ -55,11 +58,13 @@ namespace csvquery {
         int expected_num_of_args = 1;
 
         if (arg_types != expected_arg_types) {
-            QString error = "length(string) expects 1 string argument!";
+            QString error = "length(string) expects 1 string argument on line ";
+            error += QString::number(args.at(0).get_token().line_number);
             throw std::logic_error(error.toStdString());
         }
         else if (args.length() != expected_num_of_args) {
-            QString error = "length(string) expects 1 string argument!";
+            QString error = "length(string) expects 1 string argument on line ";
+            error += QString::number(args.at(0).get_token().line_number);
             throw std::logic_error(error.toStdString());
         }
         else {
@@ -72,7 +77,8 @@ namespace csvquery {
 
             }
             catch (const std::bad_any_cast& e) {
-                QString error = "length(string) expects a string argument! ";
+                QString error = "length(string) expects a string argument on line ";
+                error += QString::number(args.at(0).get_token().line_number);
                 throw std::logic_error(error.toStdString() + e.what());
             }
         }
@@ -92,11 +98,13 @@ namespace csvquery {
         int expected_num_of_args = 3;
 
         if (arg_types != expected_arg_types) {
-            QString error = "substring(string, index, length) expects 3 arguments(string, number, number)!";
+            QString error = "substring(string, index, length) expects 3 arguments(string, number, number) on line ";
+            error += QString::number(args.at(0).get_token().line_number);
             throw std::logic_error(error.toStdString());
         }
         else if (args.length() != expected_num_of_args) {
-            QString error = "substring(string, index, length) expects 3 arguments(string, number, number)!";
+            QString error = "substring(string, index, length) expects 3 arguments(string, number, number) on line ";
+            error += QString::number(args.at(0).get_token().line_number);
             throw std::logic_error(error.toStdString());
         }
         else {
@@ -106,11 +114,13 @@ namespace csvquery {
                 double length = std::any_cast<double>(args[2].get_token().number_value);
 
                 if (index > str.length()) {
-                    QString error = "substring(string, index, length) index greater than string length!";
+                    QString error = "substring(string, index, length) index greater than string length on line ";
+                    error += QString::number(args.at(0).get_token().line_number);
                     throw std::logic_error(error.toStdString());
                 }
                 else if (index < 0) {
-                    QString error = "substring(string, index, length) invalid index!";
+                    QString error = "substring(string, index, length) invalid index on line ";
+                    error += QString::number(args.at(0).get_token().line_number);
                     throw std::logic_error(error.toStdString());
                 }
                 else {
@@ -122,7 +132,8 @@ namespace csvquery {
 
             }
             catch (const std::bad_any_cast& e) {
-                QString error = "substring(string, index, length) expects 3 arguments(string, number, number)!";
+                QString error = "substring(string, index, length) expects 3 arguments(string, number, number) on line ";
+                error += QString::number(args.at(0).get_token().line_number);
                 throw std::logic_error(error.toStdString() + e.what());
             }
         }
@@ -143,11 +154,13 @@ namespace csvquery {
         int expected_num_of_args = 2;
 
         if (arg_types != expected_arg_types) {
-            QString error = "left(string, length) expects 2 arguments(string, number)!";
+            QString error = "left(string, length) expects 2 arguments(string, number) on line ";
+            error += QString::number(args.at(0).get_token().line_number);
             throw std::logic_error(error.toStdString());
         }
         else if (args.length() != expected_num_of_args) {
-            QString error = "left(string, length) expects 2 arguments(string, number)!";
+            QString error = "left(string, length) expects 2 arguments(string, number) on line ";
+            error += QString::number(args.at(0).get_token().line_number);
             throw std::logic_error(error.toStdString());
         }
         else {
@@ -161,7 +174,8 @@ namespace csvquery {
                 double length = std::any_cast<double>(arg2);
 
                 if (length < 0) {
-                    QString error = "left(string, length) invalid length!";
+                    QString error = "left(string, length) invalid length on line ";
+                    error += QString::number(args.at(0).get_token().line_number);
                     throw std::logic_error(error.toStdString());
                 }
                 else {
@@ -173,8 +187,10 @@ namespace csvquery {
 
             }
             catch (const std::bad_any_cast& e) {
-                QString error = "left(string, length) expects 2 arguments(string, number)! ";
-                error += e.what();
+                QString error = "left(string, length) expects 2 arguments(string, number) on line ";
+                error += QString::number(args.at(0).get_token().line_number);
+                error += " ";
+                error += +e.what();
                 throw std::logic_error(error.toStdString() + e.what());
             }
         }
@@ -195,11 +211,13 @@ namespace csvquery {
         int expected_num_of_args = 2;
 
         if (arg_types != expected_arg_types) {
-            QString error = "right(string, length) expects 2 arguments(string, number)!";
+            QString error = "right(string, length) expects 2 arguments(string, number) on line ";
+            error += QString::number(args.at(0).get_token().line_number);
             throw std::logic_error(error.toStdString());
         }
         else if (args.length() != expected_num_of_args) {
-            QString error = "right(string, length) expects 2 arguments(string, number)!";
+            QString error = "right(string, length) expects 2 arguments(string, number) on line ";
+            error += QString::number(args.at(0).get_token().line_number);
             throw std::logic_error(error.toStdString());
         }
         else {
@@ -208,7 +226,8 @@ namespace csvquery {
                 double length = std::any_cast<double>(args[1].get_token().number_value);
 
                 if (length < 0) {
-                    QString error = "right(string, length) invalid length!";
+                    QString error = "right(string, length) invalid length on line ";
+                    error += QString::number(args.at(0).get_token().line_number);
                     throw std::logic_error(error.toStdString());
                 }
                 else {
@@ -220,7 +239,8 @@ namespace csvquery {
 
             }
             catch (const std::bad_any_cast& e) {
-                QString error = "right(string, length) expects 2 arguments(string, number)!";
+                QString error = "right(string, length) expects 2 arguments(string, number) on line ";
+                error += QString::number(args.at(0).get_token().line_number);
                 throw std::logic_error(error.toStdString() + e.what());
             }
         }
@@ -240,11 +260,13 @@ namespace csvquery {
         int expected_num_of_args = 4;
 
         if (arg_types != expected_arg_types) {
-            QString error = "date_gt(string, date_format, string2, date_format) expects 4 string argument!";
+            QString error = "date_gt(string, date_format, string2, date_format) expects 4 string argument on line ";
+            error += QString::number(args.at(0).get_token().line_number);
             throw std::logic_error(error.toStdString());
         }
         else if (args.length() != expected_num_of_args) {
-            QString error = "date_gt(string, date_format, string2, date_format) expects 4 string argument!";
+            QString error = "date_gt(string, date_format, string2, date_format) expects 4 string argument on line ";
+            error += QString::number(args.at(0).get_token().line_number);
             throw std::logic_error(error.toStdString());
         }
         else {
@@ -267,7 +289,8 @@ namespace csvquery {
                 }
 
                 if (!failure_str.isEmpty()) {
-                    QString error = "Failed to convert " + failure_str + " to a DateTime!";
+                    QString error = "Failed to convert " + failure_str + " to a DateTime on line ";
+                    error += QString::number(args.at(0).get_token().line_number);
                     throw std::logic_error(error.toStdString());
                 }
                 else {
@@ -279,7 +302,8 @@ namespace csvquery {
 
             }
             catch (const std::bad_any_cast& e) {
-                QString error = "date_gt(string, date_format, string2, date_format) expects 4 string argument!";
+                QString error = "date_gt(string, date_format, string2, date_format) expects 4 string argument on line ";
+                error += QString::number(args.at(0).get_token().line_number);
                 throw std::logic_error(error.toStdString() + e.what());
             }
         }
@@ -300,11 +324,13 @@ namespace csvquery {
         int expected_num_of_args = 4;
 
         if (arg_types != expected_arg_types) {
-            QString error = "date_lt(string, date_format, string2, date_format) expects 4 string argument!";
+            QString error = "date_lt(string, date_format, string2, date_format) expects 4 string argument on line ";
+            error += QString::number(args.at(0).get_token().line_number);
             throw std::logic_error(error.toStdString());
         }
         else if (args.length() != expected_num_of_args) {
-            QString error = "date_lt(string, date_format, string2, date_format) expects 4 string argument!";
+            QString error = "date_lt(string, date_format, string2, date_format) expects 4 string argument on line ";
+            error += QString::number(args.at(0).get_token().line_number);
             throw std::logic_error(error.toStdString());
         }
         else {
@@ -327,7 +353,8 @@ namespace csvquery {
                 }
 
                 if (!failure_str.isEmpty()) {
-                    QString error = "Failed to convert " + failure_str + " to a DateTime!";
+                    QString error = "Failed to convert " + failure_str + " to a DateTime on line ";
+                    error += QString::number(args.at(0).get_token().line_number);
                     throw std::logic_error(error.toStdString());
                 }
                 else {
@@ -340,7 +367,8 @@ namespace csvquery {
 
             }
             catch (const std::bad_any_cast& e) {
-                QString error = "date_lt(string, date_format, string2, date_format) expects 4 string argument!";
+                QString error = "date_lt(string, date_format, string2, date_format) expects 4 string argument on line ";
+                error += QString::number(args.at(0).get_token().line_number);
                 throw std::logic_error(error.toStdString() + e.what());
             }
         }
@@ -360,11 +388,13 @@ namespace csvquery {
         int expected_num_of_args = 4;
 
         if (arg_types != expected_arg_types) {
-            QString error = "date_ge(string, date_format, string2, date_format) expects 4 string argument!";
+            QString error = "date_ge(string, date_format, string2, date_format) expects 4 string argument on line ";
+            error += QString::number(args.at(0).get_token().line_number);
             throw std::logic_error(error.toStdString());
         }
         else if (args.length() != expected_num_of_args) {
-            QString error = "date_ge(string, date_format, string2, date_format) expects 4 string argument!";
+            QString error = "date_ge(string, date_format, string2, date_format) expects 4 string argument on line ";
+            error += QString::number(args.at(0).get_token().line_number);
             throw std::logic_error(error.toStdString());
         }
         else {
@@ -387,7 +417,8 @@ namespace csvquery {
                 }
 
                 if (!failure_str.isEmpty()) {
-                    QString error = "Failed to convert " + failure_str + " to a DateTime!";
+                    QString error = "Failed to convert " + failure_str + " to a DateTime on line ";
+                    error += QString::number(args.at(0).get_token().line_number);
                     throw std::logic_error(error.toStdString());
                 }
                 else {
@@ -400,7 +431,8 @@ namespace csvquery {
 
             }
             catch (const std::bad_any_cast& e) {
-                QString error = "date_ge(string, date_format, string2, date_format) expects 4 string argument!";
+                QString error = "date_ge(string, date_format, string2, date_format) expects 4 string argument on line ";
+                error += QString::number(args.at(0).get_token().line_number);
                 throw std::logic_error(error.toStdString() + e.what());
             }
         }
@@ -420,11 +452,13 @@ namespace csvquery {
         int expected_num_of_args = 4;
 
         if (arg_types != expected_arg_types) {
-            QString error = "date_le(string, date_format, string2, date_format) expects 4 string argument!";
+            QString error = "date_le(string, date_format, string2, date_format) expects 4 string argument on line ";
+            error += QString::number(args.at(0).get_token().line_number);
             throw std::logic_error(error.toStdString());
         }
         else if (args.length() != expected_num_of_args) {
-            QString error = "date_le(string, date_format, string2, date_format) expects 4 string argument!";
+            QString error = "date_le(string, date_format, string2, date_format) expects 4 string argument on line ";
+            error += QString::number(args.at(0).get_token().line_number);
             throw std::logic_error(error.toStdString());
         }
         else {
@@ -447,7 +481,8 @@ namespace csvquery {
                 }
 
                 if (!failure_str.isEmpty()) {
-                    QString error = "Failed to convert " + failure_str + " to a DateTime!";
+                    QString error = "Failed to convert " + failure_str + " to a DateTime on line ";
+                    error += QString::number(args.at(0).get_token().line_number);
                     throw std::logic_error(error.toStdString());
                 }
                 else {
@@ -459,7 +494,8 @@ namespace csvquery {
 
             }
             catch (const std::bad_any_cast& e) {
-                QString error = "date_le(string, date_format, string2, date_format) expects 4 string argument!";
+                QString error = "date_le(string, date_format, string2, date_format) expects 4 string argument on line ";
+                error += QString::number(args.at(0).get_token().line_number);
                 throw std::logic_error(error.toStdString() + e.what());
             }
         }
@@ -479,11 +515,13 @@ namespace csvquery {
         int expected_num_of_args = 4;
 
         if (arg_types != expected_arg_types) {
-            QString error = "date_eq(string, date_format, string2, date_format) expects 4 string argument!";
+            QString error = "date_eq(string, date_format, string2, date_format) expects 4 string argument on line ";
+            error += QString::number(args.at(0).get_token().line_number);
             throw std::logic_error(error.toStdString());
         }
         else if (args.length() != expected_num_of_args) {
-            QString error = "date_eq(string, date_format, string2, date_format) expects 4 string argument!";
+            QString error = "date_eq(string, date_format, string2, date_format) expects 4 string argument on line ";
+            error += QString::number(args.at(0).get_token().line_number);
             throw std::logic_error(error.toStdString());
         }
         else {
@@ -518,11 +556,64 @@ namespace csvquery {
 
             }
             catch (const std::bad_any_cast& e) {
-                QString error = "date_eq(string, date_format, string2, date_format) expects 4 string argument!";
+                QString error = "date_eq(string, date_format, string2, date_format) expects 4 string argument on line ";
+                error += QString::number(args.at(0).get_token().line_number);
                 throw std::logic_error(error.toStdString() + e.what());
             }
         }
         return result;
     }
 
+    Term number(QList<Term> args) // convert string to number or throw exception
+    {
+        Term result;
+
+        QList<TokenType> arg_types;
+        foreach(auto t, args) {
+            arg_types.append(t.get_token().token_type);
+        }
+
+        QList<TokenType> expected_arg_types = { TokenType::STRING};
+        int expected_num_of_args = 1;
+
+        if (arg_types != expected_arg_types) {
+            QString error = "number(string) expects a string argument on line ";
+            error += QString::number(args.at(0).get_token().line_number);
+            throw std::logic_error(error.toStdString());
+        }
+        else if (args.length() != expected_num_of_args) {
+            QString error = "number(string) expects a string argument on line ";
+            error += QString::number(args.at(0).get_token().line_number);
+            throw std::logic_error(error.toStdString());
+        }
+        else {
+            try {
+                QString num_str = std::any_cast<QString>(args[0].get_token().string_value);
+                bool is_number = false;
+                double number = num_str.toDouble(&is_number);
+
+                if (is_number) {
+                    Token t;
+                    t.token_type = TokenType::NUMBER;
+                    t.number_value = number;
+                    t.string_value = num_str;
+                    t.line_number = args.at(0).get_token().line_number;
+                    result = Term(t);
+                }
+                else {
+                    QString error = "String passed to number(string) on line ";
+                    error += QString::number(args.at(0).get_token().line_number);
+                    error += " is not a number!";
+                    throw std::logic_error(error.toStdString());
+                }
+            }
+            catch (const std::bad_any_cast& e) {
+                QString error = "number(string) expects a string argument!";
+                throw std::logic_error(error.toStdString() + e.what());
+            }
+        }
+        return result;
+    }
+
+    
 }
