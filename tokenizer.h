@@ -18,7 +18,7 @@ namespace csvquery {
                                                             {"and", TokenType::AND}, {"or", TokenType::OR}, {"into", TokenType::INTO}, {"update", TokenType::UPDATE},
                                                             {"delete", TokenType::DELETE}, {"import", TokenType::IMPORT}, {"into", TokenType::INTO}, {"set", TokenType::SET},
                                                              {"inner join", TokenType::INNERJOIN}, {"outer join", TokenType::OUTERJOIN}, {"cross join", TokenType::CROSSJOIN},
-                                                            {"as", TokenType::AS}, {"on", TokenType::ON}
+                                                            {"as", TokenType::AS}, {"on", TokenType::ON}, {"like", TokenType::LIKE} , {"not like", TokenType::NOTLIKE}
         };
 
         QList<TokenType> read_func_args();

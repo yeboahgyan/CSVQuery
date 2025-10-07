@@ -261,7 +261,7 @@ namespace csvquery {
             if (has_where_clause) {
                 Term where_t = where_expr->eval(data_rows);
                 //qDebug()<<"Conditional evaluation done.";
-                qDebug() << row << " where clause result:" << where_t.get_token().boolean_value;
+                //qDebug() << row << " where clause result:" << where_t.get_token().boolean_value;
 
                 if (where_t.get_token().boolean_value == true) {
 

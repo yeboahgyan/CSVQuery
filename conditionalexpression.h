@@ -35,6 +35,8 @@ namespace csvquery {
         Term lt(Term left, Term right); // Less than
         Term ge(Term left, Term right); // Greater than or equal to
         Term le(Term left, Term right); // Less than or equal to
+        Term like(Term left, Term right); // SQL Like pattern matching; left term is value string and right term is pattern string
+        Term not_like(Term left, Term right);
 
         Term cond_expr(const QMap<QString, QStringList>& data_rows, bool get);
         Term cond_term(const QMap<QString, QStringList>& data_rows, bool get);

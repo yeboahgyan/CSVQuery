@@ -31,7 +31,7 @@
 #include <QFileInfo>
 
 
-import pretty;
+//import pretty;
 #include <replxx.hxx>
 
 void test_tokenizer();
@@ -52,13 +52,13 @@ void test_select_statement();
 
 void set_builtin_funcs();
 
-void print(const std::optional<QList<QStringList>>& res);
+//void print(const std::optional<QList<QStringList>>& res);
 
 void print_table(const std::optional<QList<QStringList>>& res);
 
 void paginate(csvquery::SelectStatement& select, replxx::Replxx& rx);
 
-void execute_source_file(QString& source);
+void execute_source_file(QFile& source);
 
 int MAX_ROWS_PER_PAGE = 100;
 
@@ -77,9 +77,10 @@ int main(int argc, char *argv[])
     // If you do not need a running Qt event loop, remove the call
     // to a.exec() or use the Non-Qt Plain C++ Application template.
 
+    std::cout << "\n\n";
     std::cout << "\t\t\t\t CSVQuery\n\n";
-    std::cout << "\t\t\t\t[version 0.1.0]\n\n";
-    std::cout << "\t\t\t\tKwame Yeboah-Gyan, 2025\n\n\n\n\n";
+    std::cout << "\t\t\t\t[version 0.1.1]\n\n";
+    std::cout << "\t\t\t\tKwame Yeboah-Gyan, 2025\n\n\n";
 
     set_builtin_funcs();
 
@@ -123,7 +124,14 @@ int main(int argc, char *argv[])
                 return 0;
             }
 
-            execute_source_file(source_path);
+            QFile f(source_path);
+
+            if (!f.open(QIODevice::ReadOnly | QIODevice::Text)) {
+                std::cout << "Failed to open the file!"<< std::endl;
+                return -1;
+            }
+
+            execute_source_file(f);
             return 0;
         }
 
@@ -131,10 +139,10 @@ int main(int argc, char *argv[])
 
         std::vector<std::string> keywords = {
         "SELECT", "FROM", "UPDATE", "IMPORT", "WHERE",
-        "INTO", "INNER JOIN", "OUTER JOIN", "ON", "SET",
+        "INTO", "INNER JOIN", "OUTER JOIN", "ON", "SET", "LIKE", "NOT LIKE",
         "TRIM", "LENGTH", "SUBSTRING", "LEFT", "RIGHT", "AS",
         "DATE_GT", "DATE_GE", "DATE_LT", "DATE_LE", "DATE_EQ",
-        "QUIT", "EXIT"
+        "QUIT", "EXIT", "AND", "OR"
         };
         
 
@@ -222,6 +230,21 @@ int main(int argc, char *argv[])
                         colors[pos + i] = replxx::Replxx::Color::BROWN;
                     }
                 }
+
+                
+
+                // Find the first occurrence of '#'
+                std::size_t pos = context.find('#');
+                if (pos != std::string::npos) {
+
+                    // Clear existing colors
+                    //std::fill(colors.begin(), colors.end(), replxx::Replxx::Color::DEFAULT);
+
+                    // Mark everything from '#' to end of line as a comment
+                    for (std::size_t i = pos; i < context.size(); ++i) {
+                        colors[i] = replxx::Replxx::Color::BRIGHTGREEN; // or GREEN, CYAN, etc.
+                    }
+                }
             }
         );
 
@@ -230,7 +253,7 @@ int main(int argc, char *argv[])
 
         int line_number = 1;
         while (true) {
-            std::string prompt_main = std::to_string(line_number) + " csvQ> ";
+            std::string prompt_main = "\n" + std::to_string(line_number) + " csvQ> ";
             std::string prompt_continue = std::to_string(line_number) + "->] ";
             const char* input = rx.input(buffer.empty() ? prompt_main : prompt_continue);
 
@@ -708,6 +731,7 @@ void test_select_statement()
     }*/
 }
 
+/*
 void print(const std::optional<QList<QStringList>>& res)
 {
     auto table = pretty::Table();
@@ -767,7 +791,7 @@ void print(const std::optional<QList<QStringList>>& res)
         //table.addRow({"1", "one"});
         //table.addRow({ "2", "two" });
     }
-}
+}*/
 
 void print_table(const std::optional<QList<QStringList>>& res)
 {
@@ -817,6 +841,13 @@ void print_table(const std::optional<QList<QStringList>>& res)
                 foreach(auto col, row) {
                     //std::variant<std::string, const char *, string_view, tabulate::Table> c = col.toStdString();
                     //qDebug() << "Col:" << col;
+                    /*
+                    qDebug() << col.front() << col.back();
+
+                    if (col.front() == "\"" && col.back() == "\"") { // remove quotes from string
+                        col.remove(0, 1);
+                        col.chop(1);
+                    }*/
                     r.emplace_back(col.toStdString());
                 }
                 table.add_row(r);
@@ -904,7 +935,7 @@ void paginate(csvquery::SelectStatement& select, replxx::Replxx& rx)
     }
 }
 
-void execute_source_file(QString& source) {
+void execute_source_file(QFile& source) {
     replxx::Replxx rx;
     std::shared_ptr<QTextStream> ts = std::make_shared<QTextStream>(&source);
     csvquery::Parser parser(ts);

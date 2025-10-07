@@ -222,16 +222,16 @@ namespace csvquery {
             //std::cout<<"debug: " <<token <<" "<< token.string_value.toStdString()<<"\n";
 
             // is a keyword
-            QStringList expected_joins = { "inner", "outer", "cross" };
-            if (keywords.contains(token.string_value.toLower()) || expected_joins.contains(token.string_value.toLower())) {
+            QStringList expected_joins = { "inner", "outer", "cross"}; //joins
+            if (keywords.contains(token.string_value.toLower()) || expected_joins.contains(token.string_value.toLower()) || token.string_value.toLower() == "not") {
 
-                if (expected_joins.contains(token.string_value.toLower())) { // is join
+                if (expected_joins.contains(token.string_value.toLower()) || token.string_value.toLower() == "not") { // is join
                     //std::cout<<"new token read!\n";
                     Token inner_token = token;
                     Token join_token = read(); //read join
 
-                    if (join_token.string_value.toLower() != "join") {
-                        QString error_msg = "Unexpected name after join (" + join_token.string_value + ") on line " + QString::number(line_number);
+                    if (join_token.string_value.toLower() != "join" && join_token.string_value.toLower() != "like") {
+                        QString error_msg = "Unexpected name after " + inner_token.string_value +" (" + join_token.string_value + ") on line " + QString::number(line_number);
                         throw std::logic_error(error_msg.toStdString());
                     }
                     //qDebug()<<"join: "<<token.string_value.toLower()+" "+ join_token.string_value.toLower();
@@ -253,11 +253,18 @@ namespace csvquery {
                         token.string_value = "outer join";
                         token.token_name = token.to_string();
                     }
+                    else if (token.token_type == TokenType::NOTLIKE) {
+                        token.token_name = "not like";
+                        token.string_value = "not like";
+                        token.token_name = token.to_string();
+                        //qDebug() << "not like!";
+                    }
                 }
                 else { // is other keyword
                     token.token_type = keywords[token.string_value.toLower()];
                     token.string_value = keywords.key(token.token_type);
                     token.token_name = token.to_string();
+                
                 }
             }
             else if (symbol_table.contains(token.string_value.toLower())) { // is built in variable or function
@@ -308,7 +315,7 @@ namespace csvquery {
                         throw std::logic_error("Unexpected character after function " + token.string_value.toStdString() + " on line " + num);
                     }
 
-                    int count = arg_types.length();
+                    //int count = arg_types.length();
                     //std::cout<<"number of args for "<<func_token.string_value.toLower().toStdString()<<" is "<<count<<"\n";
 
                     next_token = get();

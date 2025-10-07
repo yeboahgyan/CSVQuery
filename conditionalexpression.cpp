@@ -1,6 +1,7 @@
 #include "conditionalexpression.h"
 #include <stdexcept>
 #include <iostream>
+#include <QRegularExpression>
 #include "term.h"
 
 
@@ -310,6 +311,64 @@ namespace csvquery {
         return result;
     }
 
+    // SQL Like pattern matching; left term is value string and right term is pattern string
+    Term ConditionalExpression::like(Term left, Term right) 
+    {
+        Term result;
+
+        Token t;
+        t.token_type = TokenType::BOOLEAN;
+
+        if (left.get_token().token_type != TokenType::STRING || right.get_token().token_type != TokenType::STRING) {
+            QString error = "Like operator expects String operands on line ";
+            error += QString::number(right.get_line_number());
+            //error += " should also be a number!";
+            throw std::logic_error(error.toStdString());
+        }
+
+        QString regexPattern;
+        QString pattern = right.get_token().string_value;
+        regexPattern.reserve(pattern.size() * 2);
+
+        // Escape regex special characters, then replace SQL wildcards
+        for (QChar c : pattern) {
+            switch (c.unicode()) {
+            case '%': regexPattern += ".*"; break;
+            case '_': regexPattern += ".";  break;
+                // Escape regex metacharacters
+            case '.': case '^': case '$': case '|': case '(': case ')':
+            case '[': case ']': case '{': case '}': case '+': case '?': case '\\':
+                regexPattern += '\\';
+                regexPattern += c;
+                break;
+            default:
+                regexPattern += c;
+                break;
+            }
+        }
+
+        // Add anchors to match the whole string
+        regexPattern.prepend('^');
+        regexPattern.append('$');
+
+        QRegularExpression regex(regexPattern, QRegularExpression::CaseInsensitiveOption);
+        t.boolean_value = regex.match(left.get_token().string_value).hasMatch();
+
+        result = Term(t);
+
+        return result;
+    }
+
+    Term ConditionalExpression::not_like(Term left, Term right)
+    {
+        Term result = like(left, right);
+        Token t = result.get_token();
+        t.boolean_value = !t.boolean_value; // reverse boolean result from like test
+        result = Term(t);
+
+        return result;
+    }
+
 
     // Used for Where clause
     Term ConditionalExpression::cond_expr(const QMap<QString, QStringList>& data_rows, bool get)
@@ -341,9 +400,11 @@ namespace csvquery {
     {
         Term left = cond_primary(data_rows, get);
 
-        //std::cout<<"cond_term() current left: "<<left.get_token().to_string().toStdString()<<" value:"<<left.get_token().string_value.toStdString()<<"\n";
+       // std::cout<<"cond_term() current left: "<<left.get_token().to_string().toStdString()<<" value:"<<left.get_token().string_value.toStdString()<<"\n";
+        //qDebug() << "current term:" << current_term->get_token().to_string();
 
         while (current_term != terms.end()) {
+            //qDebug() << "current term:" << current_term->get_token().to_string();
 
             if (current_term->get_token().token_type == TokenType::ASSIGN) { //Equal
                 Term right = cond_primary(data_rows, true);
@@ -367,6 +428,14 @@ namespace csvquery {
             }
             else if (current_term->get_token().token_type == TokenType::GREATERTHANOREQUAL) {
                 left = ge(left, cond_primary(data_rows, true));
+            }
+            else if (current_term->get_token().token_type == TokenType::LIKE) {
+                //qDebug() << "evaluating like!";
+                left = like(left, cond_primary(data_rows, true));
+            }
+            else if (current_term->get_token().token_type == TokenType::NOTLIKE) {
+                //qDebug() << "evaluating not like!";
+                left = not_like(left, cond_primary(data_rows, true));
             }
             else {
                 break;
@@ -472,7 +541,7 @@ namespace csvquery {
 
 
         QList<QString> relational_tokens = { "TokenType::ASSIGN", "TokenType::AND", "TokenType::OR", "TokenType::LESSTHAN", "TokenType::GREATERTHAN",
-                                            "TokenType::LESSTHANOREQUAL", "TokenType::GREATERTHANOREQUAL", "TokenType::NOTEQUALTO" };
+                                            "TokenType::LESSTHANOREQUAL", "TokenType::GREATERTHANOREQUAL", "TokenType::NOTEQUALTO", "TokenType::LIKE", "TokenType::NOTLIKE"};
 
         //QList<QString> relational_tokens = {"TokenType::RBRACKET"};
 

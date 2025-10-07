@@ -23,8 +23,8 @@ namespace csvquery {
 
     // This is used for tab completion in main.cpp
     std::vector<std::string> commands = {
-            "SELECT", "FROM", "UPDATE", "IMPORT", "WHERE",
-            "INTO", "INNER JOIN", "OUTER JOIN", "ON", "SET",
+            "SELECT", "FROM", "UPDATE", "IMPORT", "WHERE", "NOT LIKE",
+            "INTO", "INNER JOIN", "OUTER JOIN", "ON", "SET", "LIKE",
             "TRIM", "LENGTH", "SUBSTRING", "LEFT", "RIGHT", "AS",
             "DATE_GT", "DATE_GE", "DATE_LT", "DATE_LE", "DATE_EQ",
             "QUIT", "EXIT"
@@ -84,6 +84,8 @@ namespace csvquery {
         case TokenType::GROUPBY: { str = "TokenType::GROUPBY"; break; }
         case TokenType::DOLLAR: { str = "TokenType::DOLLAR"; break; }
         case TokenType::AS: { str = "TokenType::AS"; break; }
+        case TokenType::LIKE: { str = "TokenType::LIKE"; break; }
+        case TokenType::NOTLIKE: { str = "TokenType::NOTLIKE"; break; }
         }
 
         return str;
