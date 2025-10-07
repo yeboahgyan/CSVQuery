@@ -242,7 +242,7 @@ int main(int argc, char *argv[])
 
                     // Mark everything from '#' to end of line as a comment
                     for (std::size_t i = pos; i < context.size(); ++i) {
-                        colors[i] = replxx::Replxx::Color::BRIGHTGREEN; // or GREEN, CYAN, etc.
+                        colors[i] = replxx::Replxx::Color::GREEN; 
                     }
                 }
             }
@@ -282,11 +282,32 @@ int main(int argc, char *argv[])
             }
             //std::cout << "buffer.back:" << buffer.back() << "\n";
 
+
             QString source = QString::fromStdString(buffer);
             //std::cout << "'" << source.trimmed().back().toLatin1() << "'\n";
-            if (!source.trimmed().isEmpty() && source.trimmed().back() == ';') { //buffer.at(buffer.size() - 2) == ';')
+
+            QString statement = QString::fromStdString(line);
+
+
+            QStringList line_parts = statement.split('#');
+            if (line_parts.count() > 1) {
+                if (line_parts.at(0).trimmed() != "") {
+
+                    statement = line_parts.at(0);
+                }
+                else {
+                    //qDebug() << "other branch";
+                    statement = "";
+                }
+            }
+
+
+            if (!statement.trimmed().isEmpty() && statement.trimmed().back() == ';') { //buffer.at(buffer.size() - 2) == ';')
                 // Command complete
                 //std::cout << "Executing: " << buffer << "\n";
+
+                //statement_before_comment = false; //reset
+
                 std::shared_ptr<QTextStream> ts = std::make_shared<QTextStream>(&source);
                 csvquery::Parser parser(ts);
 
@@ -348,11 +369,16 @@ int main(int argc, char *argv[])
 
                 }
                 // Add to history
-                if (!line.empty()) {
-                    rx.history_add(line);
-                }
+                //if (!line.empty()) {
+                //    rx.history_add(line);
+                //}
 
                 buffer.clear();
+            }
+
+            // Add to history
+            if (!line.empty()) {
+                rx.history_add(line);
             }
         }
 
