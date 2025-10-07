@@ -34,6 +34,36 @@ namespace csvquery {
         }
     }
 
+    void SelectStatement::save_column_names(const QList<Term>& terms)
+    {
+        QString column_name;
+
+        foreach(auto t, terms) {
+            
+            if (t.get_token().token_type == TokenType::FUNCTION) {
+                column_name += t.get_token().string_value;
+                column_name += "(";
+                auto f_args = t.get_token().func_args;
+
+                if (f_args.length() > 0) {
+                    foreach(auto arg, f_args)
+                    {
+                        column_name += arg.string_value;
+                        column_name += ",";
+                    }
+                    column_name.chop(1); //remove trailing comma ','
+                    column_name += ")";
+                }
+
+            }
+            else {
+                column_name += t.get_token().string_value;
+            }
+            
+        }
+        this->column_names.append(column_name);
+    }
+
     QList<Expression> SelectStatement::read_column_expressions()
     {
         QList<Term> terms;
@@ -44,12 +74,20 @@ namespace csvquery {
             if ((last_token_pos->token_type == TokenType::SEMICOLON) || (last_token_pos->token_type == TokenType::FROM)) {
                 Expression exp(terms);
                 exps.append(exp);
+
+                //save column names
+                save_column_names(terms);
+
                 break;
             }
 
             if (last_token_pos->token_type == TokenType::COMMA) {
                 Expression exp(terms);
                 exps.append(exp);
+
+                //save column names
+                save_column_names(terms);
+
                 terms = {};
             }
             else {

@@ -110,7 +110,7 @@ namespace csvquery {
 
                 if (ok) {
                     type = TokenType::COLUMNNUMBER;
-                    token = { .token_type = type, .string_value = QString::number(number), .number_value = number,  .line_number = line_number, .token_name = "TokenType::COLUMNNUMBER" };
+                    token = { .token_type = type, .string_value = "["+QString::number(number)+"]", .number_value = number,  .line_number = line_number, .token_name = "TokenType::COLUMNNUMBER"};
                 }
                 else {
                     type = TokenType::COLUMNNAME;

@@ -42,6 +42,8 @@ namespace csvquery {
         void throw_exception_if_unexpected_end();
 
         Term read_join_column();
+        QStringList column_names; //
+        void save_column_names(const QList<Term>& terms);
 
         void handle_into_clause();
         void handle_inner_join();
@@ -79,6 +81,10 @@ namespace csvquery {
 
         unsigned int get_max_rows_per_page() const {
             return NUMBER_OF_ROWS_PER_PAGE;
+        }
+
+        QStringList get_column_names() const {
+            return column_names;
         }
     };
 

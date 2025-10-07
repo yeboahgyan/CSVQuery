@@ -54,7 +54,7 @@ void set_builtin_funcs();
 
 //void print(const std::optional<QList<QStringList>>& res);
 
-void print_table(const std::optional<QList<QStringList>>& res);
+void print_table(const std::optional<QList<QStringList>>& res, const QStringList& column_names = {});
 
 void paginate(csvquery::SelectStatement& select, replxx::Replxx& rx);
 
@@ -345,8 +345,9 @@ int main(int argc, char *argv[])
                             if (result.has_value()) {
                                 //print result
                                 //print(result);
-                                print_table(result);
+                                print_table(result, select.get_column_names());
                                 std::cout << "\nNumber of rows read: " << select.get_number_of_rows() << "\n\n";
+                                //qDebug() << select.get_column_names();
                                 //if (max_rows_per_page < select.get_number_of_rows()) {
                                 paginate(select, rx);
                                 //}
@@ -819,7 +820,7 @@ void print(const std::optional<QList<QStringList>>& res)
     }
 }*/
 
-void print_table(const std::optional<QList<QStringList>>& res)
+void print_table(const std::optional<QList<QStringList>>& res, const QStringList& column_names)
 {
     tabulate::Table table;
 
@@ -838,16 +839,26 @@ void print_table(const std::optional<QList<QStringList>>& res)
         }
 
         std::vector<std::string> header;
-        int col_number = 1;
-        int number_of_cols = result[0].size();
         Row_t header_row;
-        for (int i = 0; i < number_of_cols; ++i) {
-            std::string str = "Col. ";
-            str += std::to_string(col_number);
-            //qDebug() << str;
-            header_row.push_back(str);
-            col_number++;
+        if (column_names.isEmpty()) {
+            int col_number = 1;
+            int number_of_cols = result[0].size();
+            //Row_t header_row;
+            for (int i = 0; i < number_of_cols; ++i) {
+                std::string str = "Col. ";
+                str += std::to_string(col_number);
+                //qDebug() << str;
+                header_row.push_back(str);
+                col_number++;
+            }
         }
+        else {
+            //Row_t header_row;
+            foreach(auto c, column_names) {
+                header_row.push_back(c.toStdString());
+            }
+        }
+        
 
         //qDebug() << "header: " << header;
 
@@ -935,7 +946,7 @@ void paginate(csvquery::SelectStatement& select, replxx::Replxx& rx)
             }
 
             //print result
-            print_table(result);
+            print_table(result, select.get_column_names());
             std::cout << "Number of rows read:" << select.get_number_of_rows() << "\n";
 
             /*
