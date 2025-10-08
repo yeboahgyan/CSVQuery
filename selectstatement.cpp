@@ -38,7 +38,7 @@ namespace csvquery {
     {
         QString column_name;
 
-        foreach(auto t, terms) {
+        foreach(auto t, terms) { // for each term in column expression
             
             if (t.get_token().token_type == TokenType::FUNCTION) {
                 column_name += t.get_token().string_value;
@@ -72,6 +72,11 @@ namespace csvquery {
         for (; last_token_pos != tokens.cend(); ++last_token_pos) {
 
             if ((last_token_pos->token_type == TokenType::SEMICOLON) || (last_token_pos->token_type == TokenType::FROM)) {
+                if (terms.isEmpty()) {
+                    QString error = "Unexpected end to column list on line " + QString::number(last_token_pos->line_number);
+                    throw std::logic_error(error.toStdString());
+                }
+
                 Expression exp(terms);
                 exps.append(exp);
 
@@ -82,6 +87,11 @@ namespace csvquery {
             }
 
             if (last_token_pos->token_type == TokenType::COMMA) {
+                if (terms.isEmpty()) {
+                    QString error = "Unexpected end to column list on line " + QString::number(last_token_pos->line_number);
+                    throw std::logic_error(error.toStdString());
+                }
+
                 Expression exp(terms);
                 exps.append(exp);
 
