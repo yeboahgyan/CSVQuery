@@ -15,6 +15,7 @@ namespace csvquery {
     class SelectStatement
     {
         QList<Expression> column_exprs; // columns
+        QList<Term> column_exprs_terms; // all terms in select columns except functions and function args; used in read_column_expressions
         std::shared_ptr<ConditionalExpression> conditional_expr; // where clause
         std::shared_ptr<ConditionalExpression> on_clause; // on clause for joins
 
@@ -37,13 +38,20 @@ namespace csvquery {
         bool has_from_clause = true;
         bool has_join = false;
         bool has_where_clause = false;
+
+        bool has_group_by = false;
+        bool is_aggregation = false; //used for situations where there is no group by but there are aggregation functions in columnm list
+
         TokenType join_type;
         bool write_to_file = false;
         void throw_exception_if_unexpected_end();
 
         Term read_join_column();
         QStringList column_names; //
-        void save_column_names(const QList<Term>& terms);
+        void save_column_names(QList<Term>& terms); // saves and modifies term with name for terms that are functions
+
+        QStringList group_by_columns;
+        //void read_group_by_columns();
 
         void handle_into_clause();
         void handle_inner_join();
@@ -64,6 +72,8 @@ namespace csvquery {
 
         std::shared_ptr<QHash<QString, QList<qint64>>> build_index(const std::shared_ptr<CSVFile>& rhs, const int& column_index);
 
+        QString create_group_by_key(const QMap<QString, QStringList>& data_rows);
+
         std::optional<QList<QStringList>> select_with_no_join();
         std::optional<QList<QStringList>> select_with_inner_join();
         std::optional<QList<QStringList>> select_with_outer_join();
@@ -71,6 +81,13 @@ namespace csvquery {
 
     public:
         SelectStatement(const QList<Token>& tks, unsigned int max_rows_per_page = 100);
+
+        ~SelectStatement() {
+            //clean up global data structures
+            //qDebug() << "destructor called";
+            aggregate_expression_reg = {};
+            check_if_aggregate_done = {};
+        }
 
         // void execute(); //save result to file
         std::optional<QList<QStringList>> execute();

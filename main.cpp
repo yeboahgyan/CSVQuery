@@ -137,12 +137,12 @@ int main(int argc, char *argv[])
 
         replxx::Replxx rx;
 
-        std::vector<std::string> keywords = {
+        std::vector<std::string> keywords = { //used in highlighting keywords
         "SELECT", "FROM", "UPDATE", "IMPORT", "WHERE",
         "INTO", "INNER JOIN", "OUTER JOIN", "ON", "SET", "LIKE", "NOT LIKE",
-        "TRIM", "LENGTH", "SUBSTRING", "LEFT", "RIGHT", "AS",
+        "TRIM", "LENGTH", "SUBSTRING", "LEFT", "RIGHT", "AS","COUNT", "SUM", "AVG", "MIN", "MAX",
         "DATE_GT", "DATE_GE", "DATE_LT", "DATE_LE", "DATE_EQ",
-        "QUIT", "EXIT", "AND", "OR", "NUMBER"
+        "QUIT", "EXIT", "AND", "OR", "NUMBER", "GROUP BY"
         };
         
 
@@ -1056,6 +1056,11 @@ void set_builtin_funcs()
     csvquery::symbol_table["date_le"] = csvquery::TokenType::FUNCTION;
     csvquery::symbol_table["date_eq"] = csvquery::TokenType::FUNCTION;
     csvquery::symbol_table["number"] = csvquery::TokenType::FUNCTION;
+    csvquery::symbol_table["count"] = csvquery::TokenType::FUNCTION;
+    csvquery::symbol_table["max"] = csvquery::TokenType::FUNCTION;
+    csvquery::symbol_table["min"] = csvquery::TokenType::FUNCTION;
+    csvquery::symbol_table["sum"] = csvquery::TokenType::FUNCTION;
+    csvquery::symbol_table["avg"] = csvquery::TokenType::FUNCTION;
 
     std::function<csvquery::Term(QList<csvquery::Term>)> _trim = csvquery::trim;
     std::function<csvquery::Term(QList<csvquery::Term>)> _length = csvquery::length;
@@ -1068,6 +1073,11 @@ void set_builtin_funcs()
     std::function<csvquery::Term(QList<csvquery::Term>)> _date_le = csvquery::date_le;
     std::function<csvquery::Term(QList<csvquery::Term>)> _date_eq = csvquery::date_eq;
     std::function<csvquery::Term(QList<csvquery::Term>)> _number = csvquery::number;
+    std::function<csvquery::Term(QList<csvquery::Term>)> _count = csvquery::count;
+    std::function<csvquery::Term(QList<csvquery::Term>)> _sum = csvquery::sum;
+    std::function<csvquery::Term(QList<csvquery::Term>)> _max = csvquery::max;
+    std::function<csvquery::Term(QList<csvquery::Term>)> _min = csvquery::min;
+    std::function<csvquery::Term(QList<csvquery::Term>)> _avg = csvquery::avg;
 
     csvquery::funcs_table["trim"] = _trim;
     csvquery::funcs_table["length"] = _length;
@@ -1080,12 +1090,19 @@ void set_builtin_funcs()
     csvquery::funcs_table["date_le"] = _date_le;
     csvquery::funcs_table["date_eq"] = _date_eq;
     csvquery::funcs_table["number"] = _number;
+    csvquery::funcs_table["count"] = _count;
+    csvquery::funcs_table["sum"] = _sum;
+    csvquery::funcs_table["max"] = _max;
+    csvquery::funcs_table["min"] = _min;
+    csvquery::funcs_table["avg"] = _avg;
 
     QList<csvquery::TokenType> only_string_arg = { csvquery::TokenType::STRING};
     QList<csvquery::TokenType> string_and_number = { csvquery::TokenType::STRING, csvquery::TokenType::NUMBER};
     QList<csvquery::TokenType> str_num_num = { csvquery::TokenType::STRING, csvquery::TokenType::NUMBER, csvquery::TokenType::NUMBER};
     QList<csvquery::TokenType> date_comp_arg_types = { csvquery::TokenType::STRING, csvquery::TokenType::STRING, csvquery::TokenType::STRING, csvquery::TokenType::STRING};
 
+
+    /* not using this at the moment? */
     csvquery::func_args_type_list["trim"] = only_string_arg;
     csvquery::func_args_type_list["length"] = only_string_arg;
     csvquery::func_args_type_list["substring"] = str_num_num;
@@ -1097,6 +1114,11 @@ void set_builtin_funcs()
     csvquery::func_args_type_list["date_le"] = date_comp_arg_types;
     csvquery::func_args_type_list["date_eq"] = date_comp_arg_types;
     csvquery::func_args_type_list["number"] = only_string_arg;
+    csvquery::func_args_type_list["count"] = only_string_arg;
+    csvquery::func_args_type_list["sum"] = only_string_arg;
+    csvquery::func_args_type_list["max"] = only_string_arg;
+    csvquery::func_args_type_list["min"] = only_string_arg;
+    csvquery::func_args_type_list["avg"] = only_string_arg;
 
 
 }

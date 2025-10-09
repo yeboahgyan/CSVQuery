@@ -449,6 +449,20 @@ namespace csvquery {
                 arg_results.append(r);
             }
 
+            //handle aggregate functions
+            // add extra term with aggregate function and parameters as a string
+            if (left_token.string_value.toLower().contains("count")
+                || left_token.string_value.toLower().contains("sum")
+                || left_token.string_value.toLower().contains("avg")
+                || left_token.string_value.toLower().contains("min")
+                || left_token.string_value.toLower().contains("max")
+                ) 
+            {
+                //qDebug() << "function name:" << left_token.string_value;
+                Term t(left_token);
+                arg_results.append(t);
+            }
+
             //call function
             left = f(arg_results);
             move_to_next_term();

@@ -222,20 +222,28 @@ namespace csvquery {
             //std::cout<<"debug: " <<token <<" "<< token.string_value.toStdString()<<"\n";
 
             // is a keyword
-            QStringList expected_joins = { "inner", "outer", "cross"}; //joins
-            if (keywords.contains(token.string_value.toLower()) || expected_joins.contains(token.string_value.toLower()) || token.string_value.toLower() == "not") {
+            //QStringList expected_joins = { "inner", "outer", "cross"}; //joins
+            QStringList composite_keywords = { "inner", "outer", "cross", "not", "group"}; // first part of composite keyword
+            if (keywords.contains(token.string_value.toLower()) || composite_keywords.contains(token.string_value.toLower())) {
 
-                if (expected_joins.contains(token.string_value.toLower()) || token.string_value.toLower() == "not") { // is join
+                if (composite_keywords.contains(token.string_value.toLower())) { // is a composite keyword
                     //std::cout<<"new token read!\n";
-                    Token inner_token = token;
-                    Token join_token = read(); //read join
+                    Token first_token = token;
+                    Token second_token = read(); //read join
 
+                    /*
                     if (join_token.string_value.toLower() != "join" && join_token.string_value.toLower() != "like") {
                         QString error_msg = "Unexpected name after " + inner_token.string_value +" (" + join_token.string_value + ") on line " + QString::number(line_number);
                         throw std::logic_error(error_msg.toStdString());
-                    }
+                    }*/
                     //qDebug()<<"join: "<<token.string_value.toLower()+" "+ join_token.string_value.toLower();
-                    token.token_type = keywords[inner_token.string_value.toLower() + " " + join_token.string_value.toLower()];
+
+                    if (!keywords.contains(first_token.string_value.toLower() + " " + second_token.string_value.toLower())) {
+                        QString error_msg = "Unexpected name " + first_token.string_value + " " + second_token.string_value + " on line " + QString::number(line_number);
+                        throw std::logic_error(error_msg.toStdString());
+                    }
+
+                    token.token_type = keywords[first_token.string_value.toLower() + " " + second_token.string_value.toLower()];
 
                     if (token.token_type == TokenType::INNERJOIN) {
                         token.token_name = "inner join";
@@ -258,6 +266,11 @@ namespace csvquery {
                         token.string_value = "not like";
                         token.token_name = token.to_string();
                         //qDebug() << "not like!";
+                    }
+                    else if (token.token_type == TokenType::GROUPBY) {
+                        token.token_name = "group by";
+                        token.string_value = "group by";
+                        token.token_name = token.to_string();
                     }
                 }
                 else { // is other keyword

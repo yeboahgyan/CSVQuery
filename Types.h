@@ -8,13 +8,15 @@
 //#include <any>
 //#include "term.h"
 #include <functional>
-//#include <map>
+#include <QMap>
+#include <QDebug>
+#include <limits>
 
 namespace csvquery {
 
     enum class TokenType : char /* char16_t*/ {
         NAME, NUMBER, STRING, BOOLEAN, SELECT, FROM, WHERE, AND, OR, INTO, UPDATE, DELETE, IMPORT, END, COLUMNNAME, COLUMNNUMBER, ERROR, FUNCTION,
-        ON, INNERJOIN, OUTERJOIN, CROSSJOIN, DOT, NOTEQUALTO, NOT, SET, GROUPBY, DOLLAR = '$', AS, LIKE, 
+        ON, INNERJOIN, OUTERJOIN, CROSSJOIN, DOT, NOTEQUALTO, NOT, SET, GROUPBY, DOLLAR = '$', AS, LIKE,
         PLUS = '+', MULT = '*', MINUS = '-', DIV = '/', ASSIGN = '=', LBRACKET = '(', RBRACKET = ')', LSQBRACKET = '[', RSQBRACKET = ']', COMMENT = '#',
         SINGLEQOUTE = '\'', DOUBLEQUOTE = '"', COMMA = ',', SEMICOLON = ';', COLON = ':', LESSTHAN = '<', GREATERTHAN = '>', LESSTHANOREQUAL, GREATERTHANOREQUAL,
         NOTLIKE
@@ -114,6 +116,116 @@ namespace csvquery {
     // This is used for tab completion in main.cpp
     extern std::vector<std::string> commands;
 
+
+
+    //Aggregate counters for Aggregate functions
+
+    struct AggregateCounter {
+        virtual void process_data(const QString& data) = 0;
+        virtual double get_value() const = 0;
+        virtual ~AggregateCounter() = default;
+    };
+
+    struct CountCounter : public AggregateCounter {
+        double count = 0;
+
+        void process_data(const QString& data) override {
+            //qDebug() << "data: " << data;
+            if (data != "") {
+                ++count;
+            }
+        }
+
+        double get_value() const override  {
+            return count;
+        }
+    };
+
+    struct SumCounter : public AggregateCounter {
+        double sum = 0;
+
+        void process_data(const QString& data) override {
+            if (data != "") {
+                bool is_number = false;
+                double num = data.toDouble(&is_number);
+
+                if (is_number) {
+                    sum += num;
+                }
+            }
+        }
+
+        double get_value() const override {
+            return sum;
+        }
+    };
+
+
+    struct AvgCounter : public AggregateCounter {
+        double sum = 0;
+        double count = 0;
+
+        void process_data(const QString& data) override {
+            if (data != "") {
+                bool is_number = false;
+                double num = data.toDouble(&is_number);
+
+                if (is_number) {
+                    
+                    sum += num;
+                }
+                ++count; //counts even non-numbers
+            }
+        }
+
+        double get_value() const override {
+            return sum/count;
+        }
+    };
+
+    struct MinCounter : public AggregateCounter {
+        double min = std::numeric_limits<double>::max();
+
+        void process_data(const QString& data) override {
+            if (data != "") {
+                bool is_number = false;
+                double num = data.toDouble(&is_number);
+
+                if (is_number) {
+
+                    min = (min > num) ? num : min;
+                }
+            }
+        }
+
+        double get_value() const override {
+            return min;
+        }
+    };
+
+    struct MaxCounter : public AggregateCounter {
+        double max = std::numeric_limits<double>::min();
+
+        void process_data(const QString& data) override {
+            if (data != "") {
+                bool is_number = false;
+                double num = data.toDouble(&is_number);
+
+                if (is_number) {
+
+                    max = (max > num) ? max : num;
+                }
+            }
+        }
+
+        double get_value() const override {
+            return max;
+        }
+    };
+
+    extern QString aggregate_expression_reg_key; // This is set within SelectStatement class and  used in aggregate functions 
+    extern  QMap<QString, QMap<QString,std::shared_ptr<AggregateCounter> > > aggregate_expression_reg; // select statement initiates this with aggregate functions; it also empties it when done
+    extern QMap<QString, QMap<QString, bool>> check_if_aggregate_done; // used to prevent multiple aggregation in a select execution loop {group_by_key, {function , bool}}
 }
 
 #endif // TYPES_H

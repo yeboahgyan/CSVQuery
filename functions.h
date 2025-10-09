@@ -28,6 +28,16 @@ namespace csvquery {
 
 	Term number(QList<Term>); // convert string to number or throw exception
 
+	Term count(QList<Term>); //aggregate function
+
+	Term sum(QList<Term>); //aggregate function
+
+	Term min(QList<Term>); //aggregate function
+
+	Term max(QList<Term>); //aggregate function
+
+	Term avg(QList<Term>); //aggregate function
+
 
 }
 

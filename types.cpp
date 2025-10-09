@@ -1,6 +1,7 @@
 #include "types.h"
 #include <QHash>
 
+
 namespace csvquery {
 
     QHash<QString, double> columns_table; // {COLUMNNANME, index}
@@ -27,8 +28,12 @@ namespace csvquery {
             "INTO", "INNER JOIN", "OUTER JOIN", "ON", "SET", "LIKE",
             "TRIM", "LENGTH", "SUBSTRING", "LEFT", "RIGHT", "AS",
             "DATE_GT", "DATE_GE", "DATE_LT", "DATE_LE", "DATE_EQ",
-            "QUIT", "EXIT", "NUMBER"
+            "QUIT", "EXIT", "NUMBER", "GROUP BY", "COUNT", "SUM", "AVG", "MIN", "MAX"
     };
+    
+    QString aggregate_expression_reg_key; // This is set within SelectStatement class and  used in aggregate functions 
+    QMap<QString, QMap<QString, std::shared_ptr<AggregateCounter> > > aggregate_expression_reg; // select statement initiates this with aggregate functions; it also empties it when done
+    QMap<QString, QMap<QString, bool>> check_if_aggregate_done; // used to prevent multiple aggregation in a select execution loop
 
 
     QString Token::to_string() const
