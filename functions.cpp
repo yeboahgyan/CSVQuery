@@ -617,7 +617,8 @@ namespace csvquery {
     
     //Aggregate functions have an extra hidden argument (the function token itself)
     // that is added before the function is called when evaluating the expression
-    Term count(QList<Term> args)
+
+    Term execute_aggregation(const QList<Term>& args, AggregFuncType func_type)
     {
         Term result;
 
@@ -642,7 +643,7 @@ namespace csvquery {
             error += QString::number(args.at(0).get_token().line_number);
             throw std::logic_error(error.toStdString());
         }
-        else{
+        else {
             // retrieve counter
             // check if already updated for this count and parameter
             // if so return counter without updating
@@ -663,9 +664,9 @@ namespace csvquery {
                 if (check_if_aggregate_done[aggregate_expression_reg_key].contains(aggregate_name)) {
                     function_called_already = check_if_aggregate_done[aggregate_expression_reg_key][aggregate_name];
                 }
-                
 
-                if (function_called_already) { //called already in another column
+
+                if (function_called_already) { // called already in another column
                     Token t = args.at(1).get_token();
                     t.token_type = TokenType::NUMBER;
                     t.number_value = count_counter->get_value();
@@ -673,7 +674,7 @@ namespace csvquery {
 
                     result = Term(t);
                     //qDebug() << "[called already] current count: " << count_counter->get_value();
-                    
+
                 }
                 else {
                     if (args.at(0).get_token().token_type == TokenType::STRING) {
@@ -693,11 +694,31 @@ namespace csvquery {
                     check_if_aggregate_done[aggregate_expression_reg_key][aggregate_name] = true; // skip aggregation if same aggregate function and parameter is called
 
                     //qDebug() << "current count: " << count_counter->get_value();
-                }   
-                
+                }
+
             }
             else {// first time this aggregation is being called with this parameter
-                aggregate_expression_reg[aggregate_expression_reg_key][aggregate_name] = std::make_shared<CountCounter>();
+                if (func_type == AggregFuncType::count) {
+                    aggregate_expression_reg[aggregate_expression_reg_key][aggregate_name] = std::make_shared<CountCounter>();
+                }
+                else if (func_type == AggregFuncType::avg) {
+                    aggregate_expression_reg[aggregate_expression_reg_key][aggregate_name] = std::make_shared<AvgCounter>();
+                }
+                else if (func_type == AggregFuncType::sum) {
+                    aggregate_expression_reg[aggregate_expression_reg_key][aggregate_name] = std::make_shared<SumCounter>();
+                }
+                else if (func_type == AggregFuncType::min) {
+                    aggregate_expression_reg[aggregate_expression_reg_key][aggregate_name] = std::make_shared<MinCounter>();
+                }
+                else if (func_type == AggregFuncType::max) {
+                    aggregate_expression_reg[aggregate_expression_reg_key][aggregate_name] = std::make_shared<MaxCounter>();
+                }
+                else {
+                    QString error = "Internal error executing aggregate function on line ";
+                    error += QString::number(args.at(0).get_token().line_number);
+                    throw std::logic_error(error.toStdString());
+                }
+                
 
                 std::shared_ptr<AggregateCounter>& count_counter = aggregate_expression_reg[aggregate_expression_reg_key][aggregate_name];
 
@@ -726,392 +747,30 @@ namespace csvquery {
         return result;
     }
 
+
+    Term count(QList<Term> args)
+    {
+        return execute_aggregation(args, AggregFuncType::count);
+    }
+
     Term sum(QList<Term> args)
     {
-        Term result;
-
-        QList<TokenType> arg_types;
-        foreach(auto t, args) {
-            arg_types.append(t.get_token().token_type);
-        }
-
-        QList<TokenType> expected_arg_types1 = { TokenType::STRING, TokenType::FUNCTION };
-        QList<TokenType> expected_arg_types2 = { TokenType::NUMBER, TokenType::FUNCTION };
-        int expected_num_of_args = 2;
-
-        if (arg_types != expected_arg_types1 && arg_types != expected_arg_types2) {
-            QString error = "count() expects a string or number argument on line ";
-            error += QString::number(args.at(0).get_token().line_number);
-            throw std::logic_error(error.toStdString());
-        }
-        else if (args.length() != expected_num_of_args) {
-            QString error = "count() expects 1 argument on line ";
-            error += QString::number(args.at(0).get_token().line_number);
-            throw std::logic_error(error.toStdString());
-        }
-        else {
-            // retrieve counter
-            // check if already updated for this count and parameter
-            // if so return counter without updating
-            // else update counter and return new value
-
-            QString aggregate_name = args.at(1).get_token().string_value;
-
-            //QMap<QString, std::shared_ptr<AggregateCounter>> aggregate_expression_reg = {};
-            //QMap<QString, bool> check_if_aggregate_done = {};
-
-            if (aggregate_expression_reg[aggregate_expression_reg_key].contains(aggregate_name)) {
-                std::shared_ptr<AggregateCounter>& count_counter = aggregate_expression_reg[aggregate_expression_reg_key][aggregate_name];
-
-                bool function_called_already = false;
-
-                if (check_if_aggregate_done[aggregate_expression_reg_key].contains(aggregate_name)) {
-                    function_called_already = check_if_aggregate_done[aggregate_expression_reg_key][aggregate_name];
-                }
-
-                if (function_called_already) { //called already in another column
-                    Token t = args.at(1).get_token();
-                    t.token_type = TokenType::NUMBER;
-                    t.number_value = count_counter->get_value();
-                    t.string_value = QString::number(count_counter->get_value());
-
-                    result = Term(t);
-
-                }
-                else {
-                    if (args.at(0).get_token().token_type == TokenType::STRING) {
-                        count_counter->process_data(args.at(0).get_token().string_value);
-                    }
-                    else if (args.at(0).get_token().token_type == TokenType::NUMBER) {
-                        count_counter->process_data(QString::number(args.at(0).get_token().number_value));
-                    }
-
-                    Token t = args.at(1).get_token();
-                    t.token_type = TokenType::NUMBER;
-                    t.number_value = count_counter->get_value();
-                    t.string_value = QString::number(count_counter->get_value());
-
-                    result = Term(t);
-
-                    check_if_aggregate_done[aggregate_expression_reg_key][aggregate_name] = true; // skip aggregation if same aggregate function and parameter is called
-                }
-
-            }
-            else {// first time this aggregation is being called with this parameter
-                aggregate_expression_reg[aggregate_expression_reg_key][aggregate_name] = std::make_shared<SumCounter>();
-
-                std::shared_ptr<AggregateCounter>& count_counter = aggregate_expression_reg[aggregate_expression_reg_key][aggregate_name];
-
-                if (args.at(0).get_token().token_type == TokenType::STRING) {
-                    count_counter->process_data(args.at(0).get_token().string_value);
-                }
-                else if (args.at(0).get_token().token_type == TokenType::NUMBER) {
-                    count_counter->process_data(QString::number(args.at(0).get_token().number_value));
-                }
-
-                Token t = args.at(1).get_token();
-                t.token_type = TokenType::NUMBER;
-                t.number_value = count_counter->get_value();
-                t.string_value = QString::number(count_counter->get_value());
-
-                result = Term(t);
-
-                check_if_aggregate_done[aggregate_expression_reg_key][aggregate_name] = true; // skip aggregation if same aggregate function and parameter is called
-            }
-        }
-
-        return result;
+        return execute_aggregation(args, AggregFuncType::sum);
     }
 
     Term min(QList<Term> args)
     {
-        Term result;
-
-        QList<TokenType> arg_types;
-        foreach(auto t, args) {
-            arg_types.append(t.get_token().token_type);
-        }
-
-        QList<TokenType> expected_arg_types1 = { TokenType::STRING, TokenType::FUNCTION };
-        QList<TokenType> expected_arg_types2 = { TokenType::NUMBER, TokenType::FUNCTION };
-        int expected_num_of_args = 2;
-
-        if (arg_types != expected_arg_types1 && arg_types != expected_arg_types2) {
-            QString error = "count() expects a string or number argument on line ";
-            error += QString::number(args.at(0).get_token().line_number);
-            throw std::logic_error(error.toStdString());
-        }
-        else if (args.length() != expected_num_of_args) {
-            QString error = "count() expects 1 argument on line ";
-            error += QString::number(args.at(0).get_token().line_number);
-            throw std::logic_error(error.toStdString());
-        }
-        else {
-            // retrieve counter
-            // check if already updated for this count and parameter
-            // if so return counter without updating
-            // else update counter and return new value
-
-            QString aggregate_name = args.at(1).get_token().string_value;
-
-            //QMap<QString, std::shared_ptr<AggregateCounter>> aggregate_expression_reg = {};
-            //QMap<QString, bool> check_if_aggregate_done = {};
-
-            if (aggregate_expression_reg[aggregate_expression_reg_key].contains(aggregate_name)) {
-                std::shared_ptr<AggregateCounter>& count_counter = aggregate_expression_reg[aggregate_expression_reg_key][aggregate_name];
-
-                bool function_called_already = false;
-
-                if (check_if_aggregate_done[aggregate_expression_reg_key].contains(aggregate_name)) {
-                    function_called_already = check_if_aggregate_done[aggregate_expression_reg_key][aggregate_name];
-                }
-
-                if (function_called_already) { //called already in another column
-                    Token t = args.at(1).get_token();
-                    t.token_type = TokenType::NUMBER;
-                    t.number_value = count_counter->get_value();
-                    t.string_value = QString::number(count_counter->get_value());
-
-                    result = Term(t);
-
-                }
-                else {
-                    if (args.at(0).get_token().token_type == TokenType::STRING) {
-                        count_counter->process_data(args.at(0).get_token().string_value);
-                    }
-                    else if (args.at(0).get_token().token_type == TokenType::NUMBER) {
-                        count_counter->process_data(QString::number(args.at(0).get_token().number_value));
-                    }
-
-                    Token t = args.at(1).get_token();
-                    t.token_type = TokenType::NUMBER;
-                    t.number_value = count_counter->get_value();
-                    t.string_value = QString::number(count_counter->get_value());
-
-                    result = Term(t);
-
-                    check_if_aggregate_done[aggregate_expression_reg_key][aggregate_name] = true; // skip aggregation if same aggregate function and parameter is called
-                }
-
-            }
-            else {// first time this aggregation is being called with this parameter
-                aggregate_expression_reg[aggregate_expression_reg_key][aggregate_name] = std::make_shared<MinCounter>();
-
-                std::shared_ptr<AggregateCounter>& count_counter = aggregate_expression_reg[aggregate_expression_reg_key][aggregate_name];
-
-                if (args.at(0).get_token().token_type == TokenType::STRING) {
-                    count_counter->process_data(args.at(0).get_token().string_value);
-                }
-                else if (args.at(0).get_token().token_type == TokenType::NUMBER) {
-                    count_counter->process_data(QString::number(args.at(0).get_token().number_value));
-                }
-
-                Token t = args.at(1).get_token();
-                t.token_type = TokenType::NUMBER;
-                t.number_value = count_counter->get_value();
-                t.string_value = QString::number(count_counter->get_value());
-
-                result = Term(t);
-
-                check_if_aggregate_done[aggregate_expression_reg_key][aggregate_name] = true; // skip aggregation if same aggregate function and parameter is called
-            }
-        }
-
-        return result;
+        return execute_aggregation(args, AggregFuncType::min);
     }
 
     Term max(QList<Term> args)
     {
-        Term result;
-
-        QList<TokenType> arg_types;
-        foreach(auto t, args) {
-            arg_types.append(t.get_token().token_type);
-        }
-
-        QList<TokenType> expected_arg_types1 = { TokenType::STRING, TokenType::FUNCTION };
-        QList<TokenType> expected_arg_types2 = { TokenType::NUMBER, TokenType::FUNCTION };
-        int expected_num_of_args = 2;
-
-        if (arg_types != expected_arg_types1 && arg_types != expected_arg_types2) {
-            QString error = "count() expects a string or number argument on line ";
-            error += QString::number(args.at(0).get_token().line_number);
-            throw std::logic_error(error.toStdString());
-        }
-        else if (args.length() != expected_num_of_args) {
-            QString error = "count() expects 1 argument on line ";
-            error += QString::number(args.at(0).get_token().line_number);
-            throw std::logic_error(error.toStdString());
-        }
-        else {
-            // retrieve counter
-            // check if already updated for this count and parameter
-            // if so return counter without updating
-            // else update counter and return new value
-
-            QString aggregate_name = args.at(1).get_token().string_value;
-
-            //QMap<QString, std::shared_ptr<AggregateCounter>> aggregate_expression_reg = {};
-            //QMap<QString, bool> check_if_aggregate_done = {};
-
-            if (aggregate_expression_reg[aggregate_expression_reg_key].contains(aggregate_name)) {
-                std::shared_ptr<AggregateCounter>& count_counter = aggregate_expression_reg[aggregate_expression_reg_key][aggregate_name];
-
-                bool function_called_already = false;
-
-                if (check_if_aggregate_done[aggregate_expression_reg_key].contains(aggregate_name)) {
-                    function_called_already = check_if_aggregate_done[aggregate_expression_reg_key][aggregate_name];
-                }
-
-                if (function_called_already) { //called already in another column
-                    Token t = args.at(1).get_token();
-                    t.token_type = TokenType::NUMBER;
-                    t.number_value = count_counter->get_value();
-                    t.string_value = QString::number(count_counter->get_value());
-
-                    result = Term(t);
-
-                }
-                else {
-                    if (args.at(0).get_token().token_type == TokenType::STRING) {
-                        count_counter->process_data(args.at(0).get_token().string_value);
-                    }
-                    else if (args.at(0).get_token().token_type == TokenType::NUMBER) {
-                        count_counter->process_data(QString::number(args.at(0).get_token().number_value));
-                    }
-
-                    Token t = args.at(1).get_token();
-                    t.token_type = TokenType::NUMBER;
-                    t.number_value = count_counter->get_value();
-                    t.string_value = QString::number(count_counter->get_value());
-
-                    result = Term(t);
-
-                    check_if_aggregate_done[aggregate_expression_reg_key][aggregate_name] = true; // skip aggregation if same aggregate function and parameter is called
-                }
-
-            }
-            else {// first time this aggregation is being called with this parameter
-                aggregate_expression_reg[aggregate_expression_reg_key][aggregate_name] = std::make_shared<MaxCounter>();
-
-                std::shared_ptr<AggregateCounter>& count_counter = aggregate_expression_reg[aggregate_expression_reg_key][aggregate_name];
-
-                if (args.at(0).get_token().token_type == TokenType::STRING) {
-                    count_counter->process_data(args.at(0).get_token().string_value);
-                }
-                else if (args.at(0).get_token().token_type == TokenType::NUMBER) {
-                    count_counter->process_data(QString::number(args.at(0).get_token().number_value));
-                }
-
-                Token t = args.at(1).get_token();
-                t.token_type = TokenType::NUMBER;
-                t.number_value = count_counter->get_value();
-                t.string_value = QString::number(count_counter->get_value());
-
-                result = Term(t);
-
-                check_if_aggregate_done[aggregate_expression_reg_key][aggregate_name] = true; // skip aggregation if same aggregate function and parameter is called
-            }
-        }
-
-        return result;
+        return execute_aggregation(args, AggregFuncType::max);
     }
 
     Term avg(QList<Term> args)
     {
-        Term result;
-
-        QList<TokenType> arg_types;
-        foreach(auto t, args) {
-            arg_types.append(t.get_token().token_type);
-        }
-
-        QList<TokenType> expected_arg_types1 = { TokenType::STRING, TokenType::FUNCTION };
-        QList<TokenType> expected_arg_types2 = { TokenType::NUMBER, TokenType::FUNCTION };
-        int expected_num_of_args = 2;
-
-        if (arg_types != expected_arg_types1 && arg_types != expected_arg_types2) {
-            QString error = "count() expects a string or number argument on line ";
-            error += QString::number(args.at(0).get_token().line_number);
-            throw std::logic_error(error.toStdString());
-        }
-        else if (args.length() != expected_num_of_args) {
-            QString error = "count() expects 1 argument on line ";
-            error += QString::number(args.at(0).get_token().line_number);
-            throw std::logic_error(error.toStdString());
-        }
-        else {
-            // retrieve counter
-            // check if already updated for this count and parameter
-            // if so return counter without updating
-            // else update counter and return new value
-
-            QString aggregate_name = args.at(1).get_token().string_value;
-
-            //QMap<QString, std::shared_ptr<AggregateCounter>> aggregate_expression_reg = {};
-            //QMap<QString, bool> check_if_aggregate_done = {};
-
-            if (aggregate_expression_reg[aggregate_expression_reg_key].contains(aggregate_name)) {
-                std::shared_ptr<AggregateCounter>& count_counter = aggregate_expression_reg[aggregate_expression_reg_key][aggregate_name];
-
-                bool function_called_already = false;
-
-                if (check_if_aggregate_done[aggregate_expression_reg_key].contains(aggregate_name)) {
-                    function_called_already = check_if_aggregate_done[aggregate_expression_reg_key][aggregate_name];
-                }
-
-                if (function_called_already) { //called already in another column
-                    Token t = args.at(1).get_token();
-                    t.token_type = TokenType::NUMBER;
-                    t.number_value = count_counter->get_value();
-                    t.string_value = QString::number(count_counter->get_value());
-
-                    result = Term(t);
-
-                }
-                else {
-                    if (args.at(0).get_token().token_type == TokenType::STRING) {
-                        count_counter->process_data(args.at(0).get_token().string_value);
-                    }
-                    else if (args.at(0).get_token().token_type == TokenType::NUMBER) {
-                        count_counter->process_data(QString::number(args.at(0).get_token().number_value));
-                    }
-
-                    Token t = args.at(1).get_token();
-                    t.token_type = TokenType::NUMBER;
-                    t.number_value = count_counter->get_value();
-                    t.string_value = QString::number(count_counter->get_value());
-
-                    result = Term(t);
-
-                    check_if_aggregate_done[aggregate_expression_reg_key][aggregate_name] = true; // skip aggregation if same aggregate function and parameter is called
-                }
-
-            }
-            else {// first time this aggregation is being called with this parameter
-                aggregate_expression_reg[aggregate_expression_reg_key][aggregate_name] = std::make_shared<AvgCounter>();
-
-                std::shared_ptr<AggregateCounter>& count_counter = aggregate_expression_reg[aggregate_expression_reg_key][aggregate_name];
-
-                if (args.at(0).get_token().token_type == TokenType::STRING) {
-                    count_counter->process_data(args.at(0).get_token().string_value);
-                }
-                else if (args.at(0).get_token().token_type == TokenType::NUMBER) {
-                    count_counter->process_data(QString::number(args.at(0).get_token().number_value));
-                }
-
-                Token t = args.at(1).get_token();
-                t.token_type = TokenType::NUMBER;
-                t.number_value = count_counter->get_value();
-                t.string_value = QString::number(count_counter->get_value());
-
-                result = Term(t);
-
-                check_if_aggregate_done[aggregate_expression_reg_key][aggregate_name] = true; // skip aggregation if same aggregate function and parameter is called
-            }
-        }
-
-        return result;
+        return execute_aggregation(args, AggregFuncType::avg);
     }
     
 }

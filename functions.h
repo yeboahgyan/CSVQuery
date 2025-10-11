@@ -28,6 +28,9 @@ namespace csvquery {
 
 	Term number(QList<Term>); // convert string to number or throw exception
 
+	enum class AggregFuncType{ count, sum, min, max, avg};
+	Term execute_aggregation(const QList<Term>& args, AggregFuncType func_type);
+
 	Term count(QList<Term>); //aggregate function
 
 	Term sum(QList<Term>); //aggregate function

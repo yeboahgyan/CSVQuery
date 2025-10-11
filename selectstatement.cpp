@@ -850,14 +850,18 @@ namespace csvquery {
 
                 if (t.get_token().boolean_value == true) {
 
-                    columns = compute_columns(data_rows);
+                    //columns = compute_columns(data_rows);
 
                     if (has_group_by || is_aggregation) {
                         QString result_key = create_group_by_key(data_rows);
                         aggregate_expression_reg_key = result_key;
+
+                        columns = compute_columns(data_rows);
+
                         group_by_result[result_key] = columns;
                     }
                     else {
+                        columns = compute_columns(data_rows);
                         //write to file?
                         if (write_to_file) {
                             out_file->writeLine(columns.join(','));
@@ -880,14 +884,18 @@ namespace csvquery {
                 }
             }
             else { //no where clause
-                columns = compute_columns(data_rows);
+                //columns = compute_columns(data_rows);
 
                 if (has_group_by || is_aggregation) {
                     QString result_key = create_group_by_key(data_rows);
                     aggregate_expression_reg_key = result_key;
+
+                    columns = compute_columns(data_rows);
                     group_by_result[result_key] = columns;
                 }
                 else {
+                    columns = compute_columns(data_rows);
+
                     //write to file?
                     if (write_to_file) {
                         out_file->writeLine(columns.join(','));
