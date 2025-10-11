@@ -51,9 +51,14 @@ namespace csvquery {
                 if (char_table.contains(ch)) {
 
                     if (ch == '*') { // allow names in format tablename.*
-                        if (previous_ch == '.') {
-                            //continue reading
+                        //stream->seek(stream->pos() - 2); //move to char before *
+                        //(*stream) >> previous_ch;
+
+                        if (previous_ch != '.') {
+                            stream->seek(stream->pos() - 1); //put char back in stream; its an operator and not part of a name table.*
+                            break;
                         }
+                        
                     }
                     else
                     {

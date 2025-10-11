@@ -653,7 +653,7 @@ namespace csvquery {
             //QMap<QString, std::shared_ptr<AggregateCounter>> aggregate_expression_reg = {};
             //QMap<QString, bool> check_if_aggregate_done = {};
 
-            qDebug() << "aggregate key is " << aggregate_expression_reg_key;
+            //qDebug() << "aggregate key is " << aggregate_expression_reg_key;
 
             if (aggregate_expression_reg[aggregate_expression_reg_key].contains(aggregate_name)) {
                 std::shared_ptr<AggregateCounter>& count_counter = aggregate_expression_reg[aggregate_expression_reg_key][aggregate_name];

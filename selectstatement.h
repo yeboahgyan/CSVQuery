@@ -65,6 +65,7 @@ namespace csvquery {
         std::shared_ptr<CSVFile> read_file(QIODeviceBase::OpenMode m = QIODevice::ReadOnly);
         std::shared_ptr<ConditionalExpression> read_on_clause();
         std::shared_ptr<ConditionalExpression> read_where();
+        void validate_aggregate_query(); // checks if coulms in select statement are in group by clause and also whether it has an aggregation function
 
         void parse();
         //QString selected_rows();

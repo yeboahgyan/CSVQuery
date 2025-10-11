@@ -21,6 +21,10 @@ namespace csvquery {
         //qDebug()<<"constructing select statement...";
         parse();
         //qDebug()<<"Done.";
+
+        //foreach(auto t, tokens) {
+        //    qDebug() << t.to_string();
+        //}
     }
 
     void SelectStatement::throw_exception_if_unexpected_end()
@@ -163,7 +167,9 @@ namespace csvquery {
         QList<Term> cond_terms;
 
         for (; last_token_pos != tokens.cend(); ++last_token_pos) {
-            if ((last_token_pos->token_type == TokenType::SEMICOLON) || (last_token_pos->token_type == TokenType::END) || (last_token_pos->token_type == TokenType::INTO)) {
+            if ((last_token_pos->token_type == TokenType::SEMICOLON) || (last_token_pos->token_type == TokenType::END) 
+                || (last_token_pos->token_type == TokenType::INTO) || (last_token_pos->token_type == TokenType::GROUPBY))
+            {
                 break;
             }
 
@@ -556,11 +562,11 @@ namespace csvquery {
                     throw std::logic_error(error.toStdString());
                 }
 
-                this->group_by_columns.append(last_token_pos->string_value);
+                this->group_by_columns.append(last_token_pos->string_value.toLower());
                 //qDebug() << "group by columns"<<group_by_columns;
             }
             else if (last_token_pos->token_type == TokenType::COLUMNNAME) {
-                this->group_by_columns.append(last_token_pos->string_value);
+                this->group_by_columns.append(last_token_pos->string_value.toLower());
             }
             else if (last_token_pos->token_type == TokenType::NAME) { // look out for column names of format variable.number e.g. variable.2
                 QString column_name = last_token_pos->string_value;
@@ -568,15 +574,24 @@ namespace csvquery {
                 QStringList name_parts = column_name.split('.');
 
                 if (name_parts.count() != 2) {
-                    QString error = "Unknown column ";
+                    QString error = "Unknown column in group by clause ";
+                    error += last_token_pos->string_value;
+                    error += " on line ";
+                    error += QString::number(last_token_pos->line_number);
+                    throw std::logic_error(error.toStdString());
+                }
+
+                if (!symbol_table.contains(name_parts[0].toLower()) && strings_table.contains(name_parts[0].toLower())) {
+                    QString error = "Unknown column in group by clause ";
                     error += last_token_pos->string_value;
                     error += " on line ";
                     error += QString::number(last_token_pos->line_number);
                     throw std::logic_error(error.toStdString());
                 }
                 
-                if (name_parts[0] != join_files_list["left"] && name_parts[0] != join_files_list["right"]) {
-                    QString error = "Unknown column ";
+                QString file_name = strings_table[name_parts[0].toLower()];
+                if (file_name != join_files_list["left"] && file_name != join_files_list["right"]) {
+                    QString error = "Unknown column in group by clause ";
                     error += last_token_pos->string_value;
                     error += " on line ";
                     error += QString::number(last_token_pos->line_number);
@@ -588,14 +603,14 @@ namespace csvquery {
                 name_parts[1].toInt(&is_number);
 
                 if (!is_number) {
-                    QString error = "Unknown column ";
+                    QString error = "Unknown column in group by clause ";
                     error += last_token_pos->string_value;
                     error += " on line ";
                     error += QString::number(last_token_pos->line_number);
                     throw std::logic_error(error.toStdString());
                 }
 
-                this->group_by_columns.append(last_token_pos->string_value);
+                this->group_by_columns.append(last_token_pos->string_value.toLower());
 
             }
 
@@ -609,6 +624,7 @@ namespace csvquery {
         }
 
         //++last_token_pos; // next token
+        //qDebug() << "group by columns: " << group_by_columns;
 
         if (last_token_pos == tokens.cend()) {
             return;
@@ -754,14 +770,16 @@ namespace csvquery {
         return key;
     }
 
-    std::optional<QList<QStringList>> SelectStatement::select_with_no_join()
+    void SelectStatement::validate_aggregate_query()
     {
-        QList<QStringList> result;
-        QHash<QString, QStringList> group_by_result;
+        // validate if columns in select are in group by column list
+        int illegal_column_count = 0;
+        QString illegal_column;
+        int line_number = 0;
+        
+        int aggreg_func_count = 0; // check if select has at least 1 aggregation function
+        int select_statement_line_num = column_exprs_terms.front().get_token().line_number;
 
-        //qDebug()<<"Executing select with no join";
-
-        // validate columns in select with group by or aggregate function
         if (has_group_by || is_aggregation) {
             foreach(auto col_term, column_exprs_terms) {
                 if (col_term.get_token().token_type == TokenType::COLUMNNUMBER
@@ -769,15 +787,54 @@ namespace csvquery {
                     || col_term.get_token().token_type == TokenType::NAME // HANDLE variable.number ? e.g. f.0
                     )
                 {
-                    if (!this->group_by_columns.contains(col_term.get_token().string_value)) {
-                        QString error = "column not in group by list ";
-                        error += "on line ";
-                        error += QString::number(col_term.get_token().line_number);
-                        throw std::logic_error(error.toStdString());
+                    ++illegal_column_count;
+                    illegal_column = col_term.get_token().string_value.toLower();
+                    line_number = col_term.get_token().line_number;
+                }
+
+                if (col_term.get_token().token_type == TokenType::FUNCTION) {
+                    if (col_term.get_token().string_value.toLower().contains("count")
+                        || col_term.get_token().string_value.toLower().contains("sum")
+                        || col_term.get_token().string_value.toLower().contains("avg")
+                        || col_term.get_token().string_value.toLower().contains("min")
+                        || col_term.get_token().string_value.toLower().contains("max")
+                        )
+                    {
+                        ++aggreg_func_count;
                     }
                 }
             }
+
+            if (illegal_column_count > 0) {
+                QString error = "column (";
+                error += illegal_column;
+                error += ") ";
+                error += "not in group by list ";
+                error += "on line ";
+                error += QString::number(line_number);
+                throw std::logic_error(error.toStdString());
+            }
+
+            if (aggreg_func_count == 0) {
+                QString error = "There was no aggregation function found in select statement on line ";
+                error += QString::number(select_statement_line_num);
+                throw std::logic_error(error.toStdString());
+            }
+
         }
+    }
+
+    std::optional<QList<QStringList>> SelectStatement::select_with_no_join()
+    {
+        QList<QStringList> result;
+        QHash<QString, QStringList> group_by_result;
+
+        //qDebug()<<"Executing select with no join";
+
+        //qDebug() << "group by list: " << group_by_columns;
+
+        // validate columns in select with group by or aggregate function
+        validate_aggregate_query();
 
         while (!left_file->end_of_file()) {
             QStringList row = left_file->readRow();
