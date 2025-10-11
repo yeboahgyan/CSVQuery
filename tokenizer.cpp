@@ -286,7 +286,7 @@ namespace csvquery {
                 }
             }
             else if (symbol_table.contains(token.string_value.toLower())) { // is built in variable or function
-                //std::cout<<"found a built-in symbol "<<token.string_value.toStdString()<<"\n";
+                //std::cout<<"found a built-in symbol "<<token.string_value.toStdString()<<" type is "<<token.to_string().toStdString()<<"\n";
                 
                 TokenType name_type = symbol_table[token.string_value.toLower()];
                 token.token_type = name_type;
@@ -309,7 +309,7 @@ namespace csvquery {
                 else if (name_type == TokenType::COLUMNNAME) {
                     double index = columns_table[token.string_value.toLower()]; //get column index
                     token.number_value = index;
-                    //token.string_value = QString::number(index);
+                    token.string_value = token.string_value.toLower(); //QString::number(index);
                     token.token_type = TokenType::COLUMNNAME;
                     token.token_name = "TokenType::COLUMNNAME";
                 }
