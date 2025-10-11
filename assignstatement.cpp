@@ -125,6 +125,7 @@ namespace csvquery {
             int index = 0;
             foreach(auto col_name, column_list) {
                 QString name = variable_name + '.' + col_name;
+                name = name.toLower();
                 symbol_table[name] = TokenType::COLUMNNAME;
                 columns_table[name] = index;
 

@@ -287,7 +287,7 @@ namespace csvquery {
             }
             else if (symbol_table.contains(token.string_value.toLower())) { // is built in variable or function
                 //std::cout<<"found a built-in symbol "<<token.string_value.toStdString()<<"\n";
-
+                
                 TokenType name_type = symbol_table[token.string_value.toLower()];
                 token.token_type = name_type;
 

@@ -44,7 +44,7 @@ namespace csvquery {
 
         if (statement_tokens.front().token_type == TokenType::IMPORT) {
             ImportStatement import(statement_tokens);
-import.execute();
+            import.execute();
             result.first = import.num_of_columns_loaded();
         }
         else if (statement_tokens.front().token_type == TokenType::ASSIGN) {
