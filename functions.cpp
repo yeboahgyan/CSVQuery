@@ -221,12 +221,15 @@ namespace csvquery {
         QList<TokenType> expected_arg_types = { TokenType::STRING, TokenType::STRING, TokenType::STRING, TokenType::STRING }; //(date_str, format, date_str, format)
         int expected_num_of_args = 4;
 
-        if (arg_types != expected_arg_types) {
+        QList<TokenType> alt_expected_arg_types = { TokenType::STRING, TokenType::STRING, TokenType::STRING }; //(date_str, format, date_str)
+        int alt_expected_num_of_args = 3;
+
+        if (arg_types != expected_arg_types && arg_types != alt_expected_arg_types) {
             QString error = "date_gt(string, date_format, string2, date_format) expects 4 string argument on line ";
             error += QString::number(args.at(0).get_token().line_number);
             throw std::logic_error(error.toStdString());
         }
-        else if (args.length() != expected_num_of_args) {
+        else if (args.length() != expected_num_of_args && args.length() != alt_expected_num_of_args) {
             QString error = "date_gt(string, date_format, string2, date_format) expects 4 string argument on line ";
             error += QString::number(args.at(0).get_token().line_number);
             throw std::logic_error(error.toStdString());
@@ -237,7 +240,7 @@ namespace csvquery {
 
             QString date_str2 = args[2].get_token().string_value;
 
-            QString format2 = args[3].get_token().string_value;
+            QString format2 = (args.length() == 4) ? args[3].get_token().string_value : format1;
 
             QDateTime datetime1 = QDateTime::fromString(date_str1, format1);
             QDateTime datetime2 = QDateTime::fromString(date_str2, format2);
@@ -278,12 +281,15 @@ namespace csvquery {
         QList<TokenType> expected_arg_types = { TokenType::STRING, TokenType::STRING, TokenType::STRING, TokenType::STRING }; //(date_str, format, date_str, format)
         int expected_num_of_args = 4;
 
-        if (arg_types != expected_arg_types) {
+        QList<TokenType> alt_expected_arg_types = { TokenType::STRING, TokenType::STRING, TokenType::STRING }; //(date_str, format, date_str)
+        int alt_expected_num_of_args = 3;
+
+        if (arg_types != expected_arg_types && arg_types != alt_expected_arg_types) {
             QString error = "date_lt(string, date_format, string2, date_format) expects 4 string argument on line ";
             error += QString::number(args.at(0).get_token().line_number);
             throw std::logic_error(error.toStdString());
         }
-        else if (args.length() != expected_num_of_args) {
+        else if (args.length() != expected_num_of_args && args.length() != alt_expected_num_of_args) {
             QString error = "date_lt(string, date_format, string2, date_format) expects 4 string argument on line ";
             error += QString::number(args.at(0).get_token().line_number);
             throw std::logic_error(error.toStdString());
@@ -296,7 +302,7 @@ namespace csvquery {
             QString date_str2 = args[2].get_token().string_value;
 
 
-            QString format2 = args[3].get_token().string_value;
+            QString format2 = (args.length() == 4) ? args[3].get_token().string_value : format1;
 
             QDateTime datetime1 = QDateTime::fromString(date_str1, format1);
             QDateTime datetime2 = QDateTime::fromString(date_str2, format2);
@@ -337,12 +343,15 @@ namespace csvquery {
         QList<TokenType> expected_arg_types = { TokenType::STRING, TokenType::STRING, TokenType::STRING, TokenType::STRING }; //(date_str, format, date_str, format)
         int expected_num_of_args = 4;
 
-        if (arg_types != expected_arg_types) {
+        QList<TokenType> alt_expected_arg_types = { TokenType::STRING, TokenType::STRING, TokenType::STRING }; //(date_str, format, date_str)
+        int alt_expected_num_of_args = 3;
+
+        if (arg_types != expected_arg_types && arg_types != alt_expected_arg_types) {
             QString error = "date_ge(string, date_format, string2, date_format) expects 4 string argument on line ";
             error += QString::number(args.at(0).get_token().line_number);
             throw std::logic_error(error.toStdString());
         }
-        else if (args.length() != expected_num_of_args) {
+        else if (args.length() != expected_num_of_args && args.length() != alt_expected_num_of_args) {
             QString error = "date_ge(string, date_format, string2, date_format) expects 4 string argument on line ";
             error += QString::number(args.at(0).get_token().line_number);
             throw std::logic_error(error.toStdString());
@@ -352,7 +361,7 @@ namespace csvquery {
             QString format1 = args[1].get_token().string_value;
 
             QString date_str2 = args[2].get_token().string_value;
-            QString format2 = args[3].get_token().string_value;
+            QString format2 = (args.length() == 4) ? args[3].get_token().string_value : format1;
 
             QDateTime datetime1 = QDateTime::fromString(date_str1, format1);
             QDateTime datetime2 = QDateTime::fromString(date_str2, format2);
@@ -393,12 +402,15 @@ namespace csvquery {
         QList<TokenType> expected_arg_types = { TokenType::STRING, TokenType::STRING, TokenType::STRING, TokenType::STRING }; //(date_str, format, date_str, format)
         int expected_num_of_args = 4;
 
-        if (arg_types != expected_arg_types) {
+        QList<TokenType> alt_expected_arg_types = { TokenType::STRING, TokenType::STRING, TokenType::STRING }; //(date_str, format, date_str)
+        int alt_expected_num_of_args = 3;
+
+        if (arg_types != expected_arg_types && arg_types != alt_expected_arg_types) {
             QString error = "date_le(string, date_format, string2, date_format) expects 4 string argument on line ";
             error += QString::number(args.at(0).get_token().line_number);
             throw std::logic_error(error.toStdString());
         }
-        else if (args.length() != expected_num_of_args) {
+        else if (args.length() != expected_num_of_args && args.length() != alt_expected_num_of_args) {
             QString error = "date_le(string, date_format, string2, date_format) expects 4 string argument on line ";
             error += QString::number(args.at(0).get_token().line_number);
             throw std::logic_error(error.toStdString());
@@ -411,7 +423,7 @@ namespace csvquery {
             QString date_str2 = args[1].get_token().string_value;
 
 
-            QString format2 = args[3].get_token().string_value;
+            QString format2 = (args.length() == 4) ? args[3].get_token().string_value : format1;
 
             QDateTime datetime1 = QDateTime::fromString(date_str1, format1);
             QDateTime datetime2 = QDateTime::fromString(date_str2, format2);
@@ -452,49 +464,51 @@ namespace csvquery {
         QList<TokenType> expected_arg_types = { TokenType::STRING, TokenType::STRING, TokenType::STRING, TokenType::STRING }; //(date_str, format, date_str, format)
         int expected_num_of_args = 4;
 
-        if (arg_types != expected_arg_types) {
-            QString error = "date_eq(string, date_format, string2, date_format) expects 4 string argument on line ";
+        QList<TokenType> alt_expected_arg_types = { TokenType::STRING, TokenType::STRING, TokenType::STRING }; //(date_str, format, date_str)
+        int alt_expected_num_of_args = 3;
+
+        if (arg_types != expected_arg_types && arg_types != alt_expected_arg_types) {
+            QString error = "Incorrect use of date_eq(string, date_format, string2, date_format) or date_eq(string, date_format, string2) on line ";
             error += QString::number(args.at(0).get_token().line_number);
             throw std::logic_error(error.toStdString());
         }
-        else if (args.length() != expected_num_of_args) {
-            QString error = "date_eq(string, date_format, string2, date_format) expects 4 string argument on line ";
+        
+        if (args.length() != expected_num_of_args && args.length() != alt_expected_num_of_args) {
+            QString error = "Incorrect use of date_eq(string, date_format, string2, date_format) or date_eq(string, date_format, string2) on line ";
             error += QString::number(args.at(0).get_token().line_number);
+            throw std::logic_error(error.toStdString());
+        }
+        
+        QString date_str1 = args[0].get_token().string_value;
+        QString format1 = args[1].get_token().string_value;
+
+        QString date_str2 = args[2].get_token().string_value;
+
+
+        QString format2 = (args.length() == 4) ? args[3].get_token().string_value : format1;
+
+        QDateTime datetime1 = QDateTime::fromString(date_str1, format1);
+        QDateTime datetime2 = QDateTime::fromString(date_str2, format2);
+
+        QString failure_str;
+        if (!datetime1.isValid()) {
+            failure_str = date_str1;
+        }
+        else if (!datetime2.isValid()) {
+            failure_str = date_str2;
+        }
+
+        if (!failure_str.isEmpty()) {
+            QString error = "Failed to convert " + failure_str + " to a DateTime!";
             throw std::logic_error(error.toStdString());
         }
         else {
-
-            QString date_str1 = args[0].get_token().string_value;
-            QString format1 = args[2].get_token().string_value;
-
-            QString date_str2 = args[1].get_token().string_value;
-
-
-            QString format2 = args[3].get_token().string_value;
-
-            QDateTime datetime1 = QDateTime::fromString(date_str1, format1);
-            QDateTime datetime2 = QDateTime::fromString(date_str2, format2);
-
-            QString failure_str;
-            if (!datetime1.isValid()) {
-                failure_str = date_str1;
-            }
-            else if (!datetime2.isValid()) {
-                failure_str = date_str2;
-            }
-
-            if (!failure_str.isEmpty()) {
-                QString error = "Failed to convert " + failure_str + " to a DateTime!";
-                throw std::logic_error(error.toStdString());
-            }
-            else {
-                Token t;
-                t.token_type = TokenType::BOOLEAN;
-                t.boolean_value = (datetime1 == datetime2);
-                result = Term(t);
-            }
-            
+            Token t;
+            t.token_type = TokenType::BOOLEAN;
+            t.boolean_value = (datetime1 == datetime2);
+            result = Term(t);
         }
+
         return result;
     }
 
@@ -515,37 +529,32 @@ namespace csvquery {
             error += QString::number(args.at(0).get_token().line_number);
             throw std::logic_error(error.toStdString());
         }
-        else if (args.length() != expected_num_of_args) {
+        
+        if (args.length() != expected_num_of_args) {
             QString error = "number(string) expects a string argument on line ";
             error += QString::number(args.at(0).get_token().line_number);
             throw std::logic_error(error.toStdString());
         }
-        else {
-            try {
-                QString num_str = std::any_cast<QString>(args[0].get_token().string_value);
-                bool is_number = false;
-                double number = num_str.toDouble(&is_number);
 
-                if (is_number) {
-                    Token t;
-                    t.token_type = TokenType::NUMBER;
-                    t.number_value = number;
-                    t.string_value = num_str;
-                    t.line_number = args.at(0).get_token().line_number;
-                    result = Term(t);
-                }
-                else {
-                    QString error = "String passed to number(string) on line ";
-                    error += QString::number(args.at(0).get_token().line_number);
-                    error += " is not a number!";
-                    throw std::logic_error(error.toStdString());
-                }
-            }
-            catch (const std::bad_any_cast& e) {
-                QString error = "number(string) expects a string argument!";
-                throw std::logic_error(error.toStdString() + e.what());
-            }
+        QString num_str = args[0].get_token().string_value;
+        bool is_number = false;
+        double number = num_str.toDouble(&is_number);
+
+        if (is_number) {
+            Token t;
+            t.token_type = TokenType::NUMBER;
+            t.number_value = number;
+            t.string_value = num_str;
+            t.line_number = args.at(0).get_token().line_number;
+            result = Term(t);
         }
+        else {
+            QString error = "String passed to number(string) on line ";
+            error += QString::number(args.at(0).get_token().line_number);
+            error += " is not a number!";
+            throw std::logic_error(error.toStdString());
+        }
+        
         return result;
     }
     
