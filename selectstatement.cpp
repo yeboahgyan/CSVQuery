@@ -774,7 +774,7 @@ namespace csvquery {
     {
         // validate if columns in select are in group by column list
         int illegal_column_count = 0;
-        QString illegal_column;
+        QString column_name;
         int line_number = 0;
         
         int aggreg_func_count = 0; // check if select has at least 1 aggregation function
@@ -787,9 +787,13 @@ namespace csvquery {
                     || col_term.get_token().token_type == TokenType::NAME // HANDLE variable.number ? e.g. f.0
                     )
                 {
-                    ++illegal_column_count;
-                    illegal_column = col_term.get_token().string_value.toLower();
-                    line_number = col_term.get_token().line_number;
+                    column_name = col_term.get_token().string_value.toLower();
+
+                    if (!group_by_columns.contains(column_name)) {
+                        
+                        line_number = col_term.get_token().line_number;
+                        ++illegal_column_count;
+                    }
                 }
 
                 if (col_term.get_token().token_type == TokenType::FUNCTION) {
@@ -807,7 +811,7 @@ namespace csvquery {
 
             if (illegal_column_count > 0) {
                 QString error = "column (";
-                error += illegal_column;
+                error += column_name;
                 error += ") ";
                 error += "not in group by list ";
                 error += "on line ";
