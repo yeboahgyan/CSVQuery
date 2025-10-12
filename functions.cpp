@@ -28,18 +28,11 @@ namespace csvquery {
             throw std::logic_error(error.toStdString());
         }
         else {
-            try {
-                QString str = std::any_cast<QString>(args.front().get_token().string_value);
-                Token t;
-                t.string_value = str.trimmed();
-                t.token_type = TokenType::STRING;
-                result = Term(t);
-            }
-            catch (const std::bad_any_cast& e) {
-                QString error = "trim(string) expects a string argument on line ";
-                error += QString::number(args.at(0).get_token().line_number);
-                throw std::logic_error(error.toStdString() + e.what());
-            }
+            QString str = args.front().get_token().string_value;
+            Token t;
+            t.string_value = str.trimmed();
+            t.token_type = TokenType::STRING;
+            result = Term(t);
         }
 
         return result;
@@ -68,19 +61,12 @@ namespace csvquery {
             throw std::logic_error(error.toStdString());
         }
         else {
-            try {
-                QString str = std::any_cast<QString>(args.front().get_token().string_value);
-                Token t;
-                t.number_value = str.length();
-                t.token_type = TokenType::NUMBER;
-                result = Term(t);
+            QString str = args.front().get_token().string_value;
+            Token t;
+            t.number_value = str.length();
+            t.token_type = TokenType::NUMBER;
+            result = Term(t);
 
-            }
-            catch (const std::bad_any_cast& e) {
-                QString error = "length(string) expects a string argument on line ";
-                error += QString::number(args.at(0).get_token().line_number);
-                throw std::logic_error(error.toStdString() + e.what());
-            }
         }
         return result;
     }
@@ -108,33 +94,25 @@ namespace csvquery {
             throw std::logic_error(error.toStdString());
         }
         else {
-            try {
-                QString str = std::any_cast<QString>(args[0].get_token().string_value);
-                double index = std::any_cast<double>(args[1].get_token().number_value);
-                double length = std::any_cast<double>(args[2].get_token().number_value);
+            QString str = args[0].get_token().string_value;
+            double index = args[1].get_token().number_value;
+            double length = args[2].get_token().number_value;
 
-                if (index > str.length()) {
-                    QString error = "substring(string, index, length) index greater than string length on line ";
-                    error += QString::number(args.at(0).get_token().line_number);
-                    throw std::logic_error(error.toStdString());
-                }
-                else if (index < 0) {
-                    QString error = "substring(string, index, length) invalid index on line ";
-                    error += QString::number(args.at(0).get_token().line_number);
-                    throw std::logic_error(error.toStdString());
-                }
-                else {
-                    Token t;
-                    t.string_value = str.mid(index, length);
-                    t.token_type = TokenType::STRING;
-                    result = Term(t);
-                }
-
-            }
-            catch (const std::bad_any_cast& e) {
-                QString error = "substring(string, index, length) expects 3 arguments(string, number, number) on line ";
+            if (index > str.length()) {
+                QString error = "substring(string, index, length) index greater than string length on line ";
                 error += QString::number(args.at(0).get_token().line_number);
-                throw std::logic_error(error.toStdString() + e.what());
+                throw std::logic_error(error.toStdString());
+            }
+            else if (index < 0) {
+                QString error = "substring(string, index, length) invalid index on line ";
+                error += QString::number(args.at(0).get_token().line_number);
+                throw std::logic_error(error.toStdString());
+            }
+            else {
+                Token t;
+                t.string_value = str.mid(index, length);
+                t.token_type = TokenType::STRING;
+                result = Term(t);
             }
         }
         return result;
@@ -164,35 +142,26 @@ namespace csvquery {
             throw std::logic_error(error.toStdString());
         }
         else {
-            try {
-                //qDebug() << "arg1: " << args[0].get_token().to_string() <<" value: "<< args[0].get_token().string_value;
+            //qDebug() << "arg1: " << args[0].get_token().to_string() <<" value: "<< args[0].get_token().string_value;
                 //qDebug() << "arg2: " << args[1].get_token().to_string() <<" value: "<< args[1].get_token().number_value;
 
-                std::any arg1 = args[0].get_token().string_value;
-                std::any arg2 = args[1].get_token().number_value;
-                QString str = std::any_cast<QString>(arg1);
-                double length = std::any_cast<double>(arg2);
+            std::any arg1 = args[0].get_token().string_value;
+            std::any arg2 = args[1].get_token().number_value;
+            QString str = std::any_cast<QString>(arg1);
+            double length = std::any_cast<double>(arg2);
 
-                if (length < 0) {
-                    QString error = "left(string, length) invalid length on line ";
-                    error += QString::number(args.at(0).get_token().line_number);
-                    throw std::logic_error(error.toStdString());
-                }
-                else {
-                    Token t;
-                    t.string_value = str.left(length);
-                    t.token_type = TokenType::STRING;
-                    result = Term(t);
-                }
-
-            }
-            catch (const std::bad_any_cast& e) {
-                QString error = "left(string, length) expects 2 arguments(string, number) on line ";
+            if (length < 0) {
+                QString error = "left(string, length) invalid length on line ";
                 error += QString::number(args.at(0).get_token().line_number);
-                error += " ";
-                error += +e.what();
-                throw std::logic_error(error.toStdString() + e.what());
+                throw std::logic_error(error.toStdString());
             }
+            else {
+                Token t;
+                t.string_value = str.left(length);
+                t.token_type = TokenType::STRING;
+                result = Term(t);
+            }
+            
         }
 
         return result;
@@ -221,28 +190,21 @@ namespace csvquery {
             throw std::logic_error(error.toStdString());
         }
         else {
-            try {
-                QString str = std::any_cast<QString>(args[0].get_token().string_value);
-                double length = std::any_cast<double>(args[1].get_token().number_value);
+            QString str = std::any_cast<QString>(args[0].get_token().string_value);
+            double length = std::any_cast<double>(args[1].get_token().number_value);
 
-                if (length < 0) {
-                    QString error = "right(string, length) invalid length on line ";
-                    error += QString::number(args.at(0).get_token().line_number);
-                    throw std::logic_error(error.toStdString());
-                }
-                else {
-                    Token t;
-                    t.string_value = str.right(length);
-                    t.token_type = TokenType::STRING;
-                    result = Term(t);
-                }
-
-            }
-            catch (const std::bad_any_cast& e) {
-                QString error = "right(string, length) expects 2 arguments(string, number) on line ";
+            if (length < 0) {
+                QString error = "right(string, length) invalid length on line ";
                 error += QString::number(args.at(0).get_token().line_number);
-                throw std::logic_error(error.toStdString() + e.what());
+                throw std::logic_error(error.toStdString());
             }
+            else {
+                Token t;
+                t.string_value = str.right(length);
+                t.token_type = TokenType::STRING;
+                result = Term(t);
+            }
+            
         }
         return result;
     }
@@ -270,41 +232,34 @@ namespace csvquery {
             throw std::logic_error(error.toStdString());
         }
         else {
-            try {
-                QString date_str1 = std::any_cast<QString>(args[0].get_token().string_value);
-                QString date_str2 = std::any_cast<QString>(args[1].get_token().string_value);
+            QString date_str1 = args[0].get_token().string_value;
+            QString format1 = args[1].get_token().string_value;
 
-                QString format1 = std::any_cast<QString>(args[2].get_token().string_value);
-                QString format2 = std::any_cast<QString>(args[3].get_token().string_value);
+            QString date_str2 = args[2].get_token().string_value;
 
-                QDateTime datetime1 = QDateTime::fromString(date_str1, format1);
-                QDateTime datetime2 = QDateTime::fromString(date_str2, format2);
+            QString format2 = args[3].get_token().string_value;
 
-                QString failure_str;
-                if (!datetime1.isValid()) {
-                    failure_str = date_str1;
-                }
-                else if (!datetime2.isValid()) {
-                    failure_str = date_str2;
-                }
+            QDateTime datetime1 = QDateTime::fromString(date_str1, format1);
+            QDateTime datetime2 = QDateTime::fromString(date_str2, format2);
 
-                if (!failure_str.isEmpty()) {
-                    QString error = "Failed to convert " + failure_str + " to a DateTime on line ";
-                    error += QString::number(args.at(0).get_token().line_number);
-                    throw std::logic_error(error.toStdString());
-                }
-                else {
-                    Token t;
-                    t.token_type = TokenType::BOOLEAN;
-                    t.boolean_value = (datetime1 > datetime2);
-                    result = Term(t);
-                }
-
+            QString failure_str;
+            if (!datetime1.isValid()) {
+                failure_str = date_str1;
             }
-            catch (const std::bad_any_cast& e) {
-                QString error = "date_gt(string, date_format, string2, date_format) expects 4 string argument on line ";
+            else if (!datetime2.isValid()) {
+                failure_str = date_str2;
+            }
+
+            if (!failure_str.isEmpty()) {
+                QString error = "Failed to convert " + failure_str + " to a DateTime on line ";
                 error += QString::number(args.at(0).get_token().line_number);
-                throw std::logic_error(error.toStdString() + e.what());
+                throw std::logic_error(error.toStdString());
+            }
+            else {
+                Token t;
+                t.token_type = TokenType::BOOLEAN;
+                t.boolean_value = (datetime1 > datetime2);
+                result = Term(t);
             }
         }
 
@@ -334,42 +289,37 @@ namespace csvquery {
             throw std::logic_error(error.toStdString());
         }
         else {
-            try {
-                QString date_str1 = std::any_cast<QString>(args[0].get_token().string_value);
-                QString date_str2 = std::any_cast<QString>(args[1].get_token().string_value);
 
-                QString format1 = std::any_cast<QString>(args[2].get_token().string_value);
-                QString format2 = std::any_cast<QString>(args[3].get_token().string_value);
+            QString date_str1 = args[0].get_token().string_value;
+            QString format1 = args[1].get_token().string_value;
 
-                QDateTime datetime1 = QDateTime::fromString(date_str1, format1);
-                QDateTime datetime2 = QDateTime::fromString(date_str2, format2);
+            QString date_str2 = args[2].get_token().string_value;
 
-                QString failure_str;
-                if (!datetime1.isValid()) {
-                    failure_str = date_str1;
-                }
-                else if (!datetime2.isValid()) {
-                    failure_str = date_str2;
-                }
 
-                if (!failure_str.isEmpty()) {
-                    QString error = "Failed to convert " + failure_str + " to a DateTime on line ";
-                    error += QString::number(args.at(0).get_token().line_number);
-                    throw std::logic_error(error.toStdString());
-                }
-                else {
-                    Token t;
-                    t.token_type = TokenType::BOOLEAN;
-                    t.boolean_value = (datetime1 < datetime2);
+            QString format2 = args[3].get_token().string_value;
 
-                    result = Term(t);
-                }
+            QDateTime datetime1 = QDateTime::fromString(date_str1, format1);
+            QDateTime datetime2 = QDateTime::fromString(date_str2, format2);
 
+            QString failure_str;
+            if (!datetime1.isValid()) {
+                failure_str = date_str1;
             }
-            catch (const std::bad_any_cast& e) {
-                QString error = "date_lt(string, date_format, string2, date_format) expects 4 string argument on line ";
+            else if (!datetime2.isValid()) {
+                failure_str = date_str2;
+            }
+
+            if (!failure_str.isEmpty()) {
+                QString error = "Failed to convert " + failure_str + " to a DateTime on line ";
                 error += QString::number(args.at(0).get_token().line_number);
-                throw std::logic_error(error.toStdString() + e.what());
+                throw std::logic_error(error.toStdString());
+            }
+            else {
+                Token t;
+                t.token_type = TokenType::BOOLEAN;
+                t.boolean_value = (datetime1 < datetime2);
+
+                result = Term(t);
             }
         }
         return result;
@@ -398,42 +348,34 @@ namespace csvquery {
             throw std::logic_error(error.toStdString());
         }
         else {
-            try {
-                QString date_str1 = std::any_cast<QString>(args[0].get_token().string_value);
-                QString date_str2 = std::any_cast<QString>(args[1].get_token().string_value);
+            QString date_str1 = args[0].get_token().string_value;
+            QString format1 = args[1].get_token().string_value;
 
-                QString format1 = std::any_cast<QString>(args[2].get_token().string_value);
-                QString format2 = std::any_cast<QString>(args[3].get_token().string_value);
+            QString date_str2 = args[2].get_token().string_value;
+            QString format2 = args[3].get_token().string_value;
 
-                QDateTime datetime1 = QDateTime::fromString(date_str1, format1);
-                QDateTime datetime2 = QDateTime::fromString(date_str2, format2);
+            QDateTime datetime1 = QDateTime::fromString(date_str1, format1);
+            QDateTime datetime2 = QDateTime::fromString(date_str2, format2);
 
-                QString failure_str;
-                if (!datetime1.isValid()) {
-                    failure_str = date_str1;
-                }
-                else if (!datetime2.isValid()) {
-                    failure_str = date_str2;
-                }
-
-                if (!failure_str.isEmpty()) {
-                    QString error = "Failed to convert " + failure_str + " to a DateTime on line ";
-                    error += QString::number(args.at(0).get_token().line_number);
-                    throw std::logic_error(error.toStdString());
-                }
-                else {
-                    Token t;
-                    t.token_type = TokenType::BOOLEAN;
-                    t.boolean_value = (datetime1 >= datetime2);
-
-                    result = Term(t);
-                }
-
+            QString failure_str;
+            if (!datetime1.isValid()) {
+                failure_str = date_str1;
             }
-            catch (const std::bad_any_cast& e) {
-                QString error = "date_ge(string, date_format, string2, date_format) expects 4 string argument on line ";
+            else if (!datetime2.isValid()) {
+                failure_str = date_str2;
+            }
+
+            if (!failure_str.isEmpty()) {
+                QString error = "Failed to convert " + failure_str + " to a DateTime on line ";
                 error += QString::number(args.at(0).get_token().line_number);
-                throw std::logic_error(error.toStdString() + e.what());
+                throw std::logic_error(error.toStdString());
+            }
+            else {
+                Token t;
+                t.token_type = TokenType::BOOLEAN;
+                t.boolean_value = (datetime1 >= datetime2);
+
+                result = Term(t);
             }
         }
         return result;
@@ -462,42 +404,38 @@ namespace csvquery {
             throw std::logic_error(error.toStdString());
         }
         else {
-            try {
-                QString date_str1 = std::any_cast<QString>(args[0].get_token().string_value);
-                QString date_str2 = std::any_cast<QString>(args[1].get_token().string_value);
 
-                QString format1 = std::any_cast<QString>(args[2].get_token().string_value);
-                QString format2 = std::any_cast<QString>(args[3].get_token().string_value);
+            QString date_str1 = args[0].get_token().string_value;
+            QString format1 = args[2].get_token().string_value;
 
-                QDateTime datetime1 = QDateTime::fromString(date_str1, format1);
-                QDateTime datetime2 = QDateTime::fromString(date_str2, format2);
+            QString date_str2 = args[1].get_token().string_value;
 
-                QString failure_str;
-                if (!datetime1.isValid()) {
-                    failure_str = date_str1;
-                }
-                else if (!datetime2.isValid()) {
-                    failure_str = date_str2;
-                }
 
-                if (!failure_str.isEmpty()) {
-                    QString error = "Failed to convert " + failure_str + " to a DateTime on line ";
-                    error += QString::number(args.at(0).get_token().line_number);
-                    throw std::logic_error(error.toStdString());
-                }
-                else {
-                    Token t;
-                    t.token_type = TokenType::BOOLEAN;
-                    t.boolean_value = (datetime1 <= datetime2);
-                    result = Term(t);
-                }
+            QString format2 = args[3].get_token().string_value;
 
+            QDateTime datetime1 = QDateTime::fromString(date_str1, format1);
+            QDateTime datetime2 = QDateTime::fromString(date_str2, format2);
+
+            QString failure_str;
+            if (!datetime1.isValid()) {
+                failure_str = date_str1;
             }
-            catch (const std::bad_any_cast& e) {
-                QString error = "date_le(string, date_format, string2, date_format) expects 4 string argument on line ";
+            else if (!datetime2.isValid()) {
+                failure_str = date_str2;
+            }
+
+            if (!failure_str.isEmpty()) {
+                QString error = "Failed to convert " + failure_str + " to a DateTime on line ";
                 error += QString::number(args.at(0).get_token().line_number);
-                throw std::logic_error(error.toStdString() + e.what());
+                throw std::logic_error(error.toStdString());
             }
+            else {
+                Token t;
+                t.token_type = TokenType::BOOLEAN;
+                t.boolean_value = (datetime1 <= datetime2);
+                result = Term(t);
+            }
+           
         }
         return result;
     }
@@ -525,41 +463,37 @@ namespace csvquery {
             throw std::logic_error(error.toStdString());
         }
         else {
-            try {
-                QString date_str1 = std::any_cast<QString>(args[0].get_token().string_value);
-                QString date_str2 = std::any_cast<QString>(args[1].get_token().string_value);
 
-                QString format1 = std::any_cast<QString>(args[2].get_token().string_value);
-                QString format2 = std::any_cast<QString>(args[3].get_token().string_value);
+            QString date_str1 = args[0].get_token().string_value;
+            QString format1 = args[2].get_token().string_value;
 
-                QDateTime datetime1 = QDateTime::fromString(date_str1, format1);
-                QDateTime datetime2 = QDateTime::fromString(date_str2, format2);
+            QString date_str2 = args[1].get_token().string_value;
 
-                QString failure_str;
-                if (!datetime1.isValid()) {
-                    failure_str = date_str1;
-                }
-                else if (!datetime2.isValid()) {
-                    failure_str = date_str2;
-                }
 
-                if (!failure_str.isEmpty()) {
-                    QString error = "Failed to convert " + failure_str + " to a DateTime!";
-                    throw std::logic_error(error.toStdString());
-                }
-                else {
-                    Token t;
-                    t.token_type = TokenType::BOOLEAN;
-                    t.boolean_value = (datetime1 == datetime2);
-                    result = Term(t);
-                }
+            QString format2 = args[3].get_token().string_value;
 
+            QDateTime datetime1 = QDateTime::fromString(date_str1, format1);
+            QDateTime datetime2 = QDateTime::fromString(date_str2, format2);
+
+            QString failure_str;
+            if (!datetime1.isValid()) {
+                failure_str = date_str1;
             }
-            catch (const std::bad_any_cast& e) {
-                QString error = "date_eq(string, date_format, string2, date_format) expects 4 string argument on line ";
-                error += QString::number(args.at(0).get_token().line_number);
-                throw std::logic_error(error.toStdString() + e.what());
+            else if (!datetime2.isValid()) {
+                failure_str = date_str2;
             }
+
+            if (!failure_str.isEmpty()) {
+                QString error = "Failed to convert " + failure_str + " to a DateTime!";
+                throw std::logic_error(error.toStdString());
+            }
+            else {
+                Token t;
+                t.token_type = TokenType::BOOLEAN;
+                t.boolean_value = (datetime1 == datetime2);
+                result = Term(t);
+            }
+            
         }
         return result;
     }
