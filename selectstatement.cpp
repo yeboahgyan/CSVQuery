@@ -928,12 +928,15 @@ namespace csvquery {
             }
 
             columns = {}; //reset
-            for (auto it = check_if_aggregate_done.begin(); it != check_if_aggregate_done.end(); ++it) {
-                //it.value().value() = false;
-                for (auto i = it.value().begin(); i != it.value().end(); ++i) {
-                    i.value() = false;
+            if (has_group_by || is_aggregation) {
+                for (auto it = check_if_aggregate_done.begin(); it != check_if_aggregate_done.end(); ++it) {
+                    //it.value().value() = false;
+                    for (auto i = it.value().begin(); i != it.value().end(); ++i) {
+                        i.value() = false;
+                    }
                 }
             }
+            
         }
 
         if (has_group_by || is_aggregation) {
@@ -981,6 +984,53 @@ namespace csvquery {
         return index;
     }
 
+    void SelectStatement::process_select(QHash<QString, QStringList>& group_by_result, QMap<QString, QStringList>& data_rows)
+    {
+        QStringList columns;
+        if (has_where_clause) {
+            Term t = conditional_expr->eval(data_rows);
+
+            if (t.get_token().boolean_value == false) {
+                return;
+            }
+
+            QString result_key = create_group_by_key(data_rows);
+            aggregate_expression_reg_key = result_key;
+            columns = compute_columns(data_rows);
+            group_by_result[result_key] = columns;
+
+            //write to file?
+            /*
+            if (write_to_file) {
+                out_file->writeLine(columns.join(','));
+                ++NUMBER_OF_ROWS;
+            }
+            else {
+                result.append(columns);
+                ++NUMBER_OF_ROWS;
+            }
+            */
+        }
+        else { //no where clause
+            QString result_key = create_group_by_key(data_rows);
+            aggregate_expression_reg_key = result_key;
+            columns = compute_columns(data_rows);
+            group_by_result[result_key] = columns;
+
+            //write to file?
+            /*
+            if (write_to_file) {
+                out_file->writeLine(columns.join(','));
+                ++NUMBER_OF_ROWS;
+            }
+            else {
+                result.append(columns);
+                ++NUMBER_OF_ROWS;
+            }
+            */
+        }
+    }
+
 
     void SelectStatement::process_select(QList<QStringList>& result, QMap<QString, QStringList>& data_rows)
     {
@@ -1023,6 +1073,7 @@ namespace csvquery {
     std::optional<QList<QStringList>> SelectStatement::select_with_inner_join()
     {
         QList<QStringList> result;
+        QHash<QString, QStringList> group_by_result;
 
 
         if (left_file->end_of_file()) {
@@ -1063,7 +1114,14 @@ namespace csvquery {
                     continue;
                 }*/
 
-                process_select(result, data_rows);
+                if (has_group_by || is_aggregation) {
+                    process_select(group_by_result, data_rows);
+                }
+                else {
+                    process_select(result, data_rows);
+                }
+
+                
 
                 if ((write_to_file == false) && (NUMBER_OF_ROWS % NUMBER_OF_ROWS_PER_PAGE == 0)) { // paginate
                     if (NUMBER_OF_ROWS == 0) {
@@ -1073,6 +1131,35 @@ namespace csvquery {
                 }
             }
             //columns = {}; //reset; is it necessary since it is redefined in the loop?
+            if (has_group_by || is_aggregation) {
+                for (auto it = check_if_aggregate_done.begin(); it != check_if_aggregate_done.end(); ++it) {
+                    //it.value().value() = false;
+                    for (auto i = it.value().begin(); i != it.value().end(); ++i) {
+                        i.value() = false;
+                    }
+                }
+            }
+        }
+
+
+        if (has_group_by || is_aggregation) {
+            foreach(auto row, group_by_result) {
+                if (write_to_file) {
+                    out_file->writeLine(row.join(','));
+                    ++NUMBER_OF_ROWS;
+                }
+                else {
+                    result.append(row);
+                    ++NUMBER_OF_ROWS;
+
+                    if ((write_to_file == false) && (NUMBER_OF_ROWS % NUMBER_OF_ROWS_PER_PAGE == 0)) { // paginate
+                        if (NUMBER_OF_ROWS == 0) {
+                            return std::nullopt;
+                        }
+                        return result;
+                    }
+                }
+            }
         }
 
         if (write_to_file) {
@@ -1091,8 +1178,9 @@ namespace csvquery {
     std::optional<QList<QStringList>> SelectStatement::select_with_outer_join()
     {
         QList<QStringList> result;
+        QHash<QString, QStringList> group_by_result;
 
-        qDebug() << "Selecting with outer join";
+        //qDebug() << "Selecting with outer join";
 
 
         if (left_file->end_of_file()) {
@@ -1125,9 +1213,19 @@ namespace csvquery {
                 }
                 data_rows[join_files_list["right"]] = row;
 
-                process_select(result, data_rows);
+                if (has_group_by || is_aggregation) {
+                    process_select(group_by_result, data_rows);
+                }
+                else {
+                    process_select(result, data_rows);
+                }
+
+                
 
                 if ((write_to_file == false) && (NUMBER_OF_ROWS % NUMBER_OF_ROWS_PER_PAGE == 0)) { // paginate
+                    if (NUMBER_OF_ROWS == 0) {
+                        return std::nullopt;
+                    }
                     return result;
                 }
 
@@ -1151,10 +1249,41 @@ namespace csvquery {
                 process_select(result, data_rows);
 
                 if ((write_to_file == false) && (NUMBER_OF_ROWS % NUMBER_OF_ROWS_PER_PAGE == 0)) { // paginate
+                    if (NUMBER_OF_ROWS == 0) {
+                        return std::nullopt;
+                    }
                     return result;
                 }
             }
             //columns = {}; //reset; is it necessary since it is redefined in the loop?
+            if (has_group_by || is_aggregation) {
+                for (auto it = check_if_aggregate_done.begin(); it != check_if_aggregate_done.end(); ++it) {
+                    //it.value().value() = false;
+                    for (auto i = it.value().begin(); i != it.value().end(); ++i) {
+                        i.value() = false;
+                    }
+                }
+            }
+        }
+
+        if (has_group_by || is_aggregation) {
+            foreach(auto row, group_by_result) {
+                if (write_to_file) {
+                    out_file->writeLine(row.join(','));
+                    ++NUMBER_OF_ROWS;
+                }
+                else {
+                    result.append(row);
+                    ++NUMBER_OF_ROWS;
+
+                    if ((write_to_file == false) && (NUMBER_OF_ROWS % NUMBER_OF_ROWS_PER_PAGE == 0)) { // paginate
+                        if (NUMBER_OF_ROWS == 0) {
+                            return std::nullopt;
+                        }
+                        return result;
+                    }
+                }
+            }
         }
 
         if (write_to_file) {

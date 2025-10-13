@@ -79,6 +79,7 @@ namespace csvquery {
         std::optional<QList<QStringList>> select_with_inner_join();
         std::optional<QList<QStringList>> select_with_outer_join();
         void process_select(QList<QStringList>& result_ptr, QMap<QString, QStringList>& data_rows);
+        void process_select(QHash<QString, QStringList>& group_by_result, QMap<QString, QStringList>& data_rows);
 
     public:
         SelectStatement(const QList<Token>& tks, unsigned int max_rows_per_page = 100);

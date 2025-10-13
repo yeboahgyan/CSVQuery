@@ -26,7 +26,7 @@ namespace csvquery {
 
 	Term date_eq(QList<Term>); // date equal
 
-	Term now(QList<Term>); // current date time
+	//Term now(QList<Term>); // current date time
 
 	//Term days_between();
 
