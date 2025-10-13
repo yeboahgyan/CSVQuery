@@ -880,6 +880,9 @@ namespace csvquery {
                             ++NUMBER_OF_ROWS;
 
                             if ((write_to_file == false) && (NUMBER_OF_ROWS % NUMBER_OF_ROWS_PER_PAGE == 0)) { // paginate
+                                if (NUMBER_OF_ROWS == 0) {
+                                    return std::nullopt;
+                                }
                                 return result;
                             }
                         }
@@ -914,6 +917,9 @@ namespace csvquery {
                         ++NUMBER_OF_ROWS;
 
                         if ((write_to_file == false) && (NUMBER_OF_ROWS % NUMBER_OF_ROWS_PER_PAGE == 0)) { // paginate
+                            if (NUMBER_OF_ROWS == 0) {
+                                return std::nullopt;
+                            }
                             return result;
                         }
                     }
@@ -941,6 +947,9 @@ namespace csvquery {
                     ++NUMBER_OF_ROWS;
 
                     if ((write_to_file == false) && (NUMBER_OF_ROWS % NUMBER_OF_ROWS_PER_PAGE == 0)) { // paginate
+                        if (NUMBER_OF_ROWS == 0) {
+                            return std::nullopt;
+                        }
                         return result;
                     }
                 }

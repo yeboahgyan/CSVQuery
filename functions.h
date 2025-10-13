@@ -26,6 +26,14 @@ namespace csvquery {
 
 	Term date_eq(QList<Term>); // date equal
 
+	Term now(QList<Term>); // current date time
+
+	//Term days_between();
+
+	//Term _add();
+
+	//Term date_sub();
+
 	Term number(QList<Term>); // convert string to number or throw exception
 
 	enum class AggregFuncType{ count, sum, min, max, avg};

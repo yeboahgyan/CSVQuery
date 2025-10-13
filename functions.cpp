@@ -418,9 +418,9 @@ namespace csvquery {
         else {
 
             QString date_str1 = args[0].get_token().string_value;
-            QString format1 = args[2].get_token().string_value;
+            QString format1 = args[1].get_token().string_value;
 
-            QString date_str2 = args[1].get_token().string_value;
+            QString date_str2 = args[2].get_token().string_value;
 
 
             QString format2 = (args.length() == 4) ? args[3].get_token().string_value : format1;
