@@ -216,6 +216,7 @@ namespace csvquery {
             double number;
 
             (*stream) >> number;
+            //qDebug() <<"number read in tokenizer: "<< number;
             token = { .token_type = TokenType::NUMBER, .string_value = QString::number(number), .number_value = number, .line_number = line_number };
             token.token_name = token.to_string();
         }

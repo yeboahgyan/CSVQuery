@@ -1,6 +1,7 @@
 #include "selectstatement.h"
 #include <stdexcept>
 #include <QFileInfo>
+#include <cmath>
 
 
 namespace csvquery {
@@ -724,7 +725,17 @@ namespace csvquery {
                 column = ct.get_token().string_value;
             }
             else if (ct.get_token().token_type == TokenType::NUMBER) {
-                column = QString::number(ct.get_token().number_value);
+                //qDebug() << "number: " << ct.get_token().number_value;
+
+                const double epsilon = 1e-9;
+                double num = ct.get_token().number_value;
+                bool isWhole = std::fabs(num - std::round(num)) < epsilon;
+
+                QString num_string = isWhole ? QString::number(num, 'f', 0)
+                    : QString::number(num, 'g', 2);
+
+                column = num_string;
+
             }
             columns.append(column);
         }
@@ -838,7 +849,9 @@ namespace csvquery {
         //qDebug() << "group by list: " << group_by_columns;
 
         // validate columns in select with group by or aggregate function
-        validate_aggregate_query();
+        if (has_group_by || is_aggregation) {
+            validate_aggregate_query();
+        }
 
         while (!left_file->end_of_file()) {
             QStringList row = left_file->readRow();
@@ -939,8 +952,15 @@ namespace csvquery {
             
         }
 
+
+        // process aggregation result
         if (has_group_by || is_aggregation) {
-            foreach(auto row, group_by_result) {
+            group_by_result_loc = (paginate) ? group_by_result_loc : group_by_result.begin();
+
+            for(; group_by_result_loc != group_by_result.end(); ++group_by_result_loc){
+            //foreach(auto row, group_by_result) {
+                QStringList& row = group_by_result_loc.value();
+
                 if (write_to_file) {
                     out_file->writeLine(row.join(','));
                     ++NUMBER_OF_ROWS;
@@ -950,9 +970,12 @@ namespace csvquery {
                     ++NUMBER_OF_ROWS;
 
                     if ((write_to_file == false) && (NUMBER_OF_ROWS % NUMBER_OF_ROWS_PER_PAGE == 0)) { // paginate
+
                         if (NUMBER_OF_ROWS == 0) {
+                            paginate = true;
                             return std::nullopt;
                         }
+
                         return result;
                     }
                 }
@@ -999,6 +1022,8 @@ namespace csvquery {
             columns = compute_columns(data_rows);
             group_by_result[result_key] = columns;
 
+            //qDebug() << "group by result:" << columns;
+
             //write to file?
             /*
             if (write_to_file) {
@@ -1016,6 +1041,7 @@ namespace csvquery {
             aggregate_expression_reg_key = result_key;
             columns = compute_columns(data_rows);
             group_by_result[result_key] = columns;
+            //qDebug() << "group by result:" <<columns;
 
             //write to file?
             /*
@@ -1073,21 +1099,30 @@ namespace csvquery {
     std::optional<QList<QStringList>> SelectStatement::select_with_inner_join()
     {
         QList<QStringList> result;
-        QHash<QString, QStringList> group_by_result;
+        //QHash<QString, QStringList> group_by_result;
 
 
-        if (left_file->end_of_file()) {
-            return std::nullopt;
+        if (!paginate) { // skip this check if handling pagination for group by result
+            if (left_file->end_of_file()) {
+                return std::nullopt;
+            }
+
+            if (right_file->end_of_file()) {
+                return std::nullopt;
+            }
         }
+        
 
-        if (right_file->end_of_file()) {
-            return std::nullopt;
+        // validate columns in select with group by or aggregate function
+        if (has_group_by || is_aggregation) {
+            validate_aggregate_query();
         }
-
 
         // build index
-        std::shared_ptr<QHash<QString, QList<qint64>> > query_lookup_index = std::make_shared<QHash<QString, QList<qint64>> >();
-        query_lookup_index = build_index(this->right_file, this->query_index);
+        if (!paginate) {
+            //query_lookup_index = std::make_shared<QHash<QString, QList<qint64>> >();
+            query_lookup_index = build_index(this->right_file, this->query_index);
+        }
 
         //bool indexing_done = false;
 
@@ -1119,10 +1154,19 @@ namespace csvquery {
                 }
                 else {
                     process_select(result, data_rows);
+
+                    /*
+                    if ((write_to_file == false) && (NUMBER_OF_ROWS % NUMBER_OF_ROWS_PER_PAGE == 0)) { // paginate
+                        if (NUMBER_OF_ROWS == 0) {
+                            return std::nullopt;
+                        }
+                        return result;
+                    }*/
                 }
 
-                
+            }
 
+            if (!has_group_by && !is_aggregation) {
                 if ((write_to_file == false) && (NUMBER_OF_ROWS % NUMBER_OF_ROWS_PER_PAGE == 0)) { // paginate
                     if (NUMBER_OF_ROWS == 0) {
                         return std::nullopt;
@@ -1130,6 +1174,7 @@ namespace csvquery {
                     return result;
                 }
             }
+
             //columns = {}; //reset; is it necessary since it is redefined in the loop?
             if (has_group_by || is_aggregation) {
                 for (auto it = check_if_aggregate_done.begin(); it != check_if_aggregate_done.end(); ++it) {
@@ -1143,7 +1188,12 @@ namespace csvquery {
 
 
         if (has_group_by || is_aggregation) {
-            foreach(auto row, group_by_result) {
+            group_by_result_loc = (paginate) ? group_by_result_loc : group_by_result.begin(); // continue from where we left off?
+
+            for (; group_by_result_loc != group_by_result.end(); ++group_by_result_loc) {
+            //foreach(auto row, group_by_result) {
+                QStringList& row = group_by_result_loc.value();
+
                 if (write_to_file) {
                     out_file->writeLine(row.join(','));
                     ++NUMBER_OF_ROWS;
@@ -1156,6 +1206,7 @@ namespace csvquery {
                         if (NUMBER_OF_ROWS == 0) {
                             return std::nullopt;
                         }
+                        paginate = true;
                         return result;
                     }
                 }
@@ -1178,23 +1229,32 @@ namespace csvquery {
     std::optional<QList<QStringList>> SelectStatement::select_with_outer_join()
     {
         QList<QStringList> result;
-        QHash<QString, QStringList> group_by_result;
+        //QHash<QString, QStringList> group_by_result; changed to class member
 
         //qDebug() << "Selecting with outer join";
 
 
-        if (left_file->end_of_file()) {
-            return std::nullopt;
+        if (!paginate) { // skip this check if handling pagination for group by result
+            if (left_file->end_of_file()) {
+                return std::nullopt;
+            }
+
+            if (right_file->end_of_file()) {
+                return std::nullopt;
+            }
         }
 
-        if (right_file->end_of_file()) {
-            return std::nullopt;
+        // validate columns in select with group by or aggregate function
+        if (has_group_by || is_aggregation) {
+            validate_aggregate_query();
         }
 
         // build index
-        std::shared_ptr<QHash<QString, QList<qint64>> > query_lookup_index = std::make_shared<QHash<QString, QList<qint64>> >();
-        query_lookup_index = build_index(this->right_file, this->query_index);
-
+        if (!paginate) {
+            //query_lookup_index = std::make_shared<QHash<QString, QList<qint64>> >();
+            query_lookup_index = build_index(this->right_file, this->query_index);
+        }
+        
         //bool indexing_done = false;
 
         //loop over files
@@ -1246,8 +1306,23 @@ namespace csvquery {
                     continue;
                 }*/
 
-                process_select(result, data_rows);
+                if (has_group_by || is_aggregation) {
+                    process_select(group_by_result, data_rows);
+                }
+                else {
+                    process_select(result, data_rows);
+                    /*
+                    if ((write_to_file == false) && (NUMBER_OF_ROWS % NUMBER_OF_ROWS_PER_PAGE == 0)) { // paginate
+                        if (NUMBER_OF_ROWS == 0) {
+                            return std::nullopt;
+                        }
+                        return result;
+                    }*/
+                }
+  
+            }
 
+            if (!has_group_by && !is_aggregation) {
                 if ((write_to_file == false) && (NUMBER_OF_ROWS % NUMBER_OF_ROWS_PER_PAGE == 0)) { // paginate
                     if (NUMBER_OF_ROWS == 0) {
                         return std::nullopt;
@@ -1255,6 +1330,8 @@ namespace csvquery {
                     return result;
                 }
             }
+
+
             //columns = {}; //reset; is it necessary since it is redefined in the loop?
             if (has_group_by || is_aggregation) {
                 for (auto it = check_if_aggregate_done.begin(); it != check_if_aggregate_done.end(); ++it) {
@@ -1267,7 +1344,15 @@ namespace csvquery {
         }
 
         if (has_group_by || is_aggregation) {
-            foreach(auto row, group_by_result) {
+            group_by_result_loc = (paginate) ? group_by_result_loc : group_by_result.begin();
+            //qDebug() << "group by";
+            //qDebug() << group_by_result_loc;
+
+            for (; group_by_result_loc != group_by_result.end(); ++group_by_result_loc) {
+            //foreach(auto row, group_by_result) {
+                QStringList& row = group_by_result_loc.value();
+                //qDebug() << "row " << row;
+
                 if (write_to_file) {
                     out_file->writeLine(row.join(','));
                     ++NUMBER_OF_ROWS;
@@ -1277,9 +1362,13 @@ namespace csvquery {
                     ++NUMBER_OF_ROWS;
 
                     if ((write_to_file == false) && (NUMBER_OF_ROWS % NUMBER_OF_ROWS_PER_PAGE == 0)) { // paginate
+
                         if (NUMBER_OF_ROWS == 0) {
                             return std::nullopt;
                         }
+
+                        paginate = true;
+
                         return result;
                     }
                 }

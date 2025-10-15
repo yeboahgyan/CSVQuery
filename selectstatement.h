@@ -65,6 +65,11 @@ namespace csvquery {
         std::shared_ptr<CSVFile> read_file(QIODeviceBase::OpenMode m = QIODevice::ReadOnly);
         std::shared_ptr<ConditionalExpression> read_on_clause();
         std::shared_ptr<ConditionalExpression> read_where();
+
+        bool paginate = false; // used for pagination of group by result
+        QHash<QString, QStringList> group_by_result; // saves results if aggregation done in inner joins and outer joins
+        QHash<QString, QStringList>::iterator group_by_result_loc; // this is used for pagination; keeps track of the next item
+        std::shared_ptr<QHash<QString, QList<qint64>> > query_lookup_index; // this is used for looking up index; it is initialized in the inner join or outer join function
         void validate_aggregate_query(); // checks if coulms in select statement are in group by clause and also whether it has an aggregation function
 
         void parse();

@@ -33,6 +33,8 @@
 
 //import pretty;
 #include <replxx.hxx>
+#include "license.h"
+#include <Windows.h>
 
 void test_tokenizer();
 
@@ -58,9 +60,15 @@ void print_table(const std::optional<QList<QStringList>>& res, const QStringList
 
 void paginate(csvquery::SelectStatement& select, replxx::Replxx& rx);
 
+void print_with_margin(tabulate::Table& table, int margin = 4);
+
+void setConsoleFont(const wchar_t* fontName, SHORT fontSize = 16);
+
 void execute_source_file(QFile& source);
 
 int MAX_ROWS_PER_PAGE = 100;
+
+
 
 int main(int argc, char *argv[])
 {
@@ -77,10 +85,13 @@ int main(int argc, char *argv[])
     // If you do not need a running Qt event loop, remove the call
     // to a.exec() or use the Non-Qt Plain C++ Application template.
 
-    std::cout << "\n\n";
-    std::cout << "\t\t\t\t CSVQuery\n\n";
-    std::cout << "\t\t\t\t[version 0.1.1]\n\n";
-    std::cout << "\t\t\t\tKwame Yeboah-Gyan, 2025\n\n\n";
+    setConsoleFont(L"Cascadia Code");
+
+    std::cout << "\n";
+    std::cout << "  CSVQuery ";
+    std::cout << "0.1.1";
+    std::cout << " (c) 2025 Kwame Yeboah-Gyan\n";
+    std::cout << "  Type \"exit\" or \"quit\" to quit, \"license\" for license information.\n\n";
 
     set_builtin_funcs();
 
@@ -219,7 +230,8 @@ int main(int argc, char *argv[])
                 }*/
                 
                 // Highlight strings
-                std::regex strings(R"((['"])([^'"]*)\1)");
+                //std::regex strings(R"((['"])([^'"]*)\1)");
+                std::regex strings(R"((["'])(?:\\.|(?!\1).)*\1)");
                 auto strings_begin = std::sregex_iterator(context.begin(), context.end(), strings);
                 auto strings_end = std::sregex_iterator();
 
@@ -227,7 +239,7 @@ int main(int argc, char *argv[])
                     auto pos = it->position();
                     auto len = it->length();
                     for (int i = 0; i < len; ++i) {
-                        colors[pos + i] = replxx::Replxx::Color::BROWN;
+                        colors[pos + i] = replxx::Replxx::Color::BRIGHTBLUE;
                     }
                 }
 
@@ -251,10 +263,14 @@ int main(int argc, char *argv[])
         std::string buffer;
         std::string newlines;
 
+        // ANSI color codes
+        const char* yellow = "\x1b[33m";
+        const char* reset = "\x1b[0m";
+
         int line_number = 1;
         while (true) {
-            std::string prompt_main = "\n" + std::to_string(line_number) + " csvQ> ";
-            std::string prompt_continue = std::to_string(line_number) + "->] ";
+            std::string prompt_main = "\n  " + std::string(yellow) + std::to_string(line_number)  + std::string(reset)  +" csvQ> ";
+            std::string prompt_continue = "  " + std::string(yellow) + std::to_string(line_number) + std::string(reset) + "->] ";
             const char* input = rx.input(buffer.empty() ? prompt_main : prompt_continue);
 
             if (!input) break;  // EOF
@@ -279,6 +295,11 @@ int main(int argc, char *argv[])
 
             if (line == "exit" || line == "quit") {
                 break;
+            }
+
+            if (line == "license") {
+                print_license();
+                line = ";";
             }
             //std::cout << "buffer.back:" << buffer.back() << "\n";
 
@@ -325,7 +346,7 @@ int main(int argc, char *argv[])
                         if (action.token_type == csvquery::TokenType::IMPORT) {
                             csvquery::ImportStatement import(tokens);
                             import.execute();
-                            std::cout << "Number of names loaded: " << import.num_of_columns_loaded() << "\n";
+                            std::cout << "    Number of names loaded: " << import.num_of_columns_loaded() << "\n";
                         }
                         else if (action.token_type == csvquery::TokenType::NAME) {
                             //std::cout << "assigning...\n";
@@ -335,7 +356,7 @@ int main(int argc, char *argv[])
                         else if (action.token_type == csvquery::TokenType::UPDATE) {
                             csvquery::UpdateStatement update(tokens);
                             update.execute();
-                            std::cout << "Number of rows updated: " << update.get_number_of_rows() << "\n";
+                            std::cout << "    Number of rows updated: " << update.get_number_of_rows() << "\n";
                         }
                         else if (action.token_type == csvquery::TokenType::SELECT) {
                             int max_rows_per_page = MAX_ROWS_PER_PAGE;
@@ -346,7 +367,7 @@ int main(int argc, char *argv[])
                                 //print result
                                 //print(result);
                                 print_table(result, select.get_column_names());
-                                std::cout << "\nNumber of rows read: " << select.get_number_of_rows() << "\n\n";
+                                std::cout << "\n    Number of rows read: " << select.get_number_of_rows() << "\n\n";
                                 //qDebug() << select.get_column_names();
                                 //if (max_rows_per_page < select.get_number_of_rows()) {
                                 paginate(select, rx);
@@ -354,7 +375,7 @@ int main(int argc, char *argv[])
                                 
                             }
                             else {
-                                std::cout << "Number of rows read: " << select.get_number_of_rows() << "\n\n";
+                                std::cout << "    Number of rows read: " << select.get_number_of_rows() << "\n\n";
                             }
                         }
 
@@ -365,7 +386,7 @@ int main(int argc, char *argv[])
                         }
                     }
                     catch (std::logic_error l) {
-                        std::cout << "Parser error 1: " << l.what() << "\n";
+                        std::cout << "  Parser error 1: " << l.what() << "\n";
                     }
 
                 }
@@ -385,10 +406,10 @@ int main(int argc, char *argv[])
 
     }
     catch(std::logic_error l){
-        std::cout<<"Parser error 2 "<<l.what()<<"\n";
+        std::cout<<"  Parser error 2 "<<l.what()<<"\n";
     }
     catch(...){
-        std::cout<< "There was an exception!";
+        std::cout<< "  There was an exception!";
     }
 
     //test_tokenizer();
@@ -833,7 +854,7 @@ void print_table(const std::optional<QList<QStringList>>& res, const QStringList
 
         if (res.has_value()) {
             if (result.isEmpty()) {
-                std::cout << "Number of rows:" << result.size();
+                std::cout << "    Number of rows:" << result.size();
                 return;
             }
         }
@@ -903,7 +924,10 @@ void print_table(const std::optional<QList<QStringList>>& res, const QStringList
             
           
 
-            std::cout <<"\n" << table << "\n";
+            //std::cout <<"\n" << table << "\n";
+            std::cout << "\n";
+            print_with_margin(table);
+            std::cout << "\n";
             //std::cout << "Number of rows:" << result.size();
         }
 
@@ -933,9 +957,9 @@ void paginate(csvquery::SelectStatement& select, replxx::Replxx& rx)
 
         if (result.has_value()) {
 
-            std::cout << "Enter any key to show the next page or x to stop\n";
+            std::cout << "    Enter any key to show the next page or x to stop\n";
 
-            const char* input = rx.input("->] ");
+            const char* input = rx.input("  ->] ");
 
             if (!input) return;  // EOF
 
@@ -947,7 +971,7 @@ void paginate(csvquery::SelectStatement& select, replxx::Replxx& rx)
 
             //print result
             print_table(result, select.get_column_names());
-            std::cout << "Number of rows read:" << select.get_number_of_rows() << "\n";
+            std::cout << "  Number of rows read:" << select.get_number_of_rows() << "\n";
 
             /*
             if (select.get_max_rows_per_page() > select.get_number_of_rows()) {
@@ -991,7 +1015,7 @@ void execute_source_file(QFile& source) {
             if (action.token_type == csvquery::TokenType::IMPORT) {
                 csvquery::ImportStatement import(tokens);
                 import.execute();
-                std::cout << "Number of names loaded: " << import.num_of_columns_loaded() << "\n";
+                std::cout << "    Number of names loaded: " << import.num_of_columns_loaded() << "\n";
             }
             else if (action.token_type == csvquery::TokenType::NAME) {
                 //std::cout << "assigning...\n";
@@ -1001,7 +1025,7 @@ void execute_source_file(QFile& source) {
             else if (action.token_type == csvquery::TokenType::UPDATE) {
                 csvquery::UpdateStatement update(tokens);
                 update.execute();
-                std::cout << "Number of rows updated: " << update.get_number_of_rows() << "\n";
+                std::cout << "    Number of rows updated: " << update.get_number_of_rows() << "\n";
             }
             else if (action.token_type == csvquery::TokenType::SELECT) {
                 int max_rows_per_page = MAX_ROWS_PER_PAGE;
@@ -1012,14 +1036,14 @@ void execute_source_file(QFile& source) {
                     //print result
                     //print(result);
                     print_table(result);
-                    std::cout << "\nNumber of rows read: " << select.get_number_of_rows() << "\n\n";
+                    std::cout << "\n    Number of rows read: " << select.get_number_of_rows() << "\n\n";
                     //if (max_rows_per_page < select.get_number_of_rows()) {
                     paginate(select, rx);
                     //}
 
                 }
                 else {
-                    std::cout << "Number of rows read: " << select.get_number_of_rows() << "\n\n";
+                    std::cout << "    Number of rows read: " << select.get_number_of_rows() << "\n\n";
                 }
             }
 
@@ -1030,10 +1054,38 @@ void execute_source_file(QFile& source) {
             }
         }
         catch (std::logic_error l) {
-            std::cout << "Parser error 1: " << l.what() << "\n";
+            std::cout << "  Parser error 1: " << l.what() << "\n";
         }
 
     }
+}
+
+void print_with_margin(tabulate::Table& table, int margin) {
+
+    // Apply color to header row (row 0)
+    if (table.size() > 0) {
+        for (size_t i = 0; i < table[0].size(); ++i) {
+            table[0][i].format()
+                .font_color(tabulate::Color::blue)
+                .font_style({ tabulate::FontStyle::bold });
+        }
+    }
+
+    std::stringstream ss;
+    ss << table;
+    std::string line, indent(margin, ' ');
+    while (std::getline(ss, line)) {
+        std::cout << indent << line << "\n";
+    }
+}
+
+void setConsoleFont(const wchar_t* fontName, SHORT fontSize) {
+    HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
+    CONSOLE_FONT_INFOEX cfi = { sizeof(CONSOLE_FONT_INFOEX) };
+    GetCurrentConsoleFontEx(hConsole, FALSE, &cfi);
+    wcscpy_s(cfi.FaceName, fontName);
+    cfi.dwFontSize.Y = fontSize; // set height
+    SetCurrentConsoleFontEx(hConsole, FALSE, &cfi);
 }
 
 

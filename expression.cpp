@@ -187,6 +187,7 @@ namespace csvquery {
             else {
                 t.number_value = left.get_token().number_value / right.get_token().number_value;
                 t.line_number = left.get_token().line_number;
+                //qDebug() << "double division: "<< t.number_value <<" = ("<< left.get_token().number_value <<" / "<< right.get_token().number_value <<")";
                 result = Term(t);
             }
         }
@@ -282,7 +283,12 @@ namespace csvquery {
                 left = minus(left, term(data_rows, true));
             }
             else {
-                break;
+                QString error = "Incorrect syntax in column expression '";
+                error += current_term->get_token().string_value;
+                error += "' on line ";
+                error += QString::number(current_term->get_token().line_number);
+                throw std::logic_error(error.toStdString());
+                //break;
             }
         }
 
