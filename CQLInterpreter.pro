@@ -6,6 +6,13 @@ CONFIG += c++20 cmdline
 # In order to do so, uncomment the following line.
 #DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
+VCPKG_ROOT = D:/vcpkg
+VCPKG_TRIPLET = x64-windows
+
+INCLUDEPATH += $$VCPKG_ROOT/installed/$$VCPKG_TRIPLET/include
+LIBS += -L$$VCPKG_ROOT/installed/$$VCPKG_TRIPLET/lib
+LIBS += -lreplxx
+
 SOURCES += \
         #columnexpression.cpp \
         assignstatement.cpp \
@@ -15,6 +22,7 @@ SOURCES += \
         expression.cpp \
         functions.cpp \
         importstatement.cpp \
+        license.cpp \
         main.cpp \
         parser.cpp \
         selectstatement.cpp \
@@ -39,6 +47,7 @@ HEADERS += \
     csvfile.h \
     expression.h \
     functions.h \
+    license.h \
     parser.h \
     importstatement.h \
     selectstatement.h \

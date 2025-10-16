@@ -36,6 +36,17 @@ namespace csvquery {
         return current_term;
     }
 
+    Term ConditionalExpression::get_current_term()
+    {
+        if (current_term == terms.end()) {
+            //QList<Term> previous_term = 
+            Token t = { .token_type = TokenType::END };
+            return Term(t);
+        }
+
+        return *current_term;
+    }
+
     QList<Term>::iterator ConditionalExpression::peak_next_term() {
         QList<Term>::iterator n = current_term + 1;
         return n;
@@ -379,12 +390,12 @@ namespace csvquery {
 
         while (current_term != terms.end()) { // read and compute all terms in column expression
             //std::cout<<"expr() current term: "<<current_term->get_token().to_string().toStdString()<<"\n";
-            if (current_term->get_token().token_type == TokenType::AND) {
+            if (get_current_term().get_token().token_type == TokenType::AND) {
                 Term right = cond_term(data_rows, true);
                 //std::cout<<"cond_expr() AND right: "<<right.get_token().to_string().toStdString()<<"\n";
                 left = and_op(left, right);
             }
-            else if (current_term->get_token().token_type == TokenType::OR) {
+            else if (get_current_term().get_token().token_type == TokenType::OR) {
                 left = or_op(left, cond_term(data_rows, true));
             }
             else {
@@ -406,34 +417,34 @@ namespace csvquery {
         while (current_term != terms.end()) {
             //qDebug() << "current term:" << current_term->get_token().to_string();
 
-            if (current_term->get_token().token_type == TokenType::ASSIGN) { //Equal
+            if (get_current_term().get_token().token_type == TokenType::ASSIGN) { //Equal
                 Term right = cond_primary(data_rows, true);
                 //std::cout<<"cond_term() == right: "<<right.get_token().to_string().toStdString()<<"\n";
                 left = eq(left, right);
             }
-            else if (current_term->get_token().token_type == TokenType::NOTEQUALTO) {
+            else if (get_current_term().get_token().token_type == TokenType::NOTEQUALTO) {
                 Term right = cond_primary(data_rows, true);
                 //std::cout<<"cond_term() != right: "<<right.get_token().to_string().toStdString()<<"\n";
                 left = neq(left, right);
                 //std::cout<<"Rsult: "<<left.get_token().to_string().toStdString()<<"\n";
             }
-            else if (current_term->get_token().token_type == TokenType::LESSTHAN) {
+            else if (get_current_term().get_token().token_type == TokenType::LESSTHAN) {
                 left = lt(left, cond_primary(data_rows, true));
             }
-            else if (current_term->get_token().token_type == TokenType::GREATERTHAN) {
+            else if (get_current_term().get_token().token_type == TokenType::GREATERTHAN) {
                 left = gt(left, cond_primary(data_rows, true));
             }
-            else if (current_term->get_token().token_type == TokenType::LESSTHANOREQUAL) {
+            else if (get_current_term().get_token().token_type == TokenType::LESSTHANOREQUAL) {
                 left = le(left, cond_primary(data_rows, true));
             }
-            else if (current_term->get_token().token_type == TokenType::GREATERTHANOREQUAL) {
+            else if (get_current_term().get_token().token_type == TokenType::GREATERTHANOREQUAL) {
                 left = ge(left, cond_primary(data_rows, true));
             }
-            else if (current_term->get_token().token_type == TokenType::LIKE) {
+            else if (get_current_term().get_token().token_type == TokenType::LIKE) {
                 //qDebug() << "evaluating like!";
                 left = like(left, cond_primary(data_rows, true));
             }
-            else if (current_term->get_token().token_type == TokenType::NOTLIKE) {
+            else if (get_current_term().get_token().token_type == TokenType::NOTLIKE) {
                 //qDebug() << "evaluating not like!";
                 left = not_like(left, cond_primary(data_rows, true));
             }
@@ -451,7 +462,7 @@ namespace csvquery {
         if (get) {
             move_to_next_term();
         }
-        Term left = *get_current_term();
+        Term left = get_current_term();
 
         ////std::cout<<"cond_primary() current left: "<<left.get_token().to_string().toStdString()<<"\n";
 
@@ -505,6 +516,14 @@ namespace csvquery {
         result = cond_expr(data_rows, false);
         //std::cout<<"done.\n";
 
+        if (get_current_term().get_token().token_type != TokenType::END) {
+            QString error = "Incorrect syntax in conditional expression '";
+            error += get_current_term().get_token().string_value;
+            error += "' on line ";
+            error += QString::number(get_current_term().get_token().line_number);
+            throw std::logic_error(error.toStdString());
+        }
+
         //reset iterators
         reset_iterators();
 
@@ -553,6 +572,12 @@ namespace csvquery {
             ts.append(t);
             move_to_next_term();
         }
+
+        if (ts.isEmpty()) {
+            QString error = "Unexpected end to expression in Where clause!";
+            throw std::logic_error(error.toStdString());
+        }
+
         Expression e(ts);
         return e;
         //return ts;

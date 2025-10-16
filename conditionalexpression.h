@@ -24,6 +24,7 @@ namespace csvquery {
         QList<Term>::iterator peak_next_term();
 
         QList<Term>::iterator get_current_term() const;
+        Term get_current_term();
 
         //QList<Term>::iterator end() const;
 

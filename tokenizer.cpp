@@ -340,6 +340,14 @@ namespace csvquery {
                     next_token = get();
                     while (next_token.token_type != TokenType::RBRACKET) {
 
+                        if (next_token.token_type == TokenType::END) {
+                            QString error = "Unexpected end to function ";
+                            error += func_token.string_value;
+                            error += " on line ";
+                            error += QString::number(next_token.line_number);
+                            throw std::logic_error(error.toStdString());
+                        }
+
 
                         /*
                         if(next_token.token_type == TokenType::RBRACKET){

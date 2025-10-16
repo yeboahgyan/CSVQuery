@@ -44,6 +44,8 @@ namespace csvquery {
 
         QList<Term>::iterator get_current_term() const;
 
+        Term get_current_term();
+
         QList<Term>::iterator end() const;
 
         //Term expr(const QStringList& row, bool get);

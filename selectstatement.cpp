@@ -179,6 +179,11 @@ namespace csvquery {
             cond_terms.append(t);
         }
 
+        if (cond_terms.isEmpty()) {
+            QString error = "Unexpected end to where clause!";
+            throw std::logic_error(error.toStdString());
+        }
+
         return std::make_shared<ConditionalExpression>(cond_terms);
     }
 
@@ -227,6 +232,15 @@ namespace csvquery {
 
 
             //left_file = std::make_shared<CSVFile>(f);
+        }
+        else {
+            QString error = "Expected a string or variable referencing a file!";
+            throw std::logic_error(error.toStdString());
+        }
+
+        if (f.trimmed().isEmpty()) {
+            QString error = "No name was provided for file!";
+            throw std::logic_error(error.toStdString());
         }
 
         CSVFile csv(f, m);

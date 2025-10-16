@@ -56,8 +56,20 @@ namespace csvquery {
         return n;
     }
 
+    /*
     QList<Term>::iterator Expression::get_current_term() const {
         return current_term;
+    }*/
+
+    Term Expression::get_current_term()
+    {
+        if (current_term == terms.end()) {
+            //QList<Term> previous_term = 
+            Token t = { .token_type = TokenType::END };
+            return Term(t);
+        }
+
+        return *current_term;
     }
 
     bool Expression::iscolumn_or_literal(Token t) const {
@@ -272,25 +284,36 @@ namespace csvquery {
         Term left = term(data_rows, get);
 
         //std::cout<<"expr() left: "<<left.get_token().number_value<<"\n";
+        //qDebug() << "left: " << left.get_token().to_string();
+        //qDebug() << "current token " << current_term->get_token().to_string();
 
         while (current_term != terms.end()) { // read and compute all terms in column expression
-            //std::cout<<"expr() current term: "<<current_term->get_token().to_string().toStdString()<<"\n";
+            //std::cout<<"expr() current term: "<<get_current_term().get_token().to_string().toStdString() << "\n";
 
-            if (current_term->get_token().token_type == TokenType::PLUS) {
+            if (get_current_term().get_token().token_type == TokenType::PLUS) {
                 left = add(left, term(data_rows, true));
             }
-            else if (current_term->get_token().token_type == TokenType::MINUS) {
+            else if (get_current_term().get_token().token_type == TokenType::MINUS) {
                 left = minus(left, term(data_rows, true));
             }
             else {
+                /*
+                if (current_term == terms.end()) {
+                    break;
+                }
+
                 QString error = "Incorrect syntax in column expression '";
-                error += current_term->get_token().string_value;
+                error += get_current_term().get_token().string_value;
                 error += "' on line ";
-                error += QString::number(current_term->get_token().line_number);
+                error += QString::number(get_current_term().get_token().line_number);
                 throw std::logic_error(error.toStdString());
-                //break;
+                */
+                
+                break;
             }
         }
+
+        //qDebug() << "exiting expr!";
 
         return left;
     }
@@ -305,18 +328,38 @@ namespace csvquery {
         while (current_term != terms.end()) {
             //std::cout<<"In term() loop!\n";
             //std::cout<<"item pos "<<get_iterator_pos()<<"\n";
+            //qDebug() << "tem current term: " << get_current_term().get_token().to_string();
 
 
-            if (current_term->get_token().token_type == TokenType::MULT) {
+            if (get_current_term().get_token().token_type == TokenType::MULT) {
                 left = mult(left, primary(data_rows, true));
             }
-            else if (current_term->get_token().token_type == TokenType::DIV) {
+            else if (get_current_term().get_token().token_type == TokenType::DIV) {
                 left = div(left, primary(data_rows, true));
             }
             else {
+                /*
+                if (current_term == terms.end()) {
+                    break;
+                }
+
+                QList<TokenType> expected_types = { TokenType::PLUS, TokenType::MINUS};
+
+                if (expected_types.contains(get_current_term().get_token().token_type)) {
+                    break;
+                }
+
+                QString error = "Incorrect syntax in column expression '";
+                error += get_current_term().get_token().string_value;
+                error += "' on line ";
+                error += QString::number(get_current_term().get_token().line_number);
+                throw std::logic_error(error.toStdString());
+                */
                 break;
             }
         }
+
+        //qDebug() << "exiting term!";
 
         return left;
     }
@@ -325,9 +368,16 @@ namespace csvquery {
     Term Expression::primary(const QMap<QString, QStringList>& data_rows, bool get)
     {
         if (get) {
+            //qDebug() << "prim before move:" << get_current_term().get_token().to_string();
             move_to_next_term();
+            //qDebug() << "prim after move:" << get_current_term().get_token().to_string();
+
+        
         }
-        Term left = *get_current_term();
+        Term left;
+        
+        left = get_current_term();
+        
 
         //auto left_column_term = get_column_term(true);
         Token left_token = left.get_token();
@@ -475,9 +525,16 @@ namespace csvquery {
         }
         else if (left_token.token_type == TokenType::LBRACKET) {
             auto e = expr(data_rows, true);
+            if (current_term == terms.end()) {
+                qDebug() << "here! Unexpected end to select statement!";
+                throw std::logic_error(" expected a ')'!");
+            }
+            else {
+                qDebug() << "here!" << " current token:" << get_current_term().get_token().to_string();
+            }
 
-            if (current_term->get_token().token_type != TokenType::RBRACKET) {
-                QString error = "Expected a ) on line " + QString::number(current_term->get_token().line_number);
+            if (get_current_term().get_token().token_type != TokenType::RBRACKET) {
+                QString error = "Expected a ) on line " + QString::number(get_current_term().get_token().line_number);
                 throw std::logic_error(error.toStdString());
             }
             else {
@@ -490,11 +547,15 @@ namespace csvquery {
         //}
         else {
             //std::cout<<"Unexpected token "<< left_token.to_string().toStdString()<<"\n";
-            QString error = "$Syntax error on line " + QString::number(current_term->get_token().line_number);
-            error += " ";
-            error += current_term->get_token().to_string();
+            QString error = "Expected a primary! "; // +QString::number(get_current_term().get_token().line_number);
+            //error += " ";
+            //error += get_current_term().get_token().to_string();
             throw std::logic_error(error.toStdString());
         }
+        //qDebug() << "prim: value of left before exit " << left.get_token().to_string();
+        //if (get_current_term().get_token().token_type == TokenType::END) {
+        //    qDebug() << "End found!";
+        //}
         return left;
     }
 
@@ -513,6 +574,14 @@ namespace csvquery {
         //next_term();
 
         result = expr(data_rows, false);
+
+        if (get_current_term().get_token().token_type != TokenType::END) {
+            QString error = "Incorrect syntax in column expression '";
+            error += get_current_term().get_token().string_value;
+            error += "' on line ";
+            error += QString::number(get_current_term().get_token().line_number);
+            throw std::logic_error(error.toStdString());
+        }
 
         /*
         while(current_term != terms.end()){
