@@ -395,8 +395,11 @@ namespace csvquery {
         }
         else if (left_token.token_type == TokenType::NAME) {
             Token token = left_token;
+            //qDebug() << "Name token '" << token.string_value << "'";
 
             if (!symbol_table.contains(token.string_value.toLower())) {
+
+                //qDebug() << "Name token '" << token.string_value << "'";
 
                 QStringList name_parts = token.string_value.split('.');
 
@@ -526,11 +529,11 @@ namespace csvquery {
         else if (left_token.token_type == TokenType::LBRACKET) {
             auto e = expr(data_rows, true);
             if (current_term == terms.end()) {
-                qDebug() << "here! Unexpected end to select statement!";
+                //qDebug() << "here! Unexpected end to select statement!";
                 throw std::logic_error(" expected a ')'!");
             }
             else {
-                qDebug() << "here!" << " current token:" << get_current_term().get_token().to_string();
+                //qDebug() << "here!" << " current token:" << get_current_term().get_token().to_string();
             }
 
             if (get_current_term().get_token().token_type != TokenType::RBRACKET) {

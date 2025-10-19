@@ -276,7 +276,7 @@ namespace csvquery {
                     else if (data_rows.size() > 1) {
                         //qDebug()<<"data_rows: "<<data_rows;
                         if (!strings_table.contains(file_name)) {
-                            std::string error = "Unknown colunm name " + token.string_value.toStdString() + " on line ";
+                            std::string error = "Unknown colunm name '" + token.string_value.toStdString() + "' on line ";
                             error += token.line_number;
                             throw std::logic_error(error);
                         }
@@ -285,7 +285,7 @@ namespace csvquery {
                             row = data_rows[file_path];
                         }
                         else {
-                            std::string error = "Unknown colunm name " + token.string_value.toStdString() + " on line ";
+                            std::string error = "Unknown colunm name '" + token.string_value.toStdString() + "' on line ";
                             error += token.line_number;
                             throw std::logic_error(error);
                         }
@@ -303,32 +303,55 @@ namespace csvquery {
                         tk.number_value = num;
                         t = Term(tk);
                         //QStringList row = (data_rows.size() == 2)? data_rows[file_name] : data_rows["$"];
+
+                        // column index check
+                        if ( num < 0 || num >= row.length() ) {
+                            QString error = "Invalid index '";
+                            error += token.string_value;
+                            error += " (";
+                            error += QString::number(num);
+                            error += ")' on line ";
+                            error += QString::number(token.line_number);
+                            throw std::logic_error(error.toStdString());
+                        }
+
                         return t.eval(row);
                     }
-                    else if (symbol_table.contains(token.token_name.toLower())) {
-                        TokenType type = symbol_table[token.token_name.toLower()];
+                    else if (symbol_table.contains(token.string_value.toLower())) {
+                        TokenType type = symbol_table[token.string_value.toLower()];
                         //Token tk = token;
                         tk.token_type = type;
 
                         if (type == TokenType::NUMBER) {
-                            double num = numbers_table[token.token_name.toLower()];
+                            double num = numbers_table[token.string_value.toLower()];
                             tk.number_value = num;
                             tk.string_value = QString::number(num);
                         }
                         else if (type == TokenType::STRING) {
-                            QString str = strings_table[token.token_name.toLower()];
+                            QString str = strings_table[token.string_value.toLower()];
                             tk.string_value = str;
                         }
                         else if (type == TokenType::COLUMNNAME) {
                             tk.token_type = TokenType::COLUMNNUMBER;
-                            tk.number_value = columns_table[token.token_name.toLower()];
+                            tk.number_value = columns_table[token.string_value.toLower()];
+
+                            // column index check
+                            if (tk.number_value < 0 || tk.number_value >= row.length()) {
+                                QString error = "Invalid index '";
+                                error += token.string_value;
+                                error += " (";
+                                error += QString::number(tk.number_value);
+                                error += ")' on line ";
+                                error += QString::number(token.line_number);
+                                throw std::logic_error(error.toStdString());
+                            }
                         }
 
                         t = Term(tk);
                         return t.eval(row);
                     }
                     else {
-                        std::string error = "Unknown name " + token.string_value.toStdString() + " on line ";
+                        std::string error = "Unknown name '" + token.string_value.toStdString() + "' on line ";
                         error += token.line_number;
                         throw std::logic_error(error);
                     }
@@ -340,30 +363,46 @@ namespace csvquery {
                 }
             }
 
-            if (!symbol_table.contains(token.token_name.toLower())) {
-                std::string error = "Unknown name " + token.string_value.toStdString() + " on line ";
+            if (!symbol_table.contains(token.string_value.toLower())) {
+                //foreach(auto s, symbol_table.keys()) {
+                //    qDebug() <<"Symbol: "<< s;
+                //}
+                std::string error = "Unknown name '" + token.string_value.toStdString() + "' on line ";
                 error += token.line_number;
                 throw std::logic_error(error);
             }
 
-            TokenType type = symbol_table[token.token_name.toLower()];
+            TokenType type = symbol_table[token.string_value.toLower()];
             //Token tk = token;
             tk.token_type = type;
 
             if (type == TokenType::NUMBER) {
-                double num = numbers_table[token.token_name.toLower()];
+                double num = numbers_table[token.string_value.toLower()];
                 tk.number_value = num;
                 tk.string_value = QString::number(num);
             }
             else if (type == TokenType::STRING) {
-                QString str = strings_table[token.token_name.toLower()];
+                QString str = strings_table[token.string_value.toLower()];
                 tk.string_value = str;
             }
             else if (type == TokenType::COLUMNNAME) {
                 if (data_rows.size() != 1) {
-                    std::string error = "Ambigious column " + token.string_value.toStdString() + " on line ";
+                    std::string error = "Ambigious column '" + token.string_value.toStdString() + "' on line ";
                     error += token.line_number;
                     throw std::logic_error(error);
+                }
+
+                double number_value = columns_table[token.string_value.toLower()];
+
+                // column index check
+                if (number_value < 0 || number_value >= row.length()) {
+                    QString error = "Invalid index '";
+                    error += token.string_value;
+                    error += " (";
+                    error += QString::number(number_value);
+                    error += ")' on line ";
+                    error += QString::number(token.line_number);
+                    throw std::logic_error(error.toStdString());
                 }
 
             }
@@ -375,9 +414,9 @@ namespace csvquery {
         }
 
         //qDebug()<<"column index2: "<<index <<" row length: "<<row.length();
-        if (index < 0 || index > row.length()) {
+        if (index < 0 || index > (row.length() -1)) {
             result.token_type = TokenType::ERROR;
-            result.error_msg = "Invalid column index " + QString::number(token.number_value) + " on line " + QString::number(token.line_number);
+            result.error_msg = "Invalid column index '" + QString::number(token.number_value) + "' on line " + QString::number(token.line_number);
             throw std::logic_error(result.error_msg.toStdString());
             //return result;
         }

@@ -2,6 +2,7 @@
 #include <stdexcept>
 #include <QMap>
 #include <QFileInfo>
+#include <regex>
 
 namespace csvquery {
 
@@ -49,6 +50,41 @@ namespace csvquery {
         Term t = rhs.eval(dummy);
         //qDebug()<<"done.";
         TokenType variable_type = t.get_token().token_type;
+
+        //qDebug() << variable_name;
+
+        //check if name is a reserved word
+        if ( keywords.contains(variable_name.toLower()) || funcs_table.keys().contains(variable_name.toLower())) {
+            QString error = "Invalid assignment to a keyword '";
+            error += variable_name;
+            error += "' on line ";
+            error += QString::number(t.get_line_number());
+            throw std::logic_error(error.toStdString());
+        }
+
+        //valid variable name must begin with a letter or an underscore and should not contain operators / special characters
+        std::regex re("^(?!_+$)[A-Za-z_][A-Za-z0-9_]*$");
+        if (!std::regex_match(variable_name.toLower().toStdString(), re)) {
+            QString error = "Variable name '";
+            error += variable_name;
+            error += "' on line ";
+            error += QString::number(t.get_line_number());
+            error += "' is invalid!";
+            throw std::logic_error(error.toStdString());
+        }
+
+        // variable is already defined
+        if (symbol_table.contains(variable_name.toLower())) {
+            TokenType t_type = symbol_table[variable_name.toLower()];
+
+            if (t_type == TokenType::STRING ) {
+                strings_table.remove(variable_name.toLower());
+            }
+            else if(t_type == TokenType::NUMBER) {
+                numbers_table.remove(variable_name.toLower());
+            }
+        }
+
         symbol_table[variable_name] = variable_type;
 
         if (variable_type == TokenType::STRING) {
@@ -93,6 +129,10 @@ namespace csvquery {
             symbol_table[variable_name] = assignment_value.get_token().token_type; //TokenType::STRING;
             //strings_table[variable_name] = assignment_value.get_token().string_value;
             //qDebug()<<"saved variable to symbol table 1";
+
+            //foreach(auto s, symbol_table.keys()) {
+            //    qDebug() << "Symbol: " << s;
+            //}
         }
         else if (last_token_pos->token_type == TokenType::COLON) { // save column alias using imported names
             //next token

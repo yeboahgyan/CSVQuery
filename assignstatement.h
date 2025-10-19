@@ -14,6 +14,12 @@ namespace csvquery {
         QString variable_name;
         Term assignment_value;
 
+        QStringList keywords = { "select", "from", "where", "and", "or", "into", "update",
+                                 "delete", "import", "into", "set", "inner join", "outer join", "cross join",
+                                 "as", "on", "like", "not like", "group by"
+        };
+
+
         void throw_exception_if_unexpected_end();
 
         Expression read_expression();

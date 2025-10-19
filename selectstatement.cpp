@@ -200,7 +200,7 @@ namespace csvquery {
                     double line_numer = (*last_token_pos).line_number;
                     QString str_num = QString::number(line_numer);
 
-                    throw std::logic_error("Unknown name on line " + str_num.toStdString());
+                    throw std::logic_error("Unknown file name on line " + str_num.toStdString());
                 }
 
                 TokenType token_type = symbol_table[last_token_pos->string_value.toLower()];
@@ -208,7 +208,7 @@ namespace csvquery {
                     double line_numer = (*last_token_pos).line_number;
                     QString str_num = QString::number(line_numer);
 
-                    throw std::logic_error("Invalid name on line " + str_num.toStdString());
+                    throw std::logic_error("Invalid file name on line " + str_num.toStdString());
                 }
 
 
@@ -349,7 +349,7 @@ namespace csvquery {
             //error
             std::string error = "1. Invalid syntax on line ";
             error += QString::number(last_token_pos->line_number).toStdString();
-            error += " token seen ";
+            error += " expected an ON clause ";
             error += last_token_pos->string_value.toStdString();
             throw std::logic_error(error);
         }

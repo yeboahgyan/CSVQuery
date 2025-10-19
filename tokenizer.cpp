@@ -295,17 +295,23 @@ namespace csvquery {
                 //std::cout << "symbol: " << token.string_value.toStdString() << " type: " << token.to_string().toStdString() <<"\n";
 
                 if (name_type == TokenType::STRING) {
+                    /*
                     QString string_value = strings_table[token.string_value.toLower()];
                     token.string_value = string_value;
                     token.token_type = TokenType::STRING;
                     token.token_name = "TokenType::STRING";
+                    */
+                    token.token_type = TokenType::NAME;
                 }
                 else if (name_type == TokenType::NUMBER) {
+                    /*
                     double number_value = numbers_table[token.string_value.toLower()];
                     token.number_value = number_value;
                     token.string_value = QString::number(number_value);
                     token.token_type = TokenType::NUMBER;
                     token.token_name = "TokenType::NUMBER";
+                    */
+                    token.token_type = TokenType::NAME;
                 }
                 else if (name_type == TokenType::COLUMNNAME) {
                     double index = columns_table[token.string_value.toLower()]; //get column index

@@ -19,7 +19,7 @@ namespace csvquery {
         ON, INNERJOIN, OUTERJOIN, CROSSJOIN, DOT, NOTEQUALTO, NOT, SET, GROUPBY, DOLLAR = '$', AS, LIKE,
         PLUS = '+', MULT = '*', MINUS = '-', DIV = '/', ASSIGN = '=', LBRACKET = '(', RBRACKET = ')', LSQBRACKET = '[', RSQBRACKET = ']', COMMENT = '#',
         SINGLEQOUTE = '\'', DOUBLEQUOTE = '"', COMMA = ',', SEMICOLON = ';', COLON = ':', LESSTHAN = '<', GREATERTHAN = '>', LESSTHANOREQUAL, GREATERTHANOREQUAL,
-        NOTLIKE
+        NOTLIKE, VARIABLE
     };
 
 
@@ -107,6 +107,8 @@ namespace csvquery {
     extern QHash<QString, QList<TokenType>> func_args_type_list; // returns list of function argument type list
 
     extern QHash<QString, TokenType> symbol_table; //possible types, STRING, NUMBER, FUNCTION, COLUMNAME
+
+    //extern QHash<QString, TokenType> variables_table; //possible types, STRING, NUMBER
 
     extern QHash<QString, int> out_file_use_count; //select out file, delete file, update file use count; enable future concurrency?
 

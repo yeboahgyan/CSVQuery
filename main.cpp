@@ -62,7 +62,7 @@ void paginate(csvquery::SelectStatement& select, replxx::Replxx& rx);
 
 void print_with_margin(tabulate::Table& table, int margin = 4);
 
-void setConsoleFont(const wchar_t* fontName, SHORT fontSize = 16);
+void setConsoleFont(const wchar_t* fontName, SHORT fontSize = 18);
 
 void execute_source_file(QFile& source);
 
@@ -239,7 +239,7 @@ int main(int argc, char *argv[])
                     auto pos = it->position();
                     auto len = it->length();
                     for (int i = 0; i < len; ++i) {
-                        colors[pos + i] = replxx::Replxx::Color::BRIGHTBLUE;
+                        colors[pos + i] = replxx::Replxx::Color::BROWN;
                     }
                 }
 
@@ -299,7 +299,9 @@ int main(int argc, char *argv[])
 
             if (line == "license") {
                 print_license();
+                buffer = "";
                 line = ";";
+                continue;
             }
             //std::cout << "buffer.back:" << buffer.back() << "\n";
 
@@ -367,7 +369,7 @@ int main(int argc, char *argv[])
                                 //print result
                                 //print(result);
                                 print_table(result, select.get_column_names());
-                                std::cout << "\n    Number of rows read: " << select.get_number_of_rows() << "\n\n";
+                                std::cout << "\nNumber of rows read: " << select.get_number_of_rows() << "\n\n";
                                 //qDebug() << select.get_column_names();
                                 //if (max_rows_per_page < select.get_number_of_rows()) {
                                 paginate(select, rx);
@@ -375,7 +377,7 @@ int main(int argc, char *argv[])
                                 
                             }
                             else {
-                                std::cout << "    Number of rows read: " << select.get_number_of_rows() << "\n\n";
+                                std::cout << "Number of rows read: " << select.get_number_of_rows() << "\n\n";
                             }
                         }
 
@@ -924,10 +926,12 @@ void print_table(const std::optional<QList<QStringList>>& res, const QStringList
             
           
 
-            //std::cout <<"\n" << table << "\n";
-            std::cout << "\n";
-            print_with_margin(table);
-            std::cout << "\n";
+            std::cout <<"\n" << table << "\n";
+            
+            //std::cout << "\n";
+            //print_with_margin(table);
+            //std::cout << "\n";
+            
             //std::cout << "Number of rows:" << result.size();
         }
 
@@ -971,7 +975,7 @@ void paginate(csvquery::SelectStatement& select, replxx::Replxx& rx)
 
             //print result
             print_table(result, select.get_column_names());
-            std::cout << "  Number of rows read:" << select.get_number_of_rows() << "\n";
+            std::cout << "Number of rows read:" << select.get_number_of_rows() << "\n";
 
             /*
             if (select.get_max_rows_per_page() > select.get_number_of_rows()) {
@@ -1062,21 +1066,44 @@ void execute_source_file(QFile& source) {
 
 void print_with_margin(tabulate::Table& table, int margin) {
 
-    // Apply color to header row (row 0)
-    if (table.size() > 0) {
-        for (size_t i = 0; i < table[0].size(); ++i) {
+    if (table.size() != 0) {
+        //qDebug() << "formatting header!";
+        for (size_t i = 0; i < table[0].size(); ++i)
             table[0][i].format()
-                .font_color(tabulate::Color::blue)
-                .font_style({ tabulate::FontStyle::bold });
-        }
+            .font_color(tabulate::Color::yellow)
+            .font_style({ tabulate::FontStyle::bold });
     }
 
-    std::stringstream ss;
-    ss << table;
-    std::string line, indent(margin, ' ');
-    while (std::getline(ss, line)) {
-        std::cout << indent << line << "\n";
-    }
+    //table.format().ccolor_policy(tabulate::ColorPolicy::always);
+
+    std::string indent(margin, ' ');
+    //std::ostringstream os;
+    //os << table;
+    //std::string table_str = os.str();
+
+    // add margin manually, preserving ANSI codes
+    //std::string out;
+    //std::istringstream in(table_str);
+    //std::string line;
+
+    //std::cout << table << std::endl;
+
+    std::stringstream buffer;
+    std::streambuf* prevcoutbuf = std::cout.rdbuf(buffer.rdbuf());
+    std::cout << table << std::endl;
+    std::string text = buffer.str();
+    //printf("%s", text.c_str()); // formatting and colors are good
+    std::cout.rdbuf(prevcoutbuf);
+
+    std::istringstream in2(text);
+    std::string line;
+    while (std::getline(in2, line))
+        std::cout << indent << line << '\n';
+
+    //std::cout << out;
+
+    //table.format().padding_left(20);
+    //std::cout << table.str();
 }
 
 void setConsoleFont(const wchar_t* fontName, SHORT fontSize) {
