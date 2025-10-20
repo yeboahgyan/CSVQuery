@@ -31,6 +31,7 @@ namespace csvquery {
             QString str = args.front().get_token().string_value;
             Token t;
             t.string_value = str.trimmed();
+            t.line_number = args.front().get_token().line_number;
             t.token_type = TokenType::STRING;
             result = Term(t);
         }
@@ -64,6 +65,7 @@ namespace csvquery {
             QString str = args.front().get_token().string_value;
             Token t;
             t.number_value = str.length();
+            t.line_number = args.front().get_token().line_number;
             t.token_type = TokenType::NUMBER;
             result = Term(t);
 
@@ -111,6 +113,7 @@ namespace csvquery {
             else {
                 Token t;
                 t.string_value = str.mid(index, length);
+                t.line_number = args.front().get_token().line_number;
                 t.token_type = TokenType::STRING;
                 result = Term(t);
             }
@@ -132,12 +135,12 @@ namespace csvquery {
         int expected_num_of_args = 2;
 
         if (arg_types != expected_arg_types) {
-            QString error = "left(string, length) expects 2 arguments(string, number) on line ";
+            QString error = "left(string, length) expects 2 arguments (string, number) on line ";
             error += QString::number(args.at(0).get_token().line_number);
             throw std::logic_error(error.toStdString());
         }
         else if (args.length() != expected_num_of_args) {
-            QString error = "left(string, length) expects 2 arguments(string, number) on line ";
+            QString error = "left(string, length) expects 2 arguments (string, number) on line ";
             error += QString::number(args.at(0).get_token().line_number);
             throw std::logic_error(error.toStdString());
         }
@@ -145,10 +148,10 @@ namespace csvquery {
             //qDebug() << "arg1: " << args[0].get_token().to_string() <<" value: "<< args[0].get_token().string_value;
                 //qDebug() << "arg2: " << args[1].get_token().to_string() <<" value: "<< args[1].get_token().number_value;
 
-            std::any arg1 = args[0].get_token().string_value;
-            std::any arg2 = args[1].get_token().number_value;
-            QString str = std::any_cast<QString>(arg1);
-            double length = std::any_cast<double>(arg2);
+            //std::any arg1 = args[0].get_token().string_value;
+            //std::any arg2 = args[1].get_token().number_value;
+            QString str = args[0].get_token().string_value;
+            double length = args[1].get_token().number_value;
 
             if (length < 0) {
                 QString error = "left(string, length) invalid length on line ";
@@ -158,6 +161,7 @@ namespace csvquery {
             else {
                 Token t;
                 t.string_value = str.left(length);
+                t.line_number = args.front().get_token().line_number;
                 t.token_type = TokenType::STRING;
                 result = Term(t);
             }
@@ -190,8 +194,8 @@ namespace csvquery {
             throw std::logic_error(error.toStdString());
         }
         else {
-            QString str = std::any_cast<QString>(args[0].get_token().string_value);
-            double length = std::any_cast<double>(args[1].get_token().number_value);
+            QString str = args[0].get_token().string_value;
+            double length = args[1].get_token().number_value;
 
             if (length < 0) {
                 QString error = "right(string, length) invalid length on line ";
@@ -201,11 +205,54 @@ namespace csvquery {
             else {
                 Token t;
                 t.string_value = str.right(length);
+                t.line_number = args.front().get_token().line_number;
                 t.token_type = TokenType::STRING;
                 result = Term(t);
             }
             
         }
+        return result;
+    }
+
+    Term strip_quotes(QList<Term> args) //remove doubles from column value surrounded by double quotes
+    {
+        Term result;
+
+        QList<TokenType> arg_types;
+        foreach(auto t, args) {
+            arg_types.append(t.get_token().token_type);
+        }
+
+        QList<TokenType> expected_arg_types = { TokenType::STRING };
+        int expected_num_of_args = 1;
+
+        if (arg_types != expected_arg_types) {
+            QString error = "strip_quotes(string) expects 1 argument on line ";
+            error += QString::number(args.at(0).get_token().line_number);
+            throw std::logic_error(error.toStdString());
+        }
+        else if (args.length() != expected_num_of_args) {
+            QString error = "strip_quotes(string) expects 1 argument on line ";
+            error += QString::number(args.at(0).get_token().line_number);
+            throw std::logic_error(error.toStdString());
+        }
+        else {
+            QString str = args.front().get_token().string_value;
+
+            if (str.front() == "\"") {
+                str.remove(0, 1); //remove first char
+            }
+
+            if (str.back() == "\"") {
+                str.chop(1); //remove last char
+            }
+            Token t;
+            t.string_value = str;
+            t.line_number = args.front().get_token().line_number;
+            t.token_type = TokenType::STRING;
+            result = Term(t);
+        }
+
         return result;
     }
 
@@ -261,6 +308,7 @@ namespace csvquery {
             else {
                 Token t;
                 t.token_type = TokenType::BOOLEAN;
+                t.line_number = args.front().get_token().line_number;
                 t.boolean_value = (datetime1 > datetime2);
                 result = Term(t);
             }
@@ -324,6 +372,7 @@ namespace csvquery {
                 Token t;
                 t.token_type = TokenType::BOOLEAN;
                 t.boolean_value = (datetime1 < datetime2);
+                t.line_number = args.front().get_token().line_number;
 
                 result = Term(t);
             }
@@ -383,6 +432,7 @@ namespace csvquery {
                 Token t;
                 t.token_type = TokenType::BOOLEAN;
                 t.boolean_value = (datetime1 >= datetime2);
+                t.line_number = args.front().get_token().line_number;
 
                 result = Term(t);
             }
@@ -445,6 +495,8 @@ namespace csvquery {
                 Token t;
                 t.token_type = TokenType::BOOLEAN;
                 t.boolean_value = (datetime1 <= datetime2);
+                t.line_number = args.front().get_token().line_number;
+
                 result = Term(t);
             }
            
@@ -506,6 +558,8 @@ namespace csvquery {
             Token t;
             t.token_type = TokenType::BOOLEAN;
             t.boolean_value = (datetime1 == datetime2);
+            t.line_number = args.front().get_token().line_number;
+
             result = Term(t);
         }
 
@@ -537,6 +591,7 @@ namespace csvquery {
         }
 
         QString num_str = args[0].get_token().string_value;
+        //qDebug() << "number string: " << num_str;
         bool is_number = false;
         double number = num_str.toDouble(&is_number);
 
@@ -549,10 +604,22 @@ namespace csvquery {
             result = Term(t);
         }
         else {
-            QString error = "String passed to number(string) on line ";
+
+            Token t;
+            t.token_type = TokenType::NUMBER;
+            t.number_value = 0;
+            t.string_value = num_str;
+            t.line_number = args.at(0).get_token().line_number;
+            result = Term(t);
+
+            /*
+            QString error = "String '";
+            error += num_str;
+            error += "' passed to number(string) on line ";
             error += QString::number(args.at(0).get_token().line_number);
             error += " is not a number!";
             throw std::logic_error(error.toStdString());
+            */
         }
         
         return result;
@@ -614,6 +681,7 @@ namespace csvquery {
                     t.token_type = TokenType::NUMBER;
                     t.number_value = count_counter->get_value();
                     t.string_value = QString::number(count_counter->get_value());
+                    t.line_number = args.front().get_token().line_number;
 
                     result = Term(t);
                     //qDebug() << "[called already] current count: " << count_counter->get_value();
@@ -631,6 +699,7 @@ namespace csvquery {
                     t.token_type = TokenType::NUMBER;
                     t.number_value = count_counter->get_value();
                     t.string_value = QString::number(count_counter->get_value());
+                    t.line_number = args.front().get_token().line_number;
 
                     result = Term(t);
 
@@ -679,6 +748,7 @@ namespace csvquery {
                 t.token_type = TokenType::NUMBER;
                 t.number_value = count_counter->get_value();
                 t.string_value = QString::number(count_counter->get_value());
+                t.line_number = args.front().get_token().line_number;
 
                 result = Term(t);
 

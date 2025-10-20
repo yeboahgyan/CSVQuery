@@ -19,7 +19,7 @@ namespace csvquery {
         ON, INNERJOIN, OUTERJOIN, CROSSJOIN, DOT, NOTEQUALTO, NOT, SET, GROUPBY, DOLLAR = '$', AS, LIKE,
         PLUS = '+', MULT = '*', MINUS = '-', DIV = '/', ASSIGN = '=', LBRACKET = '(', RBRACKET = ')', LSQBRACKET = '[', RSQBRACKET = ']', COMMENT = '#',
         SINGLEQOUTE = '\'', DOUBLEQUOTE = '"', COMMA = ',', SEMICOLON = ';', COLON = ':', LESSTHAN = '<', GREATERTHAN = '>', LESSTHANOREQUAL, GREATERTHANOREQUAL,
-        NOTLIKE, VARIABLE
+        NOTLIKE, LIMIT
     };
 
 

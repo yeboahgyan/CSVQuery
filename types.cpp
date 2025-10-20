@@ -26,8 +26,8 @@ namespace csvquery {
     std::vector<std::string> commands = {
             "SELECT", "FROM", "UPDATE", "IMPORT", "WHERE", "NOT LIKE",
             "INTO", "INNER JOIN", "OUTER JOIN", "ON", "SET", "LIKE",
-            "TRIM", "LENGTH", "SUBSTRING", "LEFT", "RIGHT", "AS",
-            "DATE_GT", "DATE_GE", "DATE_LT", "DATE_LE", "DATE_EQ",
+            "TRIM", "LENGTH", "SUBSTRING", "LEFT", "RIGHT", "AS", "LIMIT",
+            "DATE_GT", "DATE_GE", "DATE_LT", "DATE_LE", "DATE_EQ", "STRIP_QUOTES",
             "QUIT", "EXIT", "NUMBER", "GROUP BY", "COUNT", "SUM", "AVG", "MIN", "MAX"
     };
     
@@ -91,6 +91,7 @@ namespace csvquery {
         case TokenType::AS: { str = "TokenType::AS"; break; }
         case TokenType::LIKE: { str = "TokenType::LIKE"; break; }
         case TokenType::NOTLIKE: { str = "TokenType::NOTLIKE"; break; }
+        case TokenType::LIMIT : { str = "TokenType::LIMIT"; break; }
         }
 
         return str;

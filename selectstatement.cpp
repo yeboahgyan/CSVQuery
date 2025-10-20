@@ -19,9 +19,11 @@ namespace csvquery {
         optional_actions[TokenType::INTO] = [this]() {handle_into_clause(); };
         optional_actions[TokenType::WHERE] = [this]() {handle_where_clause(); };
         optional_actions[TokenType::GROUPBY] = [this]() {handle_groupby_clause(); };
-        //qDebug()<<"constructing select statement...";
+        optional_actions[TokenType::LIMIT] = [this]() {handle_limit_clause(); };
+
+        ////qDebug()<<"constructing select statement...";
         parse();
-        //qDebug()<<"Done.";
+        ////qDebug()<<"Done.";
 
         //foreach(auto t, tokens) {
         //    qDebug() << t.to_string();
@@ -169,13 +171,15 @@ namespace csvquery {
 
         for (; last_token_pos != tokens.cend(); ++last_token_pos) {
             if ((last_token_pos->token_type == TokenType::SEMICOLON) || (last_token_pos->token_type == TokenType::END) 
-                || (last_token_pos->token_type == TokenType::INTO) || (last_token_pos->token_type == TokenType::GROUPBY))
+                || (last_token_pos->token_type == TokenType::INTO) || (last_token_pos->token_type == TokenType::GROUPBY)
+                || (last_token_pos->token_type == TokenType::LIMIT)
+                )
             {
                 break;
             }
 
             Term t(*last_token_pos);
-            //qDebug()<<"where term: "<<last_token_pos->to_string();
+            //////qDebug()<<"where term: "<<last_token_pos->to_string();
             cond_terms.append(t);
         }
 
@@ -264,30 +268,72 @@ namespace csvquery {
         else {
             QString file_alias = column_name_parts[0].toLower();
             if (!symbol_table.contains(file_alias)) {
-                std::string error = "Column name does not refer to either files in the join statement on line ";
+                std::string error = "1 Column name does not refer to either files in the join statement on line ";
                 error += QString::number(last_token_pos->line_number).toStdString();
                 throw std::logic_error(error);
             }
 
             if (symbol_table[file_alias] != TokenType::STRING) {
-                std::string error = "Column name does not refer to either files in the join statement on line ";
+                std::string error = "2 Column name does not refer to either files in the join statement on line ";
                 error += QString::number(last_token_pos->line_number).toStdString();
                 throw std::logic_error(error);
             }
 
             QString file_path = strings_table[file_alias];
             if (!join_files_list.values().contains(file_path)) {
+            //if (!join_files_list.values().contains(file_alias)) {
                 std::string error = "Column name does not refer to either files in the join statement on line ";
                 error += QString::number(last_token_pos->line_number).toStdString();
                 throw std::logic_error(error);
             }
+
+            if (file_path == join_files_list["right"]) {
+
+                // check if column nme is in columns table
+                if (symbol_table.contains(left_t.get_token().string_value.toLower())) {
+
+                    if (columns_table.contains(left_t.get_token().string_value.toLower())) {
+                        this->query_index = columns_table[left_t.get_token().string_value.toLower()];
+                        qDebug() << "[.] Query index number set: " << columns_table[left_t.get_token().string_value.toLower()];
+                    }
+                    else {
+                        QString error = "Error getting column index for '";
+                        error += left_t.get_token().string_value;
+                        error += "' on line ";
+                        error += QString::number(left_t.get_token().line_number);
+
+                        throw std::logic_error(error.toStdString());
+                    }
+
+                }
+                else { // check if column name is of format file.number
+                    bool is_number;
+                    double number = column_name_parts[1].toDouble(&is_number);  // try and convert number part of name
+
+                    if (is_number) {
+                        //if (filename1 == join_files_list["right"]) {
+                        qDebug() << "[.] Query index number set: " << number;
+                        this->query_index = number;
+                        //}
+
+                    }
+                    else {
+                        //error
+                        std::string error = "Invalid column in ON clause on line ";
+                        error += QString::number(last_token_pos->line_number).toStdString();
+                        throw std::logic_error(error);
+                    }
+                }
+
+                
+            }
         }
 
-
+        /*
         if (last_token_pos->token_type == TokenType::NAME) {
 
 
-            QString filename1 = left_t.get_token().string_value.split('.')[0];
+            QString filename1 = left_t.get_token().string_value.split('.')[0].toLower();
             QString column_index = left_t.get_token().string_value.split('.')[1];
             if (column_index == "*") {
                 //error
@@ -300,6 +346,7 @@ namespace csvquery {
                 double number = column_index.toDouble(&is_number);
                 if (is_number) {
                     if (filename1 == join_files_list["right"]) {
+                        qDebug() << "[NAME] Query index number set: " << number;
                         this->query_index = number;
                     }
 
@@ -313,9 +360,10 @@ namespace csvquery {
             }
         }
         else if (last_token_pos->token_type == TokenType::COLUMNNAME) {
-            QString filename1 = left_t.get_token().string_value.split(',')[0];
+            QString filename1 = left_t.get_token().string_value.split(',')[0].toLower();
             if (filename1 == join_files_list["right"]) {
                 if (columns_table.contains(left_t.get_token().string_value.toLower())) {
+                    qDebug() << "[COLUMNNAME] Query index number set: " << columns_table[left_t.get_token().string_value.toLower()];;
                     this->query_index = columns_table[left_t.get_token().string_value.toLower()];
                 }
                 else {
@@ -332,7 +380,7 @@ namespace csvquery {
             error += QString::number(last_token_pos->line_number).toStdString();
             throw std::logic_error(error);
         }
-
+        */
         return left_t;
 
     }
@@ -343,7 +391,7 @@ namespace csvquery {
 
         QList<Term> terms;
 
-        //qDebug()<<"joined files: "<<join_files_list;
+        ////qDebug()<<"joined files: "<<join_files_list;
 
         if (last_token_pos->token_type != TokenType::ON) {
             //error
@@ -389,7 +437,68 @@ namespace csvquery {
 
     }
 
+    void SelectStatement::handle_limit_clause()
+    {
+        has_limit_clause = true;
 
+        ++last_token_pos; // next token
+        throw_exception_if_unexpected_end();
+
+        if (last_token_pos->token_type == TokenType::NUMBER || last_token_pos->token_type == TokenType::NAME) {
+
+            int limit = 0;
+
+            if (last_token_pos->token_type == TokenType::NAME) {
+                if (!numbers_table.contains(last_token_pos->string_value.toLower())) {
+                    QString error = "Number expected in limit clause on line ";
+                    error += QString::number(last_token_pos->line_number);
+                    error += "!";
+                    throw std::logic_error(error.toStdString());
+                }
+                
+                limit = numbers_table[last_token_pos->string_value.toLower()];
+
+                
+            }
+            else if (last_token_pos->token_type == TokenType::NUMBER) {
+                limit = last_token_pos->number_value;
+            }
+
+            //check limit value provided
+            if (limit > 0) {
+                LIMIT_VAL = limit;
+            }
+            else {
+                QString error = "Number in limit clause on line ";
+                error += QString::number(last_token_pos->line_number);
+                error += " should be greater than zero!";
+                throw std::logic_error(error.toStdString());
+            }
+
+        }
+
+        ++last_token_pos; // next token
+
+        if (last_token_pos == tokens.cend()) {
+            return;
+        }
+
+        if (last_token_pos->token_type == TokenType::END || last_token_pos->token_type == TokenType::SEMICOLON) {
+            return;
+        }
+
+        QList<TokenType> valid_next_tokens = {  TokenType::INTO };
+        if (!valid_next_tokens.contains(last_token_pos->token_type)) {
+            //throw error
+            std::string error = "Unexpected token (";
+            error += last_token_pos->to_string().toStdString();
+            error += ") on line ";
+            error += QString::number(last_token_pos->line_number).toStdString();
+            throw std::logic_error(error);
+        }
+
+        optional_actions[last_token_pos->token_type](); //call handler function for the next valid token
+    }
 
     void SelectStatement::handle_into_clause()
     {
@@ -399,7 +508,7 @@ namespace csvquery {
         this->out_file = read_file(QIODevice::WriteOnly);
         this->write_to_file = true;
 
-        QString of = out_file->get_token().string_value;
+        QString of = out_file->get_token().string_value.toLower();
         foreach(auto file_name, join_files_list) {
             if (of == file_name) {
                 std::string error = "Output cannot be the same as a file being read from in Select statement on line ";
@@ -408,6 +517,20 @@ namespace csvquery {
             }
         }
         //qDebug() << "Done.";
+        ++last_token_pos; // next token
+
+        if (last_token_pos == tokens.cend()) {
+            return;
+        }
+
+        if (last_token_pos->token_type == TokenType::END || last_token_pos->token_type == TokenType::SEMICOLON ) {
+            return;
+        }
+
+        QString error = "Invalid syntax: unexpected '";
+        error += last_token_pos->string_value;
+        error += "' after INTO CLAUSE!";
+        throw std::logic_error(error.toStdString());
     }
 
     void SelectStatement::handle_inner_join()
@@ -418,7 +541,16 @@ namespace csvquery {
         ++last_token_pos; // next token
 
         this->right_file = read_file();
-        join_files_list["right"] = right_file->get_token().string_value;
+        join_files_list["right"] = strings_table[right_file->get_token().string_value.toLower()];
+
+        if (join_files_list["right"] == join_files_list["left"]) {
+            QString error = "Invalid join on same file '";
+            error += join_files_list["right"];
+            error += "!'";
+            throw std::logic_error(error.toStdString());
+        }
+
+        qDebug() << "join files:" << join_files_list;
 
         ++last_token_pos; // next token
         this->on_clause = read_on_clause();
@@ -433,7 +565,7 @@ namespace csvquery {
             return;
         }
 
-        QList<TokenType> valid_next_tokens = { TokenType::INTO, TokenType::WHERE, TokenType::GROUPBY };
+        QList<TokenType> valid_next_tokens = { TokenType::LIMIT, TokenType::INTO, TokenType::WHERE, TokenType::GROUPBY };
         if (!valid_next_tokens.contains(last_token_pos->token_type)) {
             //throw error
             std::string error = "Unexpected token (";
@@ -454,22 +586,34 @@ namespace csvquery {
         ++last_token_pos; // next token
 
         this->right_file = read_file();
-        join_files_list["right"] = right_file->get_token().string_value;
+        join_files_list["right"] = strings_table[right_file->get_token().string_value.toLower()];
+
+        if (join_files_list["right"] == join_files_list["left"]) {
+            QString error = "Invalid join on same file '";
+            error += join_files_list["right"];
+            error += "'!";
+            throw std::logic_error(error.toStdString());
+        }
 
         ++last_token_pos; // next token
         this->on_clause = read_on_clause();
 
+        qDebug() << "done reading on clause";
+
         ++last_token_pos; // next token
+
+        qDebug() << "done moving to next token";
 
         if (last_token_pos == tokens.cend()) {
             return;
         }
 
-        if (last_token_pos->token_type == TokenType::END || last_token_pos->token_type == TokenType::SEMICOLON) {
+        if (last_token_pos->token_type == TokenType::END || last_token_pos->token_type == TokenType::SEMICOLON ) {
+            qDebug() << "done parsing outer join";
             return;
         }
 
-        QList<TokenType> valid_next_tokens = { TokenType::INTO, TokenType::WHERE, TokenType::GROUPBY };
+        QList<TokenType> valid_next_tokens = { TokenType::LIMIT, TokenType::INTO, TokenType::WHERE, TokenType::GROUPBY };
         if (!valid_next_tokens.contains(last_token_pos->token_type)) {
             //throw error
             std::string error = "Unexpected token (";
@@ -489,7 +633,14 @@ namespace csvquery {
         ++last_token_pos; // next token
 
         this->right_file = read_file();
-        join_files_list["right"] = right_file->get_token().string_value;
+        join_files_list["right"] = right_file->get_token().string_value.toLower();
+
+        if (join_files_list["right"] == join_files_list["left"]) {
+            QString error = "Invalid join on same file '";
+            error += join_files_list["right"];
+            error += "'!";
+            throw std::logic_error(error.toStdString());
+        }
 
         ++last_token_pos; // next token
 
@@ -501,7 +652,7 @@ namespace csvquery {
             return;
         }
 
-        QList<TokenType> valid_next_tokens = { TokenType::INTO, TokenType::WHERE, TokenType::GROUPBY };
+        QList<TokenType> valid_next_tokens = { TokenType::LIMIT, TokenType::INTO, TokenType::WHERE, TokenType::GROUPBY };
         if (!valid_next_tokens.contains(last_token_pos->token_type)) {
             //throw error
             std::string error = "Unexpected token (";
@@ -536,7 +687,7 @@ namespace csvquery {
             return;
         }
 
-        QList<TokenType> valid_next_tokens = { TokenType::GROUPBY, TokenType::INTO };
+        QList<TokenType> valid_next_tokens = { TokenType::LIMIT, TokenType::GROUPBY, TokenType::INTO };
         if (!valid_next_tokens.contains(last_token_pos->token_type)) {
             //throw error
             std::string error = "Unexpected token (";
@@ -562,7 +713,11 @@ namespace csvquery {
 
         while (last_token_pos != tokens.cend()) {
             //qDebug() << "Here!" << last_token_pos->to_string();
-            if (last_token_pos->token_type == TokenType::SEMICOLON || last_token_pos->token_type == TokenType::END || last_token_pos->token_type ==TokenType::INTO) {
+            if (last_token_pos->token_type == TokenType::SEMICOLON || last_token_pos->token_type == TokenType::END 
+                || last_token_pos->token_type ==TokenType::INTO
+                || last_token_pos->token_type == TokenType::LIMIT
+                ) 
+            {
                 //qDebug() << "exit Here!" << last_token_pos->to_string();
                 break;
             }
@@ -597,7 +752,7 @@ namespace csvquery {
                 }
 
                 if (!symbol_table.contains(name_parts[0].toLower()) && strings_table.contains(name_parts[0].toLower())) {
-                    QString error = "Unknown column in group by clause ";
+                    QString error = "0 Unknown column in group by clause ";
                     error += last_token_pos->string_value;
                     error += " on line ";
                     error += QString::number(last_token_pos->line_number);
@@ -605,8 +760,9 @@ namespace csvquery {
                 }
                 
                 QString file_name = strings_table[name_parts[0].toLower()];
+                //qDebug() << "join table " << join_files_list;
                 if (file_name != join_files_list["left"] && file_name != join_files_list["right"]) {
-                    QString error = "Unknown column in group by clause ";
+                    QString error = "1 Unknown column in group by clause ";
                     error += last_token_pos->string_value;
                     error += " on line ";
                     error += QString::number(last_token_pos->line_number);
@@ -618,7 +774,7 @@ namespace csvquery {
                 name_parts[1].toInt(&is_number);
 
                 if (!is_number) {
-                    QString error = "Unknown column in group by clause ";
+                    QString error = "2 Unknown column in group by clause ";
                     error += last_token_pos->string_value;
                     error += " on line ";
                     error += QString::number(last_token_pos->line_number);
@@ -649,7 +805,7 @@ namespace csvquery {
             return;
         }
 
-        QList<TokenType> valid_next_tokens = { TokenType::INTO };
+        QList<TokenType> valid_next_tokens = { TokenType::LIMIT, TokenType::INTO };
         if (!valid_next_tokens.contains(last_token_pos->token_type)) {
             //throw error
             std::string error = "Unexpected token (";
@@ -689,16 +845,16 @@ namespace csvquery {
 
         // read file name or path string and open file
         this->left_file = read_file();
-        join_files_list["left"] = left_file->get_token().string_value;
+        join_files_list["left"] = strings_table[left_file->get_token().string_value.toLower()];
 
         ++last_token_pos; // next token
-        //qDebug()<<"1. token after left file is "<< last_token_pos->to_string() <<" {"<<last_token_pos->string_value<<"}";
+        ////qDebug()<<"1. token after left file is "<< last_token_pos->to_string() <<" {"<<last_token_pos->string_value<<"}";
 
         if ((last_token_pos == tokens.cend()) || (last_token_pos->token_type == TokenType::SEMICOLON)) {
             return;
         }
 
-        //qDebug()<<"2. token after left file is "<< last_token_pos->to_string()<<" {"<<last_token_pos->string_value<<"}";
+        ////qDebug()<<"2. token after left file is "<< last_token_pos->to_string()<<" {"<<last_token_pos->string_value<<"}";
         // What is the next token?
         if (last_token_pos->token_type == TokenType::INNERJOIN) {
             optional_actions[last_token_pos->token_type](); //call handler function for the next valid token
@@ -716,6 +872,9 @@ namespace csvquery {
             optional_actions[last_token_pos->token_type](); //call handler function for the next valid token
         }
         else if (last_token_pos->token_type == TokenType::INTO) {
+            optional_actions[last_token_pos->token_type](); //call handler function for the next valid token
+        }
+        else if (last_token_pos->token_type == TokenType::LIMIT) {
             optional_actions[last_token_pos->token_type](); //call handler function for the next valid token
         }
         else { // invalid token
@@ -858,7 +1017,11 @@ namespace csvquery {
         QList<QStringList> result;
         QHash<QString, QStringList> group_by_result;
 
-        //qDebug()<<"Executing select with no join";
+        if (limit_done) {
+            return std::nullopt; //prevent select being run again because of pagination code in main.cpp
+        }
+
+        ////qDebug()<<"Executing select with no join";
 
         //qDebug() << "group by list: " << group_by_columns;
 
@@ -877,7 +1040,7 @@ namespace csvquery {
 
             if (has_where_clause) {
                 Term t = conditional_expr->eval(data_rows);
-                //qDebug()<<"Conditional evaluation done.";
+                ////qDebug()<<"Conditional evaluation done.";
 
                 if (t.get_token().boolean_value == true) {
 
@@ -892,6 +1055,12 @@ namespace csvquery {
                         group_by_result[result_key] = columns;
                     }
                     else {
+
+                        if (has_limit_clause && LIMIT_VAL == NUMBER_OF_ROWS) { // handle limit clause
+                            limit_done = true;
+                            break;
+                        }
+
                         columns = compute_columns(data_rows);
                         //write to file?
                         if (write_to_file) {
@@ -928,6 +1097,12 @@ namespace csvquery {
                     group_by_result[result_key] = columns;
                 }
                 else {
+
+                    if (has_limit_clause && LIMIT_VAL == NUMBER_OF_ROWS) { // handle limit clause
+                        limit_done = true;
+                        break;
+                    }
+
                     columns = compute_columns(data_rows);
 
                     //write to file?
@@ -974,6 +1149,11 @@ namespace csvquery {
             for(; group_by_result_loc != group_by_result.end(); ++group_by_result_loc){
             //foreach(auto row, group_by_result) {
                 QStringList& row = group_by_result_loc.value();
+
+                if (has_limit_clause && LIMIT_VAL == NUMBER_OF_ROWS) { // handle limit clause
+                    limit_done = true;
+                    break;
+                }
 
                 if (write_to_file) {
                     out_file->writeLine(row.join(','));
@@ -1115,6 +1295,11 @@ namespace csvquery {
         QList<QStringList> result;
         //QHash<QString, QStringList> group_by_result;
 
+        if (limit_done) { // prevent rerun because of pagination code in main.cpp when handling limit]
+            qDebug() << "limit done";
+            return std::nullopt;
+        }
+
 
         if (!paginate) { // skip this check if handling pagination for group by result
             if (left_file->end_of_file()) {
@@ -1134,8 +1319,11 @@ namespace csvquery {
 
         // build index
         if (!paginate) {
+            qDebug() << "indexing...";
             //query_lookup_index = std::make_shared<QHash<QString, QList<qint64>> >();
+            qDebug() << "query index: " << query_index;
             query_lookup_index = build_index(this->right_file, this->query_index);
+            qDebug() << "done.";
         }
 
         //bool indexing_done = false;
@@ -1167,6 +1355,13 @@ namespace csvquery {
                     process_select(group_by_result, data_rows);
                 }
                 else {
+
+                    if (has_limit_clause && LIMIT_VAL == NUMBER_OF_ROWS) { // handle limit clause
+                        limit_done = true;
+                        qDebug() << "applying limit";
+                        break;
+                    }
+
                     process_select(result, data_rows);
 
                     /*
@@ -1208,6 +1403,11 @@ namespace csvquery {
             //foreach(auto row, group_by_result) {
                 QStringList& row = group_by_result_loc.value();
 
+                if (has_limit_clause && LIMIT_VAL == NUMBER_OF_ROWS) { // handle limit clause
+                    limit_done = true;
+                    break;
+                }
+
                 if (write_to_file) {
                     out_file->writeLine(row.join(','));
                     ++NUMBER_OF_ROWS;
@@ -1245,7 +1445,11 @@ namespace csvquery {
         QList<QStringList> result;
         //QHash<QString, QStringList> group_by_result; changed to class member
 
-        //qDebug() << "Selecting with outer join";
+        qDebug() << "Selecting with outer join";
+
+        if (limit_done) { // prevent rerun because of pagination code in main.cpp when handling limit
+            return std::nullopt;
+        }
 
 
         if (!paginate) { // skip this check if handling pagination for group by result
@@ -1265,6 +1469,7 @@ namespace csvquery {
 
         // build index
         if (!paginate) {
+            qDebug() << "right file: " << this->right_file->get_token().string_value;
             //query_lookup_index = std::make_shared<QHash<QString, QList<qint64>> >();
             query_lookup_index = build_index(this->right_file, this->query_index);
         }
@@ -1279,6 +1484,7 @@ namespace csvquery {
             data_rows[join_files_list["left"]] = row;
 
             //QStringList columns;
+            qDebug() << "in outer join loop";
 
             if (!query_lookup_index->contains(row[query_index])) { // key does not exist in right file
 
@@ -1291,6 +1497,12 @@ namespace csvquery {
                     process_select(group_by_result, data_rows);
                 }
                 else {
+
+                    if (has_limit_clause && LIMIT_VAL == NUMBER_OF_ROWS) { // handle limit clause
+                        limit_done = true;
+                        break;
+                    }
+
                     process_select(result, data_rows);
                 }
 
@@ -1324,6 +1536,12 @@ namespace csvquery {
                     process_select(group_by_result, data_rows);
                 }
                 else {
+
+                    if (has_limit_clause && LIMIT_VAL == NUMBER_OF_ROWS) { // handle limit clause
+                        limit_done = true;
+                        break;
+                    }
+
                     process_select(result, data_rows);
                     /*
                     if ((write_to_file == false) && (NUMBER_OF_ROWS % NUMBER_OF_ROWS_PER_PAGE == 0)) { // paginate
@@ -1366,6 +1584,11 @@ namespace csvquery {
             //foreach(auto row, group_by_result) {
                 QStringList& row = group_by_result_loc.value();
                 //qDebug() << "row " << row;
+
+                if (has_limit_clause && LIMIT_VAL == NUMBER_OF_ROWS) { // handle limit clause
+                    limit_done = true;
+                    break;
+                }
 
                 if (write_to_file) {
                     out_file->writeLine(row.join(','));

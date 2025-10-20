@@ -152,8 +152,8 @@ int main(int argc, char *argv[])
         "SELECT", "FROM", "UPDATE", "IMPORT", "WHERE",
         "INTO", "INNER JOIN", "OUTER JOIN", "ON", "SET", "LIKE", "NOT LIKE",
         "TRIM", "LENGTH", "SUBSTRING", "LEFT", "RIGHT", "AS","COUNT", "SUM", "AVG", "MIN", "MAX",
-        "DATE_GT", "DATE_GE", "DATE_LT", "DATE_LE", "DATE_EQ",
-        "QUIT", "EXIT", "AND", "OR", "NUMBER", "GROUP BY"
+        "DATE_GT", "DATE_GE", "DATE_LT", "DATE_LE", "DATE_EQ", "STRIP_QUOTES",
+        "QUIT", "EXIT", "AND", "OR", "NUMBER", "GROUP BY", "LIMIT"
         };
         
 
@@ -1123,12 +1123,15 @@ void set_builtin_funcs()
 
     //extern QHash<QString, QList<TokenType>> func_args_type_list; // returns list of function argument type list
 
+    //Term strip_quotes(QList<Term>)
+
 
     csvquery::symbol_table["trim"] = csvquery::TokenType::FUNCTION;
     csvquery::symbol_table["length"] = csvquery::TokenType::FUNCTION;
     csvquery::symbol_table["substring"] = csvquery::TokenType::FUNCTION;
     csvquery::symbol_table["left"] = csvquery::TokenType::FUNCTION;
     csvquery::symbol_table["right"] = csvquery::TokenType::FUNCTION;
+    csvquery::symbol_table["strip_quotes"] = csvquery::TokenType::FUNCTION;
     csvquery::symbol_table["date_gt"] = csvquery::TokenType::FUNCTION;
     csvquery::symbol_table["date_lt"] = csvquery::TokenType::FUNCTION;
     csvquery::symbol_table["date_ge"] = csvquery::TokenType::FUNCTION;
@@ -1146,6 +1149,7 @@ void set_builtin_funcs()
     std::function<csvquery::Term(QList<csvquery::Term>)> _substring = csvquery::substring;
     std::function<csvquery::Term(QList<csvquery::Term>)> _left = csvquery::left;
     std::function<csvquery::Term(QList<csvquery::Term>)> _right = csvquery::right;
+    std::function<csvquery::Term(QList<csvquery::Term>)> _strip_quotes = csvquery::strip_quotes;
     std::function<csvquery::Term(QList<csvquery::Term>)> _date_gt = csvquery::date_gt;
     std::function<csvquery::Term(QList<csvquery::Term>)> _date_lt = csvquery::date_lt;
     std::function<csvquery::Term(QList<csvquery::Term>)> _date_ge = csvquery::date_ge;
@@ -1163,6 +1167,7 @@ void set_builtin_funcs()
     csvquery::funcs_table["substring"] = _substring;
     csvquery::funcs_table["left"] = _left;
     csvquery::funcs_table["right"] = _right;
+    csvquery::funcs_table["strip_quotes"] = _strip_quotes;
     csvquery::funcs_table["date_gt"] = _date_gt;
     csvquery::funcs_table["date_lt"] = _date_lt;
     csvquery::funcs_table["date_ge"] = _date_ge;
@@ -1187,6 +1192,7 @@ void set_builtin_funcs()
     csvquery::func_args_type_list["substring"] = str_num_num;
     csvquery::func_args_type_list["left"] = string_and_number;
     csvquery::func_args_type_list["right"] = string_and_number;
+    csvquery::func_args_type_list["strip_quotes"] = only_string_arg;
     csvquery::func_args_type_list["date_gt"] = date_comp_arg_types;
     csvquery::func_args_type_list["date_lt"] = date_comp_arg_types;
     csvquery::func_args_type_list["date_ge"] = date_comp_arg_types;

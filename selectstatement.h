@@ -31,8 +31,9 @@ namespace csvquery {
 
         unsigned int NUMBER_OF_ROWS_PER_PAGE; //used for pagination
         unsigned int NUMBER_OF_ROWS = 0; //number of rows read
+        unsigned int LIMIT_VAL = 0; // used for limit clause
 
-        double query_index; // holds the column index for right hand side file; this is used in building the lookup index
+        double query_index =0; // holds the column index for right hand side file; this is used in building the lookup index
         bool run_only_once = false; //used for when select is executed wihout a from clause
 
         bool has_from_clause = true;
@@ -41,6 +42,9 @@ namespace csvquery {
 
         bool has_group_by = false;
         bool is_aggregation = false; //used for situations where there is no group by but there are aggregation functions in columnm list
+
+        bool has_limit_clause = false;
+        bool limit_done = false;
 
         TokenType join_type;
         bool write_to_file = false;
@@ -59,6 +63,7 @@ namespace csvquery {
         void handle_cross_join();
         void handle_where_clause();
         void handle_groupby_clause();
+        void handle_limit_clause();
         QMap<TokenType, std::function<void()>> optional_actions;
 
         QList<Expression> read_column_expressions();
