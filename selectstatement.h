@@ -17,6 +17,7 @@ namespace csvquery {
         QList<Expression> column_exprs; // columns
         QList<Term> column_exprs_terms; // all terms in select columns except functions and function args; used in read_column_expressions
         std::shared_ptr<ConditionalExpression> conditional_expr; // where clause
+        std::shared_ptr<ConditionalExpression> having_conditional_expr; // having clause in aggregate select 
         std::shared_ptr<ConditionalExpression> on_clause; // on clause for joins
 
         std::shared_ptr<CSVFile> out_file; // output file
@@ -39,6 +40,8 @@ namespace csvquery {
         bool has_from_clause = true;
         bool has_join = false;
         bool has_where_clause = false;
+
+        bool has_having_clause = false;
 
         bool has_group_by = false;
         bool is_aggregation = false; //used for situations where there is no group by but there are aggregation functions in columnm list
@@ -64,12 +67,14 @@ namespace csvquery {
         void handle_where_clause();
         void handle_groupby_clause();
         void handle_limit_clause();
+        void handle_having_clause();
         QMap<TokenType, std::function<void()>> optional_actions;
 
         QList<Expression> read_column_expressions();
         std::shared_ptr<CSVFile> read_file(QIODeviceBase::OpenMode m = QIODevice::ReadOnly);
         std::shared_ptr<ConditionalExpression> read_on_clause();
         std::shared_ptr<ConditionalExpression> read_where();
+        std::shared_ptr<ConditionalExpression> read_having_clause();
 
         bool paginate = false; // used for pagination of group by result
         QHash<QString, QStringList> group_by_result; // saves results if aggregation done in inner joins and outer joins

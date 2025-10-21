@@ -19,6 +19,7 @@ namespace csvquery {
         optional_actions[TokenType::INTO] = [this]() {handle_into_clause(); };
         optional_actions[TokenType::WHERE] = [this]() {handle_where_clause(); };
         optional_actions[TokenType::GROUPBY] = [this]() {handle_groupby_clause(); };
+        optional_actions[TokenType::HAVING] = [this]() {handle_having_clause(); };
         optional_actions[TokenType::LIMIT] = [this]() {handle_limit_clause(); };
 
         ////qDebug()<<"constructing select statement...";
@@ -191,6 +192,32 @@ namespace csvquery {
         return std::make_shared<ConditionalExpression>(cond_terms);
     }
 
+    std::shared_ptr<ConditionalExpression> SelectStatement::read_having_clause()
+    {
+        QList<Term> cond_terms;
+
+        for (; last_token_pos != tokens.cend(); ++last_token_pos) {
+            if ((last_token_pos->token_type == TokenType::SEMICOLON) || (last_token_pos->token_type == TokenType::END)
+                || (last_token_pos->token_type == TokenType::INTO) 
+                || (last_token_pos->token_type == TokenType::LIMIT)
+                )
+            {
+                break;
+            }
+
+            Term t(*last_token_pos);
+            //////qDebug()<<"where term: "<<last_token_pos->to_string();
+            cond_terms.append(t);
+        }
+
+        if (cond_terms.isEmpty()) {
+            QString error = "Unexpected end to Having clause!";
+            throw std::logic_error(error.toStdString());
+        }
+
+        return std::make_shared<ConditionalExpression>(cond_terms);
+    }
+
 
     std::shared_ptr<CSVFile> SelectStatement::read_file(QIODeviceBase::OpenMode m)
     {
@@ -294,7 +321,7 @@ namespace csvquery {
 
                     if (columns_table.contains(left_t.get_token().string_value.toLower())) {
                         this->query_index = columns_table[left_t.get_token().string_value.toLower()];
-                        qDebug() << "[.] Query index number set: " << columns_table[left_t.get_token().string_value.toLower()];
+                        //qDebug() << "[.] Query index number set: " << columns_table[left_t.get_token().string_value.toLower()];
                     }
                     else {
                         QString error = "Error getting column index for '";
@@ -312,7 +339,7 @@ namespace csvquery {
 
                     if (is_number) {
                         //if (filename1 == join_files_list["right"]) {
-                        qDebug() << "[.] Query index number set: " << number;
+                        //qDebug() << "[.] Query index number set: " << number;
                         this->query_index = number;
                         //}
 
@@ -550,7 +577,7 @@ namespace csvquery {
             throw std::logic_error(error.toStdString());
         }
 
-        qDebug() << "join files:" << join_files_list;
+        //qDebug() << "join files:" << join_files_list;
 
         ++last_token_pos; // next token
         this->on_clause = read_on_clause();
@@ -565,7 +592,7 @@ namespace csvquery {
             return;
         }
 
-        QList<TokenType> valid_next_tokens = { TokenType::LIMIT, TokenType::INTO, TokenType::WHERE, TokenType::GROUPBY };
+        QList<TokenType> valid_next_tokens = { TokenType::HAVING, TokenType::LIMIT, TokenType::INTO, TokenType::WHERE, TokenType::GROUPBY };
         if (!valid_next_tokens.contains(last_token_pos->token_type)) {
             //throw error
             std::string error = "Unexpected token (";
@@ -613,7 +640,7 @@ namespace csvquery {
             return;
         }
 
-        QList<TokenType> valid_next_tokens = { TokenType::LIMIT, TokenType::INTO, TokenType::WHERE, TokenType::GROUPBY };
+        QList<TokenType> valid_next_tokens = { TokenType::HAVING, TokenType::LIMIT, TokenType::INTO, TokenType::WHERE, TokenType::GROUPBY };
         if (!valid_next_tokens.contains(last_token_pos->token_type)) {
             //throw error
             std::string error = "Unexpected token (";
@@ -652,7 +679,7 @@ namespace csvquery {
             return;
         }
 
-        QList<TokenType> valid_next_tokens = { TokenType::LIMIT, TokenType::INTO, TokenType::WHERE, TokenType::GROUPBY };
+        QList<TokenType> valid_next_tokens = { TokenType::HAVING, TokenType::LIMIT, TokenType::INTO, TokenType::WHERE, TokenType::GROUPBY };
         if (!valid_next_tokens.contains(last_token_pos->token_type)) {
             //throw error
             std::string error = "Unexpected token (";
@@ -687,7 +714,7 @@ namespace csvquery {
             return;
         }
 
-        QList<TokenType> valid_next_tokens = { TokenType::LIMIT, TokenType::GROUPBY, TokenType::INTO };
+        QList<TokenType> valid_next_tokens = { TokenType::HAVING, TokenType::LIMIT, TokenType::GROUPBY, TokenType::INTO };
         if (!valid_next_tokens.contains(last_token_pos->token_type)) {
             //throw error
             std::string error = "Unexpected token (";
@@ -697,6 +724,41 @@ namespace csvquery {
         }
         //qDebug() << "Done with WHERE clause moving on to next clause...";
         //qDebug() << "Token after where clause is " << last_token_pos->to_string() << " with string value: " << last_token_pos->string_value;
+        optional_actions[last_token_pos->token_type](); //call handler function for the next valid token
+    }
+
+    void SelectStatement::handle_having_clause()
+    {
+        //qDebug() << "----HAVING Clause HANDLER CALLED!";
+        this->has_having_clause = true;
+        ++last_token_pos; // next token
+
+        this->having_conditional_expr = read_having_clause(); //clause clause
+
+        if (last_token_pos == tokens.cend()) {
+            return;
+        }
+
+        //++last_token_pos; // next token
+
+        if (last_token_pos == tokens.cend()) {
+            //qDebug() << "-------End of select found in having clause handler";
+            return;
+        }
+
+        if (last_token_pos->token_type == TokenType::END || last_token_pos->token_type == TokenType::SEMICOLON) {
+            return;
+        }
+
+        QList<TokenType> valid_next_tokens = { TokenType::LIMIT, TokenType::INTO };
+        if (!valid_next_tokens.contains(last_token_pos->token_type)) {
+            //throw error
+            std::string error = "Unexpected token (";
+            error += last_token_pos->to_string().toStdString();
+            error += ") on line ";
+            error += QString::number(last_token_pos->line_number).toStdString();
+        }
+
         optional_actions[last_token_pos->token_type](); //call handler function for the next valid token
     }
 
@@ -805,7 +867,7 @@ namespace csvquery {
             return;
         }
 
-        QList<TokenType> valid_next_tokens = { TokenType::LIMIT, TokenType::INTO };
+        QList<TokenType> valid_next_tokens = { TokenType::HAVING, TokenType::LIMIT, TokenType::INTO };
         if (!valid_next_tokens.contains(last_token_pos->token_type)) {
             //throw error
             std::string error = "Unexpected token (";
@@ -869,6 +931,9 @@ namespace csvquery {
             optional_actions[last_token_pos->token_type](); //call handler function for the next valid token
         }
         else if (last_token_pos->token_type == TokenType::GROUPBY) {
+            optional_actions[last_token_pos->token_type](); //call handler function for the next valid token
+        }
+        else if (last_token_pos->token_type == TokenType::HAVING) {
             optional_actions[last_token_pos->token_type](); //call handler function for the next valid token
         }
         else if (last_token_pos->token_type == TokenType::INTO) {
@@ -1021,6 +1086,11 @@ namespace csvquery {
             return std::nullopt; //prevent select being run again because of pagination code in main.cpp
         }
 
+        if (!has_group_by && !is_aggregation && has_having_clause ) {
+            QString error = "Invalid Having clause in a non-aggregate Select statement!";
+            throw std::logic_error(error.toStdString());
+        }
+
         ////qDebug()<<"Executing select with no join";
 
         //qDebug() << "group by list: " << group_by_columns;
@@ -1150,27 +1220,57 @@ namespace csvquery {
             //foreach(auto row, group_by_result) {
                 QStringList& row = group_by_result_loc.value();
 
+                QMap<QString, QStringList> data_rows;
+                data_rows["$"] = row;
+
                 if (has_limit_clause && LIMIT_VAL == NUMBER_OF_ROWS) { // handle limit clause
                     limit_done = true;
                     break;
                 }
 
-                if (write_to_file) {
-                    out_file->writeLine(row.join(','));
-                    ++NUMBER_OF_ROWS;
+                if (has_having_clause) {
+                    Term t = having_conditional_expr->eval(data_rows);
+                    ////qDebug()<<"Conditional evaluation done.";
+
+                    if (t.get_token().boolean_value == true) {
+                        if (write_to_file) {
+                            out_file->writeLine(row.join(','));
+                            ++NUMBER_OF_ROWS;
+                        }
+                        else {
+                            result.append(row);
+                            ++NUMBER_OF_ROWS;
+
+                            if ((write_to_file == false) && (NUMBER_OF_ROWS % NUMBER_OF_ROWS_PER_PAGE == 0)) { // paginate
+
+                                if (NUMBER_OF_ROWS == 0) {
+                                    paginate = true;
+                                    return std::nullopt;
+                                }
+
+                                return result;
+                            }
+                        }
+                    }
                 }
                 else {
-                    result.append(row);
-                    ++NUMBER_OF_ROWS;
+                    if (write_to_file) {
+                        out_file->writeLine(row.join(','));
+                        ++NUMBER_OF_ROWS;
+                    }
+                    else {
+                        result.append(row);
+                        ++NUMBER_OF_ROWS;
 
-                    if ((write_to_file == false) && (NUMBER_OF_ROWS % NUMBER_OF_ROWS_PER_PAGE == 0)) { // paginate
+                        if ((write_to_file == false) && (NUMBER_OF_ROWS % NUMBER_OF_ROWS_PER_PAGE == 0)) { // paginate
 
-                        if (NUMBER_OF_ROWS == 0) {
-                            paginate = true;
-                            return std::nullopt;
+                            if (NUMBER_OF_ROWS == 0) {
+                                paginate = true;
+                                return std::nullopt;
+                            }
+
+                            return result;
                         }
-
-                        return result;
                     }
                 }
             }
@@ -1296,8 +1396,13 @@ namespace csvquery {
         //QHash<QString, QStringList> group_by_result;
 
         if (limit_done) { // prevent rerun because of pagination code in main.cpp when handling limit]
-            qDebug() << "limit done";
+            //qDebug() << "limit done";
             return std::nullopt;
+        }
+
+        if (!has_group_by && !is_aggregation && has_having_clause) {
+            QString error = "Invalid Having clause in a non-aggregate Select statement!";
+            throw std::logic_error(error.toStdString());
         }
 
 
@@ -1319,11 +1424,11 @@ namespace csvquery {
 
         // build index
         if (!paginate) {
-            qDebug() << "indexing...";
+            //qDebug() << "indexing...";
             //query_lookup_index = std::make_shared<QHash<QString, QList<qint64>> >();
-            qDebug() << "query index: " << query_index;
+            //qDebug() << "query index: " << query_index;
             query_lookup_index = build_index(this->right_file, this->query_index);
-            qDebug() << "done.";
+            //qDebug() << "done.";
         }
 
         //bool indexing_done = false;
@@ -1403,25 +1508,57 @@ namespace csvquery {
             //foreach(auto row, group_by_result) {
                 QStringList& row = group_by_result_loc.value();
 
+                QMap<QString, QStringList> data_rows;
+                data_rows["$"] = row;
+
                 if (has_limit_clause && LIMIT_VAL == NUMBER_OF_ROWS) { // handle limit clause
                     limit_done = true;
                     break;
                 }
 
-                if (write_to_file) {
-                    out_file->writeLine(row.join(','));
-                    ++NUMBER_OF_ROWS;
+                if (has_having_clause) {
+                    Term t = having_conditional_expr->eval(data_rows);
+                    ////qDebug()<<"Conditional evaluation done.";
+
+                    if (t.get_token().boolean_value == true) {
+                        if (write_to_file) {
+                            out_file->writeLine(row.join(','));
+                            ++NUMBER_OF_ROWS;
+                        }
+                        else {
+                            result.append(row);
+                            ++NUMBER_OF_ROWS;
+
+                            if ((write_to_file == false) && (NUMBER_OF_ROWS % NUMBER_OF_ROWS_PER_PAGE == 0)) { // paginate
+
+                                if (NUMBER_OF_ROWS == 0) {
+                                    paginate = true;
+                                    return std::nullopt;
+                                }
+
+                                return result;
+                            }
+                        }
+                    }
                 }
                 else {
-                    result.append(row);
-                    ++NUMBER_OF_ROWS;
+                    if (write_to_file) {
+                        out_file->writeLine(row.join(','));
+                        ++NUMBER_OF_ROWS;
+                    }
+                    else {
+                        result.append(row);
+                        ++NUMBER_OF_ROWS;
 
-                    if ((write_to_file == false) && (NUMBER_OF_ROWS % NUMBER_OF_ROWS_PER_PAGE == 0)) { // paginate
-                        if (NUMBER_OF_ROWS == 0) {
-                            return std::nullopt;
+                        if ((write_to_file == false) && (NUMBER_OF_ROWS % NUMBER_OF_ROWS_PER_PAGE == 0)) { // paginate
+
+                            if (NUMBER_OF_ROWS == 0) {
+                                paginate = true;
+                                return std::nullopt;
+                            }
+
+                            return result;
                         }
-                        paginate = true;
-                        return result;
                     }
                 }
             }
@@ -1445,10 +1582,15 @@ namespace csvquery {
         QList<QStringList> result;
         //QHash<QString, QStringList> group_by_result; changed to class member
 
-        qDebug() << "Selecting with outer join";
+        //qDebug() << "Selecting with outer join";
 
         if (limit_done) { // prevent rerun because of pagination code in main.cpp when handling limit
             return std::nullopt;
+        }
+
+        if (!has_group_by && !is_aggregation && has_having_clause) {
+            QString error = "Invalid Having clause in a non-aggregate Select statement!";
+            throw std::logic_error(error.toStdString());
         }
 
 
@@ -1469,7 +1611,7 @@ namespace csvquery {
 
         // build index
         if (!paginate) {
-            qDebug() << "right file: " << this->right_file->get_token().string_value;
+            //qDebug() << "right file: " << this->right_file->get_token().string_value;
             //query_lookup_index = std::make_shared<QHash<QString, QList<qint64>> >();
             query_lookup_index = build_index(this->right_file, this->query_index);
         }
@@ -1484,7 +1626,7 @@ namespace csvquery {
             data_rows[join_files_list["left"]] = row;
 
             //QStringList columns;
-            qDebug() << "in outer join loop";
+           // qDebug() << "in outer join loop";
 
             if (!query_lookup_index->contains(row[query_index])) { // key does not exist in right file
 
@@ -1583,30 +1725,59 @@ namespace csvquery {
             for (; group_by_result_loc != group_by_result.end(); ++group_by_result_loc) {
             //foreach(auto row, group_by_result) {
                 QStringList& row = group_by_result_loc.value();
+                // ;
                 //qDebug() << "row " << row;
+                QMap<QString, QStringList> data_rows;
+                data_rows["$"] = row;
 
                 if (has_limit_clause && LIMIT_VAL == NUMBER_OF_ROWS) { // handle limit clause
                     limit_done = true;
                     break;
                 }
 
-                if (write_to_file) {
-                    out_file->writeLine(row.join(','));
-                    ++NUMBER_OF_ROWS;
+                if (has_having_clause) {
+                    Term t = having_conditional_expr->eval(data_rows);
+                    ////qDebug()<<"Conditional evaluation done.";
+
+                    if (t.get_token().boolean_value == true) {
+                        if (write_to_file) {
+                            out_file->writeLine(row.join(','));
+                            ++NUMBER_OF_ROWS;
+                        }
+                        else {
+                            result.append(row);
+                            ++NUMBER_OF_ROWS;
+
+                            if ((write_to_file == false) && (NUMBER_OF_ROWS % NUMBER_OF_ROWS_PER_PAGE == 0)) { // paginate
+
+                                if (NUMBER_OF_ROWS == 0) {
+                                    paginate = true;
+                                    return std::nullopt;
+                                }
+
+                                return result;
+                            }
+                        }
+                    }
                 }
                 else {
-                    result.append(row);
-                    ++NUMBER_OF_ROWS;
+                    if (write_to_file) {
+                        out_file->writeLine(row.join(','));
+                        ++NUMBER_OF_ROWS;
+                    }
+                    else {
+                        result.append(row);
+                        ++NUMBER_OF_ROWS;
 
-                    if ((write_to_file == false) && (NUMBER_OF_ROWS % NUMBER_OF_ROWS_PER_PAGE == 0)) { // paginate
+                        if ((write_to_file == false) && (NUMBER_OF_ROWS % NUMBER_OF_ROWS_PER_PAGE == 0)) { // paginate
 
-                        if (NUMBER_OF_ROWS == 0) {
-                            return std::nullopt;
+                            if (NUMBER_OF_ROWS == 0) {
+                                paginate = true;
+                                return std::nullopt;
+                            }
+
+                            return result;
                         }
-
-                        paginate = true;
-
-                        return result;
                     }
                 }
             }

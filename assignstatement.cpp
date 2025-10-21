@@ -51,7 +51,8 @@ namespace csvquery {
         //qDebug()<<"done.";
         TokenType variable_type = t.get_token().token_type;
 
-        //qDebug() << variable_name;
+        //qDebug() << "variable name: "<< variable_name;
+        //qDebug() << "keywords:" << keywords;
 
         //check if name is a reserved word
         if ( keywords.contains(variable_name.toLower()) || funcs_table.keys().contains(variable_name.toLower())) {
@@ -110,6 +111,20 @@ namespace csvquery {
 
         variable_name = last_token_pos->string_value.toLower();
         //qDebug()<<"Read variable";
+
+        /*
+        qDebug() << "0 variable name: " << variable_name;
+        qDebug() << "0 keywords:" << keywords;
+        qDebug() << "symbols:" << symbol_table.keys();
+
+        //check if name is a reserved word
+        if (keywords.contains(variable_name.toLower()) || funcs_table.keys().contains(variable_name.toLower())) {
+            QString error = "0 Invalid assignment to a keyword '";
+            error += variable_name;
+            error += "' on line ";
+            error += QString::number(last_token_pos->line_number);
+            throw std::logic_error(error.toStdString());
+        }*/
 
         //next token
         ++last_token_pos;

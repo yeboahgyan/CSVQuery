@@ -149,7 +149,7 @@ int main(int argc, char *argv[])
         replxx::Replxx rx;
 
         std::vector<std::string> keywords = { //used in highlighting keywords
-        "SELECT", "FROM", "UPDATE", "IMPORT", "WHERE",
+        "SELECT", "FROM", "UPDATE", "IMPORT", "WHERE", "HAVING",
         "INTO", "INNER JOIN", "OUTER JOIN", "ON", "SET", "LIKE", "NOT LIKE",
         "TRIM", "LENGTH", "SUBSTRING", "LEFT", "RIGHT", "AS","COUNT", "SUM", "AVG", "MIN", "MAX",
         "DATE_GT", "DATE_GE", "DATE_LT", "DATE_LE", "DATE_EQ", "STRIP_QUOTES",
@@ -380,6 +380,31 @@ int main(int argc, char *argv[])
                                 std::cout << "Number of rows read: " << select.get_number_of_rows() << "\n\n";
                             }
                         }
+                        else {
+                            //qDebug() << "invalid syntax: " << action.to_string();
+                            QString error = "Invalid statement ";
+
+                            QStringList k_list;
+                            for (auto s : keywords) {
+                                k_list.append(QString::fromStdString(s));
+                            }
+
+                            if (k_list.contains(action.string_value.toUpper()) 
+                                || csvquery::funcs_table.keys().contains(action.string_value.toLower())
+                                ) 
+                            {
+                                error += "with keyword '";
+                                error += action.string_value;
+                                error += "' on line ";
+                            }
+                            else {
+                                error += "on line ";
+                            }
+
+                            error += QString::number(action.line_number);
+                            error += "!";
+                            throw std::logic_error(error.toStdString());
+                        }
 
 
 
@@ -388,7 +413,7 @@ int main(int argc, char *argv[])
                         }
                     }
                     catch (std::logic_error l) {
-                        std::cout << "  Parser error 1: " << l.what() << "\n";
+                        std::cout << "    Parser error: " << l.what() << "\n";
                     }
 
                 }
