@@ -625,18 +625,18 @@ namespace csvquery {
         ++last_token_pos; // next token
         this->on_clause = read_on_clause();
 
-        qDebug() << "done reading on clause";
+        //qDebug() << "done reading on clause";
 
         ++last_token_pos; // next token
 
-        qDebug() << "done moving to next token";
+        //qDebug() << "done moving to next token";
 
         if (last_token_pos == tokens.cend()) {
             return;
         }
 
         if (last_token_pos->token_type == TokenType::END || last_token_pos->token_type == TokenType::SEMICOLON ) {
-            qDebug() << "done parsing outer join";
+            //qDebug() << "done parsing outer join";
             return;
         }
 

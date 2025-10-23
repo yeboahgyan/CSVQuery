@@ -181,7 +181,7 @@ namespace csvquery {
         }
 
         double get_value() const override {
-            return sum/count;
+            return (count != 0)? sum/count : 0;  //check for divide by zero
         }
     };
 

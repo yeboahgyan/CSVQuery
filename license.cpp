@@ -6,6 +6,8 @@ void print_license()
   CSVQuery - Freeware License (Redistributable, Closed Source)
   Copyright (c) 2025 Kwame Yeboah-Gyan. All rights reserved.
   
+  < yeboahgyan@gmail.com >
+  
   
   This software and its accompanying files (the "Software") are provided free of charge.
   

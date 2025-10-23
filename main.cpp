@@ -89,7 +89,7 @@ int main(int argc, char *argv[])
 
     std::cout << "\n";
     std::cout << "  CSVQuery ";
-    std::cout << "0.1.1";
+    std::cout << "0.1.3";
     std::cout << " (c) 2025 Kwame Yeboah-Gyan\n";
     std::cout << "  Type \"exit\" or \"quit\" to quit, \"license\" for license information.\n\n";
 
@@ -322,6 +322,11 @@ int main(int argc, char *argv[])
                     //qDebug() << "other branch";
                     statement = "";
                 }
+            }
+
+            if (statement.trimmed() == ";") {
+                buffer.clear();
+                continue; //empty statement
             }
 
 
