@@ -7,6 +7,15 @@
 #include "conditionalexpression.h"
 #include "csvfile.h"
 #include <optional>
+#include <mutex>
+#include <thread>
+#include <QFile>
+#include "CSVFile2.h"
+#include <boost/lockfree/spsc_queue.hpp>
+#include <boost/lockfree/queue.hpp>
+#include <atomic>
+#include <thread>
+#include <queue>
 
 
 namespace csvquery {
@@ -22,8 +31,50 @@ namespace csvquery {
 
         std::shared_ptr<CSVFile> out_file; // output file
 
+        std::unique_ptr<QFile> out_file2;
+
+        std::unique_ptr<std::thread> file_reader_thread;
+        std::unique_ptr<std::thread> file_writer_thread;
+
+        //std::unique_ptr<std::thread> consumer_thread1;
+        //std::unique_ptr<std::thread> consumer_thread2;
+        //std::unique_ptr<std::thread> consumer_thread3;
+
+        //const size_t BUFFER_SIZE = 32;
+        const qsizetype BATCH_ROWS = 4048;
+        //boost::lockfree::spsc_queue<QList<csv::CSVRow>, boost::lockfree::capacity< 8'388'608 >> queue;
+        
+        std::unique_ptr<boost::lockfree::spsc_queue<std::deque<csv::CSVRow>, boost::lockfree::capacity<64>>> queue;
+        std::unique_ptr<boost::lockfree::spsc_queue<QString, boost::lockfree::capacity<10>>> write_queue;
+
+        //std::unique_ptr<std::queue<QList<csv::CSVRow>> > queue;
+        //std::unique_ptr<std::queue<QString> > write_queue; //used by file writer thread
+
+        std::deque<csv::CSVRow> reserve_batch; //used to save unprocessed rows in when pagination is done
+
+        //const qsizetype PROCESS_BATCH_ROWS = 128;
+        //boost::lockfree::queue<QList<QStringList>*> processing_queue{64}; // 128 rows / 64 batches
+        std::atomic<bool> query_done{ false };
+        std::atomic<bool> read_done{ false };
+
+        std::atomic<bool> done_producing = false; // Producer finished reading
+        std::atomic<bool> done_consuming = false; // Consumer finished query
+        std::atomic<bool> paused = false;         // Paused (UI viewing)
+        std::atomic<bool> canceled = false;       // User canceled
+
+
+        //bool main_thread_signal = false;
+        //bool process_thread_signal = false;
+        //bool writer_thread_signal = false;
+
+        std::optional<QList<QStringList>> result; // query result
+        //QHash<QString, QStringList> group_by_result; // group by query result
+
         std::shared_ptr<CSVFile> left_file;
         std::shared_ptr<CSVFile> right_file;
+
+        std::shared_ptr<CSVFile2> left_file2; // CVSFile2 uses Vince csv-parser
+        std::shared_ptr<CSVFile2> right_file2;
 
         QMap<QString, QString> join_files_list; // {'left' : left_file_name, 'right' : right_file_name}
 
@@ -49,6 +100,11 @@ namespace csvquery {
         bool has_limit_clause = false;
         bool limit_done = false;
 
+        bool is_conditional_compiled = false;
+        bool are_columns_compiled = false;
+        bool is_group_by_key_compiled = false;
+        bool is_having_conditional_compiled = false;
+
         TokenType join_type;
         bool write_to_file = false;
         void throw_exception_if_unexpected_end();
@@ -72,6 +128,8 @@ namespace csvquery {
 
         QList<Expression> read_column_expressions();
         std::shared_ptr<CSVFile> read_file(QIODeviceBase::OpenMode m = QIODevice::ReadOnly);
+        std::shared_ptr<CSVFile2> read_file2(); // used to sets left_file2 or right_file2
+        void read_out_file(); // sets std::unique_ptr<QFile> out_file2;
         std::shared_ptr<ConditionalExpression> read_on_clause();
         std::shared_ptr<ConditionalExpression> read_where();
         std::shared_ptr<ConditionalExpression> read_having_clause();
@@ -82,13 +140,20 @@ namespace csvquery {
         std::shared_ptr<QHash<QString, QList<qint64>> > query_lookup_index; // this is used for looking up index; it is initialized in the inner join or outer join function
         void validate_aggregate_query(); // checks if coulms in select statement are in group by clause and also whether it has an aggregation function
 
+        bool process_data(const QStringList& row); // this returns true to indicate that stop processing loop and return result
+        //void consume_data(); // this is run in anothor thread to process the csv rows read
+        void csv_file_reader(); // this is run in another thread to read csv rows from file
+        void csv_file_writer();// this is run in another thread to write result rows to file by popping strings in write_queue
+
         void parse();
         //QString selected_rows();
         QStringList compute_columns(const QMap<QString, QStringList>& data_rows);
+        std::function<QStringList(const QMap<QString, QStringList>&)> compile_columns(const QMap<QString, QStringList> data_rows);
 
         std::shared_ptr<QHash<QString, QList<qint64>>> build_index(const std::shared_ptr<CSVFile>& rhs, const int& column_index);
 
         QString create_group_by_key(const QMap<QString, QStringList>& data_rows);
+        std::function < QString(const QMap<QString, QStringList>&)> compile_group_by_key(const QMap<QString, QStringList>& data_rows);
 
         std::optional<QList<QStringList>> select_with_no_join();
         std::optional<QList<QStringList>> select_with_inner_join();
@@ -96,14 +161,39 @@ namespace csvquery {
         void process_select(QList<QStringList>& result_ptr, QMap<QString, QStringList>& data_rows);
         void process_select(QHash<QString, QStringList>& group_by_result, QMap<QString, QStringList>& data_rows);
 
+        //compiled functions
+        std::function<Term(const QMap<QString, QStringList>&)> compiled_conditional_func;
+        std::function<Term(const QMap<QString, QStringList>&)> compiled_having_conditional_func;
+        std::function < QString(const QMap<QString, QStringList>&)> compiled_group_by_key_func;
+        std::function<QStringList(const QMap<QString, QStringList>&)> compiled_columns_func;
+
+        //these are used for debugging
+        qint64 rows_consumed = 0;
+        qint64 rows_produced = 0;
+        qint64 batches_produced = 0;
+        qint64 skipped_rows = 0;
+        //end
+
+        
+
     public:
         SelectStatement(const QList<Token>& tks, unsigned int max_rows_per_page = 100);
 
         ~SelectStatement() {
             //clean up global data structures
-            //qDebug() << "destructor called";
+            qDebug() << "destructor called";
             aggregate_expression_reg = {};
             check_if_aggregate_done = {};
+            file_reader_thread->join();
+            if (this->write_to_file) {
+                file_writer_thread->join();
+            }
+            
+            NUMBER_OF_ROWS_IN_CSV = 0; // used for count(*)
+            qDebug() << "Rows produced: " << rows_produced << ", batches produced: " << batches_produced << ", rows consumed: " << rows_consumed;
+            qDebug() << "Skipped rows" << skipped_rows;
+            qDebug() << eq_count;
+            qDebug() << "destructor done.";
         }
 
         // void execute(); //save result to file
@@ -120,7 +210,22 @@ namespace csvquery {
         QStringList get_column_names() const {
             return column_names;
         }
+
+        void set_query_done(bool done) {
+            query_done.store(done, std::memory_order_release);
+        }
+
+        // User requests "Next number of rows"
+        void onNextPressed() {
+            paused.store(false);
+        }
+
+        // User cancels query
+        void onCancelPressed() {
+            canceled.store(true);
+            done_consuming.store(true);
+        }
     };
 
 }
-#endif // SELECTSTATEMENT_H
+#endif  SELECTSTATEMENT_H

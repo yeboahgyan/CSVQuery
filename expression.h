@@ -25,18 +25,18 @@ namespace csvquery {
 
         bool iscolumn_or_literal(Token t) const;
 
-        double add(double num1, double num2);
+        static double add(double num1, double num2);
 
-        QString add(double num1, QString str);
+        static QString add(double num1, QString str);
 
-        QString add(QString str, double num2);
+        static QString add(QString str, double num2);
 
-        QString add(QString str, QString str2);
+        static QString add(QString str, QString str2);
 
-        Term mult(Term left, Term right);
-        Term div(Term left, Term right);
-        Term add(Term left, Term right);
-        Term minus(Term left, Term right);
+        static Term mult(Term left, Term right);
+        static Term div(Term left, Term right);
+        static Term add(Term left, Term right);
+        static Term minus(Term left, Term right);
 
         void move_to_next_term();
 
@@ -91,7 +91,24 @@ namespace csvquery {
             //}
         }
 
+        std::function<Term(const QMap<QString, QStringList>& data_rows)> comp_eval_star_term(const QMap<QString, QStringList> data_rows) { // is * ? (select all columns)
+            Term t = terms.front();
 
+            //if(is_star()){
+            auto t_func = t.compile(data_rows);
+            auto func = [t_func](const QMap<QString, QStringList>& data_rows) {
+                Token t;
+                t = t_func(data_rows);
+
+                return Term(t);
+                };
+            
+            return func;
+        }
+
+        std::function<Term(const QMap<QString, QStringList>& data_rows)> comp_expr(const QMap<QString, QStringList> data_rows, bool get);
+        std::function<Term(const QMap<QString, QStringList>& data_rows)> comp_term(const QMap<QString, QStringList> data_rows, bool get);
+        std::function<Term(const QMap<QString, QStringList>& data_rows)> comp_primary(const QMap<QString, QStringList> data_rows, bool get);
 
         double get_iterator_pos() const {
             return item_left;
@@ -111,6 +128,7 @@ namespace csvquery {
         //Term eval(const QStringList& row );
 
         Term eval(const QMap<QString, QStringList>& data_rows);
+        std::function<Term(const QMap<QString, QStringList>& data_rows)> compile(const QMap<QString, QStringList> data_rows);
     };
 
 }

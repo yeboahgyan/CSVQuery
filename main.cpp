@@ -68,6 +68,8 @@ void execute_source_file(QFile& source);
 
 int MAX_ROWS_PER_PAGE = 100;
 
+void test_main();
+
 
 
 int main(int argc, char *argv[])
@@ -94,6 +96,9 @@ int main(int argc, char *argv[])
     std::cout << "  Type \"exit\" or \"quit\" to quit, \"license\" for license information.\n\n";
 
     set_builtin_funcs();
+
+    test_main();
+    return 0;
 
     try{
         //QStringList row = {"empty string", "20", "hello"};
@@ -352,8 +357,15 @@ int main(int argc, char *argv[])
 
                         if (action.token_type == csvquery::TokenType::IMPORT) {
                             csvquery::ImportStatement import(tokens);
+                            auto start = std::chrono::system_clock::now();
+
                             import.execute();
+
+                            auto end = std::chrono::system_clock::now();
+
                             std::cout << "    Number of names loaded: " << import.num_of_columns_loaded() << "\n";
+                            std::chrono::duration<double> diff = end - start;
+                            std::cout << "    Duration: " << diff.count() << "s";
                         }
                         else if (action.token_type == csvquery::TokenType::NAME) {
                             //std::cout << "assigning...\n";
@@ -368,13 +380,22 @@ int main(int argc, char *argv[])
                         else if (action.token_type == csvquery::TokenType::SELECT) {
                             int max_rows_per_page = MAX_ROWS_PER_PAGE;
                             csvquery::SelectStatement select(tokens, max_rows_per_page);
+
+                            auto start = std::chrono::system_clock::now();
                             std::optional<QList<QStringList>> result = select.execute();
+
+                            auto end = std::chrono::system_clock::now();
 
                             if (result.has_value()) {
                                 //print result
                                 //print(result);
                                 print_table(result, select.get_column_names());
-                                std::cout << "\nNumber of rows read: " << select.get_number_of_rows() << "\n\n";
+
+
+                                std::cout << "\n    Number of rows read: " << select.get_number_of_rows() << "\n";
+                                std::chrono::duration<double> diff = end - start;
+                                std::cout << "    Duration: " << std::fixed <<std::setprecision(6)<< diff.count() << "s\n\n";
+
                                 //qDebug() << select.get_column_names();
                                 //if (max_rows_per_page < select.get_number_of_rows()) {
                                 paginate(select, rx);
@@ -382,7 +403,9 @@ int main(int argc, char *argv[])
                                 
                             }
                             else {
-                                std::cout << "Number of rows read: " << select.get_number_of_rows() << "\n\n";
+                                std::cout << "    Number of rows read: " << select.get_number_of_rows() << "\n";
+                                std::chrono::duration<double> diff = end - start;
+                                std::cout << "    Duration: " << diff.count() << "s\n\n";
                             }
                         }
                         else {
@@ -440,13 +463,49 @@ int main(int argc, char *argv[])
     catch(std::logic_error l){
         std::cout<<"  Parser error 2 "<<l.what()<<"\n";
     }
+    catch (const std::exception& e) {
+        std::cout << "  There was an exception - " << e.what()  << "\n";
+    }
     catch(...){
-        std::cout<< "  There was an exception!";
+        std::cout<< "  There was an exception!\n";
     }
 
     //test_tokenizer();
 
     return 0;
+}
+
+void test_main()
+{
+    //std::string input;
+    //std::cin >> input;
+    std::cout << "running..." <<"\n";
+    QString source = "select [3], count(*) from 'd:\\software\\test_csv\\customers.csv' where [3] != 'city' group by [3];";
+    //QString source = "select * from 'd:\\software\\test_csv\\customers.csv' where [3] = 'london' into 'd:\\software\\test_csv\\london_customers.csv';";
+    std::shared_ptr<QTextStream> ts = std::make_shared<QTextStream>(&source);
+    csvquery::Parser parser(ts);
+
+    QList<csvquery::Token> tokens = parser.read_statement();
+
+    int max_rows_per_page = MAX_ROWS_PER_PAGE;
+    csvquery::SelectStatement select(tokens, max_rows_per_page);
+
+    auto start = std::chrono::system_clock::now();
+    std::optional<QList<QStringList>> result = select.execute();
+
+    if (result.has_value()) {
+        //print result
+        //print(result);
+        print_table(result, select.get_column_names());
+        auto end = std::chrono::system_clock::now();
+
+
+        std::cout << "\n    Number of rows read: " << select.get_number_of_rows() << "\n";
+        std::chrono::duration<double> diff = end - start;
+        std::cout << "    Duration: " << std::fixed << std::setprecision(6) << diff.count() << "s\n\n";
+    }
+    std::cout << "\n done.";
+    
 }
 
 void test_tokenizer()
@@ -1000,8 +1059,11 @@ void paginate(csvquery::SelectStatement& select, replxx::Replxx& rx)
             std::string line(input);
 
             if (line == "x" || line == "X") {
+                select.onCancelPressed();
                 return;
             }
+
+            select.onNextPressed();
 
             //print result
             print_table(result, select.get_column_names());
@@ -1234,6 +1296,26 @@ void set_builtin_funcs()
     csvquery::func_args_type_list["max"] = only_string_arg;
     csvquery::func_args_type_list["min"] = only_string_arg;
     csvquery::func_args_type_list["avg"] = only_string_arg;
+
+    // Map functions to their compiler functions 
+    csvquery::funcs_compiler_table["trim"] = csvquery::comp_trim;
+    csvquery::funcs_compiler_table["length"] = csvquery::comp_length;
+    csvquery::funcs_compiler_table["substring"] = csvquery::comp_substring;
+    csvquery::funcs_compiler_table["left"] = csvquery::comp_left;
+    csvquery::funcs_compiler_table["right"] = csvquery::comp_right;
+    csvquery::funcs_compiler_table["strip_quotes"] = csvquery::comp_strip_quotes;
+    csvquery::funcs_compiler_table["date_gt"] = csvquery::comp_date_gt;
+    csvquery::funcs_compiler_table["date_lt"] = csvquery::comp_date_lt;
+    csvquery::funcs_compiler_table["date_ge"] = csvquery::comp_date_ge;
+    csvquery::funcs_compiler_table["date_le"] = csvquery::comp_date_le;
+    csvquery::funcs_compiler_table["date_eq"] = csvquery::comp_date_eq;
+    csvquery::funcs_compiler_table["number"] = csvquery::comp_number;
+    csvquery::funcs_compiler_table["count"] = csvquery::comp_count;
+    csvquery::funcs_compiler_table["sum"] = csvquery::comp_sum;
+    csvquery::funcs_compiler_table["max"] = csvquery::comp_max;
+    csvquery::funcs_compiler_table["min"] = csvquery::comp_min;
+    csvquery::funcs_compiler_table["avg"] = csvquery::comp_avg;
+
 
 
 }

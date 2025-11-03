@@ -8,6 +8,8 @@ namespace csvquery {
     class Term {
         Token token;
 
+        std::function <Token(const QStringList& row)> compile_eval(const QStringList row); // internal function
+
     public:
         Term()
         {
@@ -32,6 +34,10 @@ namespace csvquery {
         Term eval_and_return_term(const QStringList& row);
 
         Token eval(const QMap<QString, QStringList>& data_rows);
+
+        
+
+        std::function<Token(const QMap<QString, QStringList>& data_rows)> compile(const QMap<QString, QStringList> data_rows);
     };
 
 }

@@ -12,6 +12,10 @@ namespace csvquery {
 
     QHash<QString, std::function<Term(QList<Term>)> > funcs_table; // function name, "pointer to function"
 
+    QHash<QString,
+        std::function< std::function<Term(QList<Term>)>(QList<Term>)> >
+        funcs_compiler_table; // "pointer to function" "pointer to function compiler"
+
     QHash<QString, TokenType> symbol_table; //possible types, STRING, NUMBER, FUNCTION, COLUMNAME
 
     QHash<QString, int> out_file_use_count; //select out file, delete file, update file use count; enable future concurrency?
@@ -34,6 +38,9 @@ namespace csvquery {
     QString aggregate_expression_reg_key; // This is set within SelectStatement class and  used in aggregate functions 
     QMap<QString, QMap<QString, std::shared_ptr<AggregateCounter> > > aggregate_expression_reg; // select statement initiates this with aggregate functions; it also empties it when done
     QMap<QString, QMap<QString, bool>> check_if_aggregate_done; // used to prevent multiple aggregation in a select execution loop
+
+    qint64 NUMBER_OF_ROWS_IN_CSV = 0;
+    QHash<bool, qint64> eq_count; //debugging
 
 
     QString Token::to_string() const

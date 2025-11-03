@@ -2,6 +2,7 @@
 #include <stdexcept>
 #include <QFileInfo>
 #include <cmath>
+#include <QThread>
 
 
 namespace csvquery {
@@ -11,6 +12,13 @@ namespace csvquery {
         tokens{ tks }
         , NUMBER_OF_ROWS_PER_PAGE{ max_rows_per_page }
     {
+        queue = std::make_unique<boost::lockfree::spsc_queue<std::deque<csv::CSVRow>, boost::lockfree::capacity<64>>>();
+
+        //queue = std::make_unique<std::queue<QList<csv::CSVRow>> >();
+        write_queue = std::make_unique<boost::lockfree::spsc_queue<QString, boost::lockfree::capacity<10>>>();
+
+        //reserve_queue = std::make_unique<std::queue<QList<csv::CSVRow>> >();
+
         last_token_pos = tokens.cbegin();
 
         optional_actions[TokenType::CROSSJOIN] = [this]() {handle_cross_join(); };
@@ -22,12 +30,12 @@ namespace csvquery {
         optional_actions[TokenType::HAVING] = [this]() {handle_having_clause(); };
         optional_actions[TokenType::LIMIT] = [this]() {handle_limit_clause(); };
 
-        ////qDebug()<<"constructing select statement...";
+        ////////qDebug()<<"constructing select statement...";
         parse();
-        ////qDebug()<<"Done.";
+        ////////qDebug()<<"Done.";
 
         //foreach(auto t, tokens) {
-        //    qDebug() << t.to_string();
+        //    ////qDebug() << t.to_string();
         //}
     }
 
@@ -180,7 +188,7 @@ namespace csvquery {
             }
 
             Term t(*last_token_pos);
-            //////qDebug()<<"where term: "<<last_token_pos->to_string();
+            //////////qDebug()<<"where term: "<<last_token_pos->to_string();
             cond_terms.append(t);
         }
 
@@ -206,7 +214,7 @@ namespace csvquery {
             }
 
             Term t(*last_token_pos);
-            //////qDebug()<<"where term: "<<last_token_pos->to_string();
+            //////////qDebug()<<"where term: "<<last_token_pos->to_string();
             cond_terms.append(t);
         }
 
@@ -280,6 +288,119 @@ namespace csvquery {
         return std::make_shared<CSVFile>(csv);
     }
 
+
+    std::shared_ptr<CSVFile2> SelectStatement::read_file2()
+    {
+        throw_exception_if_unexpected_end();
+
+        QString f;
+        if ((last_token_pos->token_type == TokenType::NAME) || (last_token_pos->token_type == TokenType::STRING)) {
+            if (last_token_pos->token_type == TokenType::NAME) { // name
+                if (!symbol_table.contains(last_token_pos->string_value.toLower())) {
+                    double line_numer = (*last_token_pos).line_number;
+                    QString str_num = QString::number(line_numer);
+
+                    throw std::logic_error("Unknown file name on line " + str_num.toStdString());
+                }
+
+                TokenType token_type = symbol_table[last_token_pos->string_value.toLower()];
+                if (token_type != TokenType::STRING) {
+                    double line_numer = (*last_token_pos).line_number;
+                    QString str_num = QString::number(line_numer);
+
+                    throw std::logic_error("Invalid file name on line " + str_num.toStdString());
+                }
+
+
+
+                f = strings_table[last_token_pos->string_value.toLower()];
+            }
+            else { //String
+                f = last_token_pos->string_value.toLower();
+            }
+
+            // check if provided string is a valid file
+            QFileInfo fileInfo(f);
+            if (!fileInfo.exists() || !fileInfo.isFile()) {
+                double line_numer = (*last_token_pos).line_number;
+                QString str_num = QString::number(line_numer);
+
+                throw std::logic_error("Invalid file '"+ f.toStdString() + "' provided on line " + str_num.toStdString());
+            }
+
+
+            //left_file = std::make_shared<CSVFile>(f);
+        }
+        else {
+            QString error = "Expected a string or variable referencing a file!";
+            throw std::logic_error(error.toStdString());
+        }
+
+        if (f.trimmed().isEmpty()) {
+            QString error = "No name was provided for file!";
+            throw std::logic_error(error.toStdString());
+        }
+
+        std::shared_ptr<CSVFile2> csv = std::make_shared<CSVFile2>(f.toStdString());
+        csv->set_token(*last_token_pos);
+
+        return csv;
+    }
+
+
+    void SelectStatement::read_out_file()
+    {
+        throw_exception_if_unexpected_end();
+
+        QString f;
+        if ((last_token_pos->token_type == TokenType::NAME) || (last_token_pos->token_type == TokenType::STRING)) {
+            if (last_token_pos->token_type == TokenType::NAME) { // name
+                if (!symbol_table.contains(last_token_pos->string_value.toLower())) {
+                    double line_numer = (*last_token_pos).line_number;
+                    QString str_num = QString::number(line_numer);
+
+                    throw std::logic_error("Unknown file name on line " + str_num.toStdString());
+                }
+
+                TokenType token_type = symbol_table[last_token_pos->string_value.toLower()];
+                if (token_type != TokenType::STRING) {
+                    double line_numer = (*last_token_pos).line_number;
+                    QString str_num = QString::number(line_numer);
+
+                    throw std::logic_error("Invalid file name on line " + str_num.toStdString());
+                }
+
+
+
+                f = strings_table[last_token_pos->string_value.toLower()];
+            }
+            else { //String
+                f = last_token_pos->string_value.toLower();
+            }
+
+
+            //left_file = std::make_shared<CSVFile>(f);
+        }
+        else {
+            QString error = "Expected a string or variable referencing a file!";
+            throw std::logic_error(error.toStdString());
+        }
+
+        if (f.trimmed().isEmpty()) {
+            QString error = "No name was provided for file!";
+            throw std::logic_error(error.toStdString());
+        }
+
+        out_file2 = std::make_unique<QFile>(f);
+
+        if (!out_file2->open(QIODevice::WriteOnly | QIODevice::Text)) {
+            double line_numer = (*last_token_pos).line_number;
+            QString str_num = QString::number(line_numer);
+
+            throw std::logic_error("Failed to open file '" + f.toStdString() + "' for writing!");
+        }
+    }
+
     Term SelectStatement::read_join_column()
     {
         Term left_t(*last_token_pos);
@@ -321,7 +442,7 @@ namespace csvquery {
 
                     if (columns_table.contains(left_t.get_token().string_value.toLower())) {
                         this->query_index = columns_table[left_t.get_token().string_value.toLower()];
-                        //qDebug() << "[.] Query index number set: " << columns_table[left_t.get_token().string_value.toLower()];
+                        //////qDebug() << "[.] Query index number set: " << columns_table[left_t.get_token().string_value.toLower()];
                     }
                     else {
                         QString error = "Error getting column index for '";
@@ -339,7 +460,7 @@ namespace csvquery {
 
                     if (is_number) {
                         //if (filename1 == join_files_list["right"]) {
-                        //qDebug() << "[.] Query index number set: " << number;
+                        //////qDebug() << "[.] Query index number set: " << number;
                         this->query_index = number;
                         //}
 
@@ -373,7 +494,7 @@ namespace csvquery {
                 double number = column_index.toDouble(&is_number);
                 if (is_number) {
                     if (filename1 == join_files_list["right"]) {
-                        qDebug() << "[NAME] Query index number set: " << number;
+                        ////qDebug() << "[NAME] Query index number set: " << number;
                         this->query_index = number;
                     }
 
@@ -390,7 +511,7 @@ namespace csvquery {
             QString filename1 = left_t.get_token().string_value.split(',')[0].toLower();
             if (filename1 == join_files_list["right"]) {
                 if (columns_table.contains(left_t.get_token().string_value.toLower())) {
-                    qDebug() << "[COLUMNNAME] Query index number set: " << columns_table[left_t.get_token().string_value.toLower()];;
+                    ////qDebug() << "[COLUMNNAME] Query index number set: " << columns_table[left_t.get_token().string_value.toLower()];;
                     this->query_index = columns_table[left_t.get_token().string_value.toLower()];
                 }
                 else {
@@ -418,7 +539,7 @@ namespace csvquery {
 
         QList<Term> terms;
 
-        ////qDebug()<<"joined files: "<<join_files_list;
+        ////////qDebug()<<"joined files: "<<join_files_list;
 
         if (last_token_pos->token_type != TokenType::ON) {
             //error
@@ -529,11 +650,13 @@ namespace csvquery {
 
     void SelectStatement::handle_into_clause()
     {
-        //qDebug() << "Handling INTO clause...";
+        //////qDebug() << "Handling INTO clause...";
         ++last_token_pos; // next token
 
         this->out_file = read_file(QIODevice::WriteOnly);
         this->write_to_file = true;
+
+        file_writer_thread = std::make_unique<std::thread>(&SelectStatement::csv_file_writer, this); // run csv file reader in different thread
 
         QString of = out_file->get_token().string_value.toLower();
         foreach(auto file_name, join_files_list) {
@@ -543,7 +666,8 @@ namespace csvquery {
                 throw std::logic_error(error);
             }
         }
-        //qDebug() << "Done.";
+
+        //////qDebug() << "Done.";
         ++last_token_pos; // next token
 
         if (last_token_pos == tokens.cend()) {
@@ -558,6 +682,8 @@ namespace csvquery {
         error += last_token_pos->string_value;
         error += "' after INTO CLAUSE!";
         throw std::logic_error(error.toStdString());
+
+        
     }
 
     void SelectStatement::handle_inner_join()
@@ -567,7 +693,7 @@ namespace csvquery {
 
         ++last_token_pos; // next token
 
-        this->right_file = read_file();
+        this->right_file2 = read_file2();
         join_files_list["right"] = strings_table[right_file->get_token().string_value.toLower()];
 
         if (join_files_list["right"] == join_files_list["left"]) {
@@ -577,7 +703,7 @@ namespace csvquery {
             throw std::logic_error(error.toStdString());
         }
 
-        //qDebug() << "join files:" << join_files_list;
+        //////qDebug() << "join files:" << join_files_list;
 
         ++last_token_pos; // next token
         this->on_clause = read_on_clause();
@@ -612,7 +738,7 @@ namespace csvquery {
 
         ++last_token_pos; // next token
 
-        this->right_file = read_file();
+        this->right_file2 = read_file2();
         join_files_list["right"] = strings_table[right_file->get_token().string_value.toLower()];
 
         if (join_files_list["right"] == join_files_list["left"]) {
@@ -625,18 +751,18 @@ namespace csvquery {
         ++last_token_pos; // next token
         this->on_clause = read_on_clause();
 
-        //qDebug() << "done reading on clause";
+        //////qDebug() << "done reading on clause";
 
         ++last_token_pos; // next token
 
-        //qDebug() << "done moving to next token";
+        //////qDebug() << "done moving to next token";
 
         if (last_token_pos == tokens.cend()) {
             return;
         }
 
         if (last_token_pos->token_type == TokenType::END || last_token_pos->token_type == TokenType::SEMICOLON ) {
-            //qDebug() << "done parsing outer join";
+            //////qDebug() << "done parsing outer join";
             return;
         }
 
@@ -659,7 +785,7 @@ namespace csvquery {
 
         ++last_token_pos; // next token
 
-        this->right_file = read_file();
+        this->right_file2 = read_file2();
         join_files_list["right"] = right_file->get_token().string_value.toLower();
 
         if (join_files_list["right"] == join_files_list["left"]) {
@@ -693,7 +819,7 @@ namespace csvquery {
 
     void SelectStatement::handle_where_clause()
     {
-        //qDebug() << "----WHERE HANDLER CALLED!";
+        //////qDebug() << "----WHERE HANDLER CALLED!";
         this->has_where_clause = true;
         ++last_token_pos; // next token
 
@@ -706,7 +832,7 @@ namespace csvquery {
         //++last_token_pos; // next token
 
         if (last_token_pos == tokens.cend()) {
-            //qDebug() << "-------End of select found in where clause handler";
+            //////qDebug() << "-------End of select found in where clause handler";
             return;
         }
 
@@ -722,14 +848,14 @@ namespace csvquery {
             error += ") on line ";
             error += QString::number(last_token_pos->line_number).toStdString();
         }
-        //qDebug() << "Done with WHERE clause moving on to next clause...";
-        //qDebug() << "Token after where clause is " << last_token_pos->to_string() << " with string value: " << last_token_pos->string_value;
+        //////qDebug() << "Done with WHERE clause moving on to next clause...";
+        //////qDebug() << "Token after where clause is " << last_token_pos->to_string() << " with string value: " << last_token_pos->string_value;
         optional_actions[last_token_pos->token_type](); //call handler function for the next valid token
     }
 
     void SelectStatement::handle_having_clause()
     {
-        //qDebug() << "----HAVING Clause HANDLER CALLED!";
+        //////qDebug() << "----HAVING Clause HANDLER CALLED!";
         this->has_having_clause = true;
         ++last_token_pos; // next token
 
@@ -742,7 +868,7 @@ namespace csvquery {
         //++last_token_pos; // next token
 
         if (last_token_pos == tokens.cend()) {
-            //qDebug() << "-------End of select found in having clause handler";
+            //////qDebug() << "-------End of select found in having clause handler";
             return;
         }
 
@@ -764,26 +890,27 @@ namespace csvquery {
 
     void SelectStatement::handle_groupby_clause()
     {
-        //qDebug() << "group by found!";
+        //////qDebug() << "group by found!";
 
         has_group_by = true;
 
         ++last_token_pos; // next token
 
         throw_exception_if_unexpected_end();
-        //qDebug() << "Here!" << last_token_pos->to_string();
+        //////qDebug() << "Here!" << last_token_pos->to_string();
 
         while (last_token_pos != tokens.cend()) {
-            //qDebug() << "Here!" << last_token_pos->to_string();
+            //////qDebug() << "Here!" << last_token_pos->to_string();
             if (last_token_pos->token_type == TokenType::SEMICOLON || last_token_pos->token_type == TokenType::END 
                 || last_token_pos->token_type ==TokenType::INTO
                 || last_token_pos->token_type == TokenType::LIMIT
+                || last_token_pos->token_type == TokenType::HAVING
                 ) 
             {
-                //qDebug() << "exit Here!" << last_token_pos->to_string();
+                //////qDebug() << "exit Here!" << last_token_pos->to_string();
                 break;
             }
-            //qDebug() << "token: " << last_token_pos->to_string();
+            //////qDebug() << "token: " << last_token_pos->to_string();
             if (last_token_pos->token_type == TokenType::COLUMNNUMBER) {
 
                 if (has_join) {
@@ -795,7 +922,7 @@ namespace csvquery {
                 }
 
                 this->group_by_columns.append(last_token_pos->string_value.toLower());
-                //qDebug() << "group by columns"<<group_by_columns;
+                //////qDebug() << "group by columns"<<group_by_columns;
             }
             else if (last_token_pos->token_type == TokenType::COLUMNNAME) {
                 this->group_by_columns.append(last_token_pos->string_value.toLower());
@@ -822,7 +949,7 @@ namespace csvquery {
                 }
                 
                 QString file_name = strings_table[name_parts[0].toLower()];
-                //qDebug() << "join table " << join_files_list;
+                //////qDebug() << "join table " << join_files_list;
                 if (file_name != join_files_list["left"] && file_name != join_files_list["right"]) {
                     QString error = "1 Unknown column in group by clause ";
                     error += last_token_pos->string_value;
@@ -857,7 +984,7 @@ namespace csvquery {
         }
 
         //++last_token_pos; // next token
-        //qDebug() << "group by columns: " << group_by_columns;
+        //////qDebug() << "group by columns: " << group_by_columns;
 
         if (last_token_pos == tokens.cend()) {
             return;
@@ -906,49 +1033,58 @@ namespace csvquery {
 
 
         // read file name or path string and open file
-        this->left_file = read_file();
-        join_files_list["left"] = strings_table[left_file->get_token().string_value.toLower()];
+        this->left_file2 = read_file2();
+        join_files_list["left"] = strings_table[left_file2->get_token().string_value.toLower()];
+
+        file_reader_thread = std::make_unique<std::thread>(&SelectStatement::csv_file_reader, this); // run csv file reader in different thread
 
         ++last_token_pos; // next token
-        ////qDebug()<<"1. token after left file is "<< last_token_pos->to_string() <<" {"<<last_token_pos->string_value<<"}";
+        ////////qDebug()<<"1. token after left file is "<< last_token_pos->to_string() <<" {"<<last_token_pos->string_value<<"}";
 
         if ((last_token_pos == tokens.cend()) || (last_token_pos->token_type == TokenType::SEMICOLON)) {
+            //file_reader_thread = std::make_unique<std::thread>(&SelectStatement::csv_file_reader, this); // run csv file reader in different thread
             return;
         }
 
-        ////qDebug()<<"2. token after left file is "<< last_token_pos->to_string()<<" {"<<last_token_pos->string_value<<"}";
+        ////////qDebug()<<"2. token after left file is "<< last_token_pos->to_string()<<" {"<<last_token_pos->string_value<<"}";
         // What is the next token?
+
+        std::function<void()> action;
+
         if (last_token_pos->token_type == TokenType::INNERJOIN) {
-            optional_actions[last_token_pos->token_type](); //call handler function for the next valid token
+            action = optional_actions[last_token_pos->token_type]; //call handler function for the next valid token
         }
         else if (last_token_pos->token_type == TokenType::OUTERJOIN) {
-            optional_actions[last_token_pos->token_type](); //call handler function for the next valid token
+            action = optional_actions[last_token_pos->token_type]; //call handler function for the next valid token
         }
         else if (last_token_pos->token_type == TokenType::CROSSJOIN) {
-            optional_actions[last_token_pos->token_type](); //call handler function for the next valid token
+            action = optional_actions[last_token_pos->token_type]; //call handler function for the next valid token
         }
         else if (last_token_pos->token_type == TokenType::WHERE) {
-            optional_actions[last_token_pos->token_type](); //call handler function for the next valid token
+            action = optional_actions[last_token_pos->token_type]; //call handler function for the next valid token
         }
         else if (last_token_pos->token_type == TokenType::GROUPBY) {
-            optional_actions[last_token_pos->token_type](); //call handler function for the next valid token
+            action = optional_actions[last_token_pos->token_type]; //call handler function for the next valid token
         }
         else if (last_token_pos->token_type == TokenType::HAVING) {
-            optional_actions[last_token_pos->token_type](); //call handler function for the next valid token
+            action = optional_actions[last_token_pos->token_type]; //call handler function for the next valid token
         }
         else if (last_token_pos->token_type == TokenType::INTO) {
-            optional_actions[last_token_pos->token_type](); //call handler function for the next valid token
+            action = optional_actions[last_token_pos->token_type]; //call handler function for the next valid token
         }
         else if (last_token_pos->token_type == TokenType::LIMIT) {
-            optional_actions[last_token_pos->token_type](); //call handler function for the next valid token
+            action = optional_actions[last_token_pos->token_type]; //call handler function for the next valid token
         }
         else { // invalid token
             double line_numer = (*last_token_pos).line_number;
             QString str_num = QString::number(line_numer);
+            
 
             throw std::logic_error("2. Unexpected end to SELECT statement on line " + str_num.toStdString());
         }
-        //qDebug("parsing select done.");
+        //////qDebug("parsing select done.");
+        //file_reader_thread = std::make_unique<std::thread>(&SelectStatement::csv_file_reader, this); // run csv file reader in different thread
+        action();
     }
 
 
@@ -956,6 +1092,7 @@ namespace csvquery {
     QStringList SelectStatement::compute_columns(const QMap<QString, QStringList>& data_rows)
     {
         QStringList columns;
+        columns.reserve(10);
         foreach(auto e, column_exprs) {
             Term ct = e.eval(data_rows);
             QString column;
@@ -963,7 +1100,7 @@ namespace csvquery {
                 column = ct.get_token().string_value;
             }
             else if (ct.get_token().token_type == TokenType::NUMBER) {
-                //qDebug() << "number: " << ct.get_token().number_value;
+                //////qDebug() << "number: " << ct.get_token().number_value;
 
                 const double epsilon = 1e-9;
                 double num = ct.get_token().number_value;
@@ -980,6 +1117,48 @@ namespace csvquery {
         return columns;
     }
 
+    std::function<QStringList(const QMap<QString, QStringList>&)> SelectStatement::compile_columns(const QMap<QString, QStringList> data_rows)
+    {
+        QList<std::function<Term(const QMap<QString, QStringList>&)>> compiled_columns;
+        compiled_columns.reserve(column_exprs.size());
+
+        //const QMap<QString, QStringList> data_rows = data_rows;
+
+        for (auto& expr : column_exprs) {
+            compiled_columns.append(expr.compile(data_rows)); // Must capture data_rows by value!
+        }
+
+        return [compiled_columns = std::move(compiled_columns)](
+            const QMap<QString, QStringList>& data_row) mutable -> QStringList
+            {
+                QStringList result;
+                result.reserve(compiled_columns.size());
+
+                for (const auto& func : compiled_columns) {
+                    Term term = func(data_row);
+                    const Token& token = term.get_token();
+                    QString col;
+
+                    switch (token.token_type) {
+                    case TokenType::STRING:
+                        col = token.string_value;
+                        break;
+                    case TokenType::NUMBER: {
+                        double num = token.number_value;
+                        bool is_integer = std::fabs(num - std::round(num)) < 1e-9;
+                        col = is_integer ? QString::number(num, 'f', 0)
+                            : QString::number(num, 'f', 6);
+                        break;
+                    }
+                    default:
+                        col = ""; // or "<null>", or throw
+                        break;
+                    }
+                    result.append(col);
+                }
+                return result;
+            };
+    }
 
     QString SelectStatement::create_group_by_key(const QMap<QString, QStringList>& data_rows)
     {
@@ -994,7 +1173,7 @@ namespace csvquery {
             QStringList vals;
             foreach(auto c, this->group_by_columns) {
                 Token tk;
-                //qDebug() << "creating group by key with column: "<< c;
+                //////qDebug() << "creating group by key with column: "<< c;
                 if (c.front() == "[") {
                     tk.token_type = TokenType::COLUMNNUMBER;
                     tk.string_value = c;
@@ -1008,15 +1187,71 @@ namespace csvquery {
                     tk.string_value = c;
                 }
                 Term tm(tk);
-                //qDebug() << "creating group by key with column (tm.eval(data_rows).string_value): " << tm.eval(data_rows).string_value;
+                //////qDebug() << "creating group by key with column (tm.eval(data_rows).string_value): " << tm.eval(data_rows).string_value;
                 vals.append(tm.eval(data_rows).string_value); //get current value for group by column
             }
             key = vals.join(",");
-            //qDebug() << "key is " << key;
+            //////qDebug() << "key is " << key;
         }
 
 
         return key;
+    }
+
+    std::function < QString(const QMap<QString, QStringList>&)> SelectStatement::compile_group_by_key(const QMap<QString, QStringList>& data_rows)
+    {
+
+        std::function < QString(const QMap<QString, QStringList>&)> group_by_fuc;
+
+        QStringList row;
+        QString key;
+
+        if (this->group_by_columns.isEmpty()) {
+
+            group_by_fuc = [](const QMap<QString, QStringList>& data_rows) {
+                QString key = "$";
+                return key;
+                };
+
+            return group_by_fuc;
+        }
+        else {
+            //QStringList vals;
+            QList<std::function<Token(const QMap<QString, QStringList>& )>> vals_func;
+            foreach(auto c, this->group_by_columns) {
+                Token tk;
+                //////qDebug() << "creating group by key with column: "<< c;
+                if (c.front() == "[") {
+                    tk.token_type = TokenType::COLUMNNUMBER;
+                    tk.string_value = c;
+                    c = c.trimmed();
+                    c.remove(0, 1); //delete [
+                    c.chop(1); // delete trailing ]
+                    tk.number_value = c.toInt();
+                }
+                else {
+                    tk.token_type = TokenType::NAME;
+                    tk.string_value = c;
+                }
+                Term tm(tk);
+                //////qDebug() << "creating group by key with column (tm.eval(data_rows).string_value): " << tm.eval(data_rows).string_value;
+                //vals.append(tm.eval(data_rows).string_value); //get current value for group by column
+                vals_func.append(tm.compile(data_rows));
+            }
+            //key = vals.join(",");
+            //////qDebug() << "key is " << key;
+            group_by_fuc = [vals_func](const QMap<QString, QStringList>& data_rows) {
+                QStringList vals;
+                foreach(auto& f, vals_func) {
+                    vals.append(f(data_rows).string_value);
+                }
+
+                return vals.join(",");
+            };
+        }
+
+
+        return group_by_fuc;
     }
 
     void SelectStatement::validate_aggregate_query()
@@ -1077,147 +1312,417 @@ namespace csvquery {
         }
     }
 
-    std::optional<QList<QStringList>> SelectStatement::select_with_no_join()
+    bool SelectStatement::process_data(const QStringList& row)
     {
-        QList<QStringList> result;
-        QHash<QString, QStringList> group_by_result;
+        QMap<QString, QStringList> data_rows;
+        data_rows["$"] = row;
+        QStringList columns;
 
-        if (limit_done) {
-            return std::nullopt; //prevent select being run again because of pagination code in main.cpp
-        }
+        //std::function<Term(const QMap<QString, QStringList>&)> compiled_conditional_func;
+        //std::function < QString(const QMap<QString, QStringList>&)> compiled_group_by_key_func;
+        //std::function<QStringList(const QMap<QString, QStringList>&)> compiled_columns_func;
 
-        if (!has_group_by && !is_aggregation && has_having_clause ) {
-            QString error = "Invalid Having clause in a non-aggregate Select statement!";
-            throw std::logic_error(error.toStdString());
-        }
+        //qDebug() << "row size: " << row.size() << " row:"<< row;
 
-        ////qDebug()<<"Executing select with no join";
+        if (has_where_clause) {
+            //Term t = conditional_expr->eval(data_rows);
+            Term t;
 
-        //qDebug() << "group by list: " << group_by_columns;
-
-        // validate columns in select with group by or aggregate function
-        if (has_group_by || is_aggregation) {
-            validate_aggregate_query();
-        }
-
-        while (!left_file->end_of_file()) {
-            QStringList row = left_file->readRow();
-
-            QMap<QString, QStringList> data_rows;
-            data_rows["$"] = row;
-
-            QStringList columns;
-
-            if (has_where_clause) {
-                Term t = conditional_expr->eval(data_rows);
-                ////qDebug()<<"Conditional evaluation done.";
-
-                if (t.get_token().boolean_value == true) {
-
-                    //columns = compute_columns(data_rows);
-
-                    if (has_group_by || is_aggregation) {
-                        QString result_key = create_group_by_key(data_rows);
-                        aggregate_expression_reg_key = result_key;
-
-                        columns = compute_columns(data_rows);
-
-                        group_by_result[result_key] = columns;
-                    }
-                    else {
-
-                        if (has_limit_clause && LIMIT_VAL == NUMBER_OF_ROWS) { // handle limit clause
-                            limit_done = true;
-                            break;
-                        }
-
-                        columns = compute_columns(data_rows);
-                        //write to file?
-                        if (write_to_file) {
-                            out_file->writeLine(columns.join(','));
-                            ++NUMBER_OF_ROWS;
-
-                            //if ((write_to_file == false) && (NUMBER_OF_ROWS % NUMBER_OF_ROWS_PER_PAGE == 0)) { // paginate
-                            //    return result;
-                            //}
-                        }
-                        else {
-                            result.append(columns);
-                            ++NUMBER_OF_ROWS;
-
-                            if ((write_to_file == false) && (NUMBER_OF_ROWS % NUMBER_OF_ROWS_PER_PAGE == 0)) { // paginate
-                                if (NUMBER_OF_ROWS == 0) {
-                                    return std::nullopt;
-                                }
-                                return result;
-                            }
-                        }
-                    }
-                    
-                }
+            if (!is_conditional_compiled) {
+                compiled_conditional_func = conditional_expr->compile(data_rows);
+                t = compiled_conditional_func(data_rows);
+                is_conditional_compiled = true;
             }
-            else { //no where clause
+            else {
+                t = compiled_conditional_func(data_rows);
+            }
+            
+            ////////qDebug()<<"Conditional evaluation done.";
+
+            if (t.get_token().boolean_value == true) {
+
                 //columns = compute_columns(data_rows);
 
                 if (has_group_by || is_aggregation) {
-                    QString result_key = create_group_by_key(data_rows);
+
+                    //qDebug() << "processing group by with where clause";
+                    //QString result_key = create_group_by_key(data_rows);
+                    QString result_key;
+
+                    if (!is_group_by_key_compiled) {
+                        compiled_group_by_key_func = compile_group_by_key(data_rows);
+                        result_key = compiled_group_by_key_func(data_rows);
+                        is_group_by_key_compiled = true;
+                    }
+                    else {
+                        result_key = compiled_group_by_key_func(data_rows);
+                    }
+
                     aggregate_expression_reg_key = result_key;
 
-                    columns = compute_columns(data_rows);
+                    //columns = compute_columns(data_rows);
+
+                    if (!are_columns_compiled) {
+                        compiled_columns_func = compile_columns(data_rows);
+                        columns = compiled_columns_func(data_rows);
+                        are_columns_compiled = true;
+                    }
+                    else {
+                        columns = compiled_columns_func(data_rows);
+                    }
+
                     group_by_result[result_key] = columns;
+
+                    //qDebug() << "Done.";
                 }
                 else {
 
                     if (has_limit_clause && LIMIT_VAL == NUMBER_OF_ROWS) { // handle limit clause
                         limit_done = true;
-                        break;
+                        //break;
+                        done_consuming.store(true, std::memory_order_release);
+                        return true; //end processing
                     }
 
-                    columns = compute_columns(data_rows);
+                    //columns = compute_columns(data_rows);
+                    if (!are_columns_compiled) {
+                        compiled_columns_func = compile_columns(data_rows);
+                        columns = compiled_columns_func(data_rows);
+                        are_columns_compiled = true;
+                    }
+                    else {
+                        columns = compiled_columns_func(data_rows);
+                    }
 
                     //write to file?
                     if (write_to_file) {
-                        out_file->writeLine(columns.join(','));
+                        //out_file->writeLine(columns.join(','));
+                        write_queue->push(columns.join(','));
+
                         ++NUMBER_OF_ROWS;
+                        //++NUMBER_OF_ROWS_IN_CSV; // used for count(*)
+                        //NUMBER_OF_ROWS.fetch_add(1);
 
                         //if ((write_to_file == false) && (NUMBER_OF_ROWS % NUMBER_OF_ROWS_PER_PAGE == 0)) { // paginate
                         //    return result;
                         //}
                     }
                     else {
-                        result.append(columns);
+                        result->append(columns);
                         ++NUMBER_OF_ROWS;
+                        //++NUMBER_OF_ROWS_IN_CSV; // used for count(*)
+                        //NUMBER_OF_ROWS.fetch_add(1);
 
                         if ((write_to_file == false) && (NUMBER_OF_ROWS % NUMBER_OF_ROWS_PER_PAGE == 0)) { // paginate
                             if (NUMBER_OF_ROWS == 0) {
-                                return std::nullopt;
+                                //return std::nullopt;
+                                result = std::nullopt;
+                                
                             }
-                            return result;
+                            //return result;
+                            //query_done.store(false, std::memory_order_release);
+                            paused.store(true, std::memory_order_release);
+                            return true; // end processing
                         }
                     }
                 }
 
             }
+        }
+        else { //no where clause
+            //columns = compute_columns(data_rows);
 
-            columns = {}; //reset
             if (has_group_by || is_aggregation) {
-                for (auto it = check_if_aggregate_done.begin(); it != check_if_aggregate_done.end(); ++it) {
-                    //it.value().value() = false;
-                    for (auto i = it.value().begin(); i != it.value().end(); ++i) {
-                        i.value() = false;
+                //QString result_key = create_group_by_key(data_rows);
+                
+
+                QString result_key;
+
+                if (!is_group_by_key_compiled) {
+                    compiled_group_by_key_func = compile_group_by_key(data_rows);
+                    result_key = compiled_group_by_key_func(data_rows);
+                    is_group_by_key_compiled = true;
+                }
+                else {
+                    result_key = compiled_group_by_key_func(data_rows);
+                }
+
+                aggregate_expression_reg_key = result_key;
+
+                //columns = compute_columns(data_rows);
+                if (!are_columns_compiled) {
+                    compiled_columns_func = compile_columns(data_rows);
+                    columns = compiled_columns_func(data_rows);
+                    are_columns_compiled = true;
+                }
+                else {
+                    columns = compiled_columns_func(data_rows);
+                }
+
+                group_by_result[result_key] = columns;
+            }
+            else {
+
+                if (has_limit_clause && LIMIT_VAL == NUMBER_OF_ROWS) { // handle limit clause
+                    limit_done = true;
+                    //break;
+                    done_consuming.store(true, std::memory_order_release);
+                    return true; // end processing
+                }
+
+                //columns = compute_columns(data_rows);
+                if (!are_columns_compiled) {
+                    //////qDebug() << "compiling columns";
+                    compiled_columns_func = compile_columns(data_rows);
+                    //////qDebug() << "Done.";
+                    //////qDebug() << "using compiled function";
+                    columns = compiled_columns_func(data_rows);
+                    //////qDebug() << "Done.";
+                    //////qDebug() << "columns: " << columns;
+                    are_columns_compiled = true;
+                }
+                else {
+                    //////qDebug() << "calling compiled function again.";
+                    columns = compiled_columns_func(data_rows);
+                    //////qDebug() << "Done.";
+                    //////qDebug() << "columns: "<<columns;
+                }
+
+                //write to file?
+                if (write_to_file) {
+                    //out_file->writeLine(columns.join(','));
+                    write_queue->push(columns.join(','));
+                    ++NUMBER_OF_ROWS;
+
+                    //++NUMBER_OF_ROWS_IN_CSV; // used for count(*)
+                    //NUMBER_OF_ROWS.fetch_add(1);
+
+                    //if ((write_to_file == false) && (NUMBER_OF_ROWS % NUMBER_OF_ROWS_PER_PAGE == 0)) { // paginate
+                    //    return result;
+                    //}
+                }
+                else {
+                    result->append(columns);
+                    ++NUMBER_OF_ROWS;
+                    //++NUMBER_OF_ROWS_IN_CSV; // used for count(*)
+                    //NUMBER_OF_ROWS.fetch_add(1);
+
+                    if ((write_to_file == false) && (NUMBER_OF_ROWS % NUMBER_OF_ROWS_PER_PAGE == 0)) { // paginate
+                        if (NUMBER_OF_ROWS == 0) {
+                            //return std::nullopt;
+                            result = std::nullopt;
+                        }
+                        //query_done.store(false, std::memory_order_release);
+                        paused.store(true, std::memory_order_release);
+                        return true; // end processing
+                        //return result;
                     }
                 }
             }
-            
+
         }
 
+        //columns = {}; //reset
+        ////qDebug() << "Resetting is_aggregation";
+        if (has_group_by || is_aggregation) {
+            for (auto it = check_if_aggregate_done.begin(); it != check_if_aggregate_done.end(); ++it) {
+                //it.value().value() = false;
+                for (auto i = it.value().begin(); i != it.value().end(); ++i) {
+                    i.value() = false;
+                }
+            }
+        }
+        ////qDebug() << "Done";
+
+        return false; //continue processing
+    }
+    
+    /*
+    void SelectStatement::consume_data()
+    {
+        QList<QStringList>* batch;
+        //batch.reserve(PROCESS_BATCH_ROWS);
+        bool stop = false;
+        while (true) {
+
+            while (processing_queue.pop(batch)) {
+                foreach(auto& row, (*batch)) {
+                    stop = process_data(row);
+                    if ((query_done && processing_queue.empty()) || stop) {
+                        delete batch;
+                        return;
+                    }
+                }
+            }
+
+            if ((query_done && processing_queue.empty()) || stop) {
+                delete batch;
+                return;
+            }
+            QThread::msleep(10);
+        }
+
+        
+    }
+    */
+
+    void SelectStatement::csv_file_writer()
+    {
+        //////qDebug() << "write thread started";
+        while(!done_producing.load(std::memory_order_acquire) || !write_queue->empty()){
+            QString row;
+            if (write_queue->pop(row)) {
+                //write_queue->pop();
+                //////qDebug() << "writing row";
+                out_file->writeLine(row);
+                //////qDebug() << "done.";
+            }
+            else {
+                std::this_thread::yield();
+            }
+            
+        }
+        //////qDebug() << "exiting write thread";
+    }
+
+    void SelectStatement::csv_file_reader()
+    {
+        csv::CSVRow row;
+        std::deque<csv::CSVRow> batch;
+        //batch.reserve(BATCH_ROWS);
+
+        while (left_file2->readRow(row)) {
+            if (canceled.load()) break;
+
+            batch.push_back(std::move(row));
+            //++rows_produced;
+            row = csv::CSVRow();
+
+            while (paused.load()) {
+                if (canceled.load()) return;
+                std::this_thread::sleep_for(std::chrono::milliseconds(10));
+            }
+
+            if (batch.size() >= BATCH_ROWS) {
+                while (!queue->push(batch)) {
+                    std::this_thread::yield();
+                    if (canceled.load()) return;
+                }
+                rows_produced += BATCH_ROWS;
+                ++batches_produced;
+                batch = std::deque<csv::CSVRow>();
+                //batch.reserve(BATCH_ROWS);
+            }
+        }
+
+        if (!batch.empty() && !canceled.load()) {
+            while (!queue->push(batch)) {
+                std::this_thread::yield();
+                if (canceled.load()) return;
+            }
+            //queue->push(std::move(batch));
+            rows_produced += batch.size();
+        }
+
+        done_producing.store(true, std::memory_order_release);
+    }
+
+    std::optional<QList<QStringList>> SelectStatement::select_with_no_join()
+    {
+        result = QList<QStringList>();
+        result->reserve(NUMBER_OF_ROWS_PER_PAGE);
+
+        if (limit_done) {
+            return std::nullopt; //prevent select being run again because of pagination code in main.cpp
+        }
+
+        if (!has_group_by && !is_aggregation && has_having_clause) {
+            QString error = "Invalid Having clause in a non-aggregate Select statement!";
+            throw std::logic_error(error.toStdString());
+        }
+
+        // validate columns in select with group by or aggregate function
+        if (has_group_by || is_aggregation) {
+            group_by_result.reserve(BATCH_ROWS);
+            validate_aggregate_query();
+        }
+
+        //QStringList r;
+        //r.reserve(10);
+        bool stop = false;
+
+        //////qDebug() << "select called";
+        //////qDebug() << "queue size: " << queue->size();
+
+        try {
+            std::deque<csv::CSVRow> batch;
+
+            for (;;) {
+                if (canceled.load()) break;
+
+                if (!reserve_batch.empty()) {
+                    batch = std::move(reserve_batch);
+                    reserve_batch = std::deque<csv::CSVRow>();
+                }
+                else if (!queue->pop(batch)) {
+                    if (done_producing.load(std::memory_order_acquire))
+                        break; // Nothing more will come
+                    std::this_thread::yield();
+                    continue;
+                }
+
+                while (!batch.empty()) {
+                    csv::CSVRow csvrow = batch.front(); //batch.takeFirst(); 
+                    batch.pop_front(); //delete first element
+
+                    QStringList row;
+                    for (auto& field : csvrow)
+                        row.append(QString::fromStdString(field.get<std::string>()));
+
+                    if (row.count() == 1 && row.at(0).trimmed().isEmpty()) {
+                        ++skipped_rows;
+                        continue;
+                    }
+
+                    bool stop = process_data(row);
+                    ++rows_consumed;
+
+                    if (stop) {
+                        if (paused.load()) reserve_batch = std::move(batch);
+                        break;
+                    }
+                }
+                //reserve_batch = batch;
+            }
+
+            if (!has_group_by && !is_aggregation)
+                done_consuming.store(true, std::memory_order_release);
+        }
+        catch (std::exception& e) {
+            qDebug() << "Exception: "<< e.what();
+        }
+        catch (...) {
+            qDebug() << "Exception!";
+        }
+
+        //qDebug() << "query done.";
+        //file_reader_thread->join();
+        //////qDebug() << "file_reader_thread done.";
+        //////qDebug() << "result size: " << result.value_or({}).count();
 
         // process aggregation result
         if (has_group_by || is_aggregation) {
+            //qDebug() << "Processing group by result for display...";
+            //////qDebug() << "Number of rows in group result: "<<NUMBER_OF_ROWS;
             group_by_result_loc = (paginate) ? group_by_result_loc : group_by_result.begin();
 
-            for(; group_by_result_loc != group_by_result.end(); ++group_by_result_loc){
-            //foreach(auto row, group_by_result) {
+            if(group_by_result_loc == group_by_result.end()){
+                //////qDebug() << "At group by result end";
+                return std::nullopt; //end pagination; all rows shown
+            }
+
+            for (; group_by_result_loc != group_by_result.end(); ++group_by_result_loc) {
+                //foreach(auto row, group_by_result) {
                 QStringList& row = group_by_result_loc.value();
 
                 QMap<QString, QStringList> data_rows;
@@ -1229,17 +1734,34 @@ namespace csvquery {
                 }
 
                 if (has_having_clause) {
-                    Term t = having_conditional_expr->eval(data_rows);
-                    ////qDebug()<<"Conditional evaluation done.";
+                    Term t; // = having_conditional_expr->eval(data_rows);
+                    //////qDebug()<<"Having clause...";
+
+                    
+                    if (!is_having_conditional_compiled) {
+                        compiled_having_conditional_func = having_conditional_expr->compile(data_rows);
+                        t = compiled_having_conditional_func(data_rows);
+                        is_having_conditional_compiled = true;
+                    }
+                    else {
+                        t = compiled_having_conditional_func(data_rows);
+                    }
+                    
+                    //////qDebug() << "having clause is " << t.get_token().boolean_value <<" for: "<< row;
 
                     if (t.get_token().boolean_value == true) {
                         if (write_to_file) {
-                            out_file->writeLine(row.join(','));
+                            //out_file->writeLine(row.join(','));
+                            write_queue->push(row.join(','));
                             ++NUMBER_OF_ROWS;
+                            //++NUMBER_OF_ROWS_IN_CSV; // used for count(*)
+                            //NUMBER_OF_ROWS.fetch_add(1);
                         }
                         else {
-                            result.append(row);
+                            result->append(row);
                             ++NUMBER_OF_ROWS;
+                            //++NUMBER_OF_ROWS_IN_CSV; // used for count(*)
+                            //NUMBER_OF_ROWS.fetch_add(1);
 
                             if ((write_to_file == false) && (NUMBER_OF_ROWS % NUMBER_OF_ROWS_PER_PAGE == 0)) { // paginate
 
@@ -1255,12 +1777,17 @@ namespace csvquery {
                 }
                 else {
                     if (write_to_file) {
-                        out_file->writeLine(row.join(','));
+                        //out_file->writeLine(row.join(','));
+                        write_queue->push(row.join(','));
                         ++NUMBER_OF_ROWS;
+                        //++NUMBER_OF_ROWS_IN_CSV; // used for count(*)
+                        //NUMBER_OF_ROWS.fetch_add(1);
                     }
                     else {
-                        result.append(row);
+                        result->append(row);
                         ++NUMBER_OF_ROWS;
+                        //++NUMBER_OF_ROWS_IN_CSV; // used for count(*)
+                        //NUMBER_OF_ROWS.fetch_add(1);
 
                         if ((write_to_file == false) && (NUMBER_OF_ROWS % NUMBER_OF_ROWS_PER_PAGE == 0)) { // paginate
 
@@ -1275,14 +1802,27 @@ namespace csvquery {
                 }
             }
         }
+        
+        if (has_group_by || is_aggregation) { //signal reader and writer that aggregation query is done
+            done_consuming.store(true, std::memory_order_release);
+        }
+
+
+        if (!paginate) {
+            group_by_result.clear();
+        }
+        
+        //////qDebug() << "result size:" << result->size();
 
         if (write_to_file) {
             return std::nullopt;
         }
 
-        if (result.isEmpty()) {
+        if (result->isEmpty()) {
             return std::nullopt;
         }
+
+
 
         return result;
     }
@@ -1316,7 +1856,7 @@ namespace csvquery {
             columns = compute_columns(data_rows);
             group_by_result[result_key] = columns;
 
-            //qDebug() << "group by result:" << columns;
+            //////qDebug() << "group by result:" << columns;
 
             //write to file?
             /*
@@ -1335,7 +1875,7 @@ namespace csvquery {
             aggregate_expression_reg_key = result_key;
             columns = compute_columns(data_rows);
             group_by_result[result_key] = columns;
-            //qDebug() << "group by result:" <<columns;
+            //////qDebug() << "group by result:" <<columns;
 
             //write to file?
             /*
@@ -1396,7 +1936,7 @@ namespace csvquery {
         //QHash<QString, QStringList> group_by_result;
 
         if (limit_done) { // prevent rerun because of pagination code in main.cpp when handling limit]
-            //qDebug() << "limit done";
+            //////qDebug() << "limit done";
             return std::nullopt;
         }
 
@@ -1424,11 +1964,11 @@ namespace csvquery {
 
         // build index
         if (!paginate) {
-            //qDebug() << "indexing...";
+            //////qDebug() << "indexing...";
             //query_lookup_index = std::make_shared<QHash<QString, QList<qint64>> >();
-            //qDebug() << "query index: " << query_index;
+            //////qDebug() << "query index: " << query_index;
             query_lookup_index = build_index(this->right_file, this->query_index);
-            //qDebug() << "done.";
+            //////qDebug() << "done.";
         }
 
         //bool indexing_done = false;
@@ -1463,7 +2003,7 @@ namespace csvquery {
 
                     if (has_limit_clause && LIMIT_VAL == NUMBER_OF_ROWS) { // handle limit clause
                         limit_done = true;
-                        qDebug() << "applying limit";
+                        ////qDebug() << "applying limit";
                         break;
                     }
 
@@ -1518,7 +2058,7 @@ namespace csvquery {
 
                 if (has_having_clause) {
                     Term t = having_conditional_expr->eval(data_rows);
-                    ////qDebug()<<"Conditional evaluation done.";
+                    ////////qDebug()<<"Conditional evaluation done.";
 
                     if (t.get_token().boolean_value == true) {
                         if (write_to_file) {
@@ -1582,7 +2122,7 @@ namespace csvquery {
         QList<QStringList> result;
         //QHash<QString, QStringList> group_by_result; changed to class member
 
-        //qDebug() << "Selecting with outer join";
+        //////qDebug() << "Selecting with outer join";
 
         if (limit_done) { // prevent rerun because of pagination code in main.cpp when handling limit
             return std::nullopt;
@@ -1611,7 +2151,7 @@ namespace csvquery {
 
         // build index
         if (!paginate) {
-            //qDebug() << "right file: " << this->right_file->get_token().string_value;
+            //////qDebug() << "right file: " << this->right_file->get_token().string_value;
             //query_lookup_index = std::make_shared<QHash<QString, QList<qint64>> >();
             query_lookup_index = build_index(this->right_file, this->query_index);
         }
@@ -1626,7 +2166,7 @@ namespace csvquery {
             data_rows[join_files_list["left"]] = row;
 
             //QStringList columns;
-           // qDebug() << "in outer join loop";
+           // ////qDebug() << "in outer join loop";
 
             if (!query_lookup_index->contains(row[query_index])) { // key does not exist in right file
 
@@ -1719,14 +2259,14 @@ namespace csvquery {
 
         if (has_group_by || is_aggregation) {
             group_by_result_loc = (paginate) ? group_by_result_loc : group_by_result.begin();
-            //qDebug() << "group by";
-            //qDebug() << group_by_result_loc;
+            //////qDebug() << "group by";
+            //////qDebug() << group_by_result_loc;
 
             for (; group_by_result_loc != group_by_result.end(); ++group_by_result_loc) {
             //foreach(auto row, group_by_result) {
                 QStringList& row = group_by_result_loc.value();
                 // ;
-                //qDebug() << "row " << row;
+                //////qDebug() << "row " << row;
                 QMap<QString, QStringList> data_rows;
                 data_rows["$"] = row;
 
@@ -1737,7 +2277,7 @@ namespace csvquery {
 
                 if (has_having_clause) {
                     Term t = having_conditional_expr->eval(data_rows);
-                    ////qDebug()<<"Conditional evaluation done.";
+                    ////////qDebug()<<"Conditional evaluation done.";
 
                     if (t.get_token().boolean_value == true) {
                         if (write_to_file) {
@@ -1806,7 +2346,9 @@ namespace csvquery {
             QMap<QString, QStringList> data_rows;
             QList<QStringList> res;
             data_rows["$"] = { "" };
-            res.append(compute_columns(data_rows));
+            auto comp_f = compile_columns(data_rows);
+            res.append(comp_f(data_rows));
+            //res.append(compute_columns(data_rows));
             result = res;
             ++NUMBER_OF_ROWS;
 

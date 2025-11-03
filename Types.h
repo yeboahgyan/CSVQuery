@@ -82,6 +82,7 @@ namespace csvquery {
 
         QList<Token> func_args;
         std::function<Term(QList<Term>)> func;
+        std::function<std::function<Term(QList<Term>)>(QList<Term>)> comp_func;
 
         double line_number;
         QString error_msg;
@@ -101,6 +102,10 @@ namespace csvquery {
     extern QHash<QString, QString> strings_table; // {name, string}
 
     extern QHash<QString, std::function<Term(QList<Term>)> > funcs_table; // function name, "pointer to function"
+
+    extern QHash<QString,
+        std::function< std::function<Term(QList<Term>)>(QList<Term>)> >
+        funcs_compiler_table; // "pointer to function" "pointer to function compiler"
 
     //extern QHash<QString, int> func_args_number_table; // information on the number of arguments for a function
 
@@ -228,6 +233,10 @@ namespace csvquery {
     extern QString aggregate_expression_reg_key; // This is set within SelectStatement class and  used in aggregate functions 
     extern  QMap<QString, QMap<QString,std::shared_ptr<AggregateCounter> > > aggregate_expression_reg; // select statement initiates this with aggregate functions; it also empties it when done
     extern QMap<QString, QMap<QString, bool>> check_if_aggregate_done; // used to prevent multiple aggregation in a select execution loop {group_by_key, {function , bool}}
+
+    extern qint64 NUMBER_OF_ROWS_IN_CSV; // This is use for count(*); counting is done in SelectStatement::process_data and reset to 0 in the destructor of SelectStatement
+
+    extern QHash<bool, qint64> eq_count; //This is used for debugging conditional eq()
 }
 
 #endif // TYPES_H

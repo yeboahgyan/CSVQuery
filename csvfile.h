@@ -8,46 +8,38 @@
 
 namespace csvquery {
 
-    class CSVFile
-    {
-        std::shared_ptr<QBuffer> buffer;
-        std::shared_ptr<QTextStream> stream;
-        Token token;
-        std::shared_ptr<QFile> f;
+    class CSVFile {
+        std::shared_ptr<QFile> file_;
+        char* mapped_data_;
+        qint64 file_size_;
+        qint64 pos_;
+        Token token_;
 
     public:
-        CSVFile(const QString& file_path, QIODeviceBase::OpenMode m = QIODevice::ReadOnly);
-
-        //CSVFile(const CSVFile&) = delete; // Delete copy constructor
-        //CSVFile& operator=(const CSVFile&) = delete; // Delete copy assignment operator
-
-
+        CSVFile(const QString& file_path, QIODeviceBase::OpenMode mode = QIODevice::ReadOnly);
+        ~CSVFile();
 
         QStringList readRow();
-
         void writeLine(const QString& text);
-
         void write(const QString& text);
 
-        bool end_of_file() {
-            return stream->atEnd();
+        bool end_of_file() const {
+            return pos_ >= file_size_;
         }
 
-        void set_token(Token t) { token = t; }
-        Token get_token() const { return token; }
+        void set_token(Token t) { token_ = t; }
+        Token get_token() const { return token_; }
 
-        qint64 get_pos() {
-            return stream->pos();
+        qint64 get_pos() const {
+            return pos_;
         }
 
         void seek_to(qint64 pos) {
-            stream->seek(pos);
+            pos_ = pos;
         }
 
-        QString read_string();
-
-        QStringList readLine();
-
+        QString read_string(); // Kept for compatibility, but optimized below
+        QStringList readLine(); // Optimized parsing method
     };
 
 }

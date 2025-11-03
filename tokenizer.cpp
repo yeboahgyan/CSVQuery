@@ -327,6 +327,7 @@ namespace csvquery {
                     token.token_name = "TokenType::FUNCTION";
 
                     token.func = funcs_table[token.string_value.toLower()];
+                    token.comp_func = funcs_compiler_table[token.string_value.toLower()];
 
                     Token func_token = token;
 
