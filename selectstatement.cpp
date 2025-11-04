@@ -12,7 +12,7 @@ namespace csvquery {
         tokens{ tks }
         , NUMBER_OF_ROWS_PER_PAGE{ max_rows_per_page }
     {
-        queue = std::make_unique<boost::lockfree::spsc_queue<std::deque<csv::CSVRow>, boost::lockfree::capacity<64>>>();
+        queue = std::make_unique<boost::lockfree::spsc_queue<std::vector<csv::CSVRow>, boost::lockfree::capacity<64>>>();
 
         //queue = std::make_unique<std::queue<QList<csv::CSVRow>> >();
         write_queue = std::make_unique<boost::lockfree::spsc_queue<QString, boost::lockfree::capacity<10>>>();
@@ -1323,6 +1323,7 @@ namespace csvquery {
         //std::function<QStringList(const QMap<QString, QStringList>&)> compiled_columns_func;
 
         //qDebug() << "row size: " << row.size() << " row:"<< row;
+        //qDebug() << "row number: " << NUMBER_OF_ROWS;
 
         if (has_where_clause) {
             //Term t = conditional_expr->eval(data_rows);
@@ -1377,8 +1378,9 @@ namespace csvquery {
                 }
                 else {
 
-                    if (has_limit_clause && LIMIT_VAL == NUMBER_OF_ROWS) { // handle limit clause
+                    if (has_limit_clause && LIMIT_VAL <= NUMBER_OF_ROWS) { // handle limit clause
                         limit_done = true;
+                        
                         //break;
                         done_consuming.store(true, std::memory_order_release);
                         return true; //end processing
@@ -1397,7 +1399,11 @@ namespace csvquery {
                     //write to file?
                     if (write_to_file) {
                         //out_file->writeLine(columns.join(','));
-                        write_queue->push(columns.join(','));
+                       // write_queue->push(columns.join(','));
+                        while (!write_queue->push(columns.join(','))) {
+                            std::this_thread::yield();
+                            if (canceled.load()) return true; //stop processing
+                        }
 
                         ++NUMBER_OF_ROWS;
                         //++NUMBER_OF_ROWS_IN_CSV; // used for count(*)
@@ -1463,8 +1469,9 @@ namespace csvquery {
             }
             else {
 
-                if (has_limit_clause && LIMIT_VAL == NUMBER_OF_ROWS) { // handle limit clause
+                if (has_limit_clause && LIMIT_VAL <= NUMBER_OF_ROWS) { // handle limit clause
                     limit_done = true;
+                    //qDebug() << "limit reached limit: " << LIMIT_VAL <<", number of rows read:"<< NUMBER_OF_ROWS;
                     //break;
                     done_consuming.store(true, std::memory_order_release);
                     return true; // end processing
@@ -1491,7 +1498,11 @@ namespace csvquery {
                 //write to file?
                 if (write_to_file) {
                     //out_file->writeLine(columns.join(','));
-                    write_queue->push(columns.join(','));
+                    //write_queue->push(columns.join(','));
+                    while (!write_queue->push(columns.join(','))) {
+                        std::this_thread::yield();
+                        if (canceled.load()) return true; //stop processing
+                    }
                     ++NUMBER_OF_ROWS;
 
                     //++NUMBER_OF_ROWS_IN_CSV; // used for count(*)
@@ -1569,7 +1580,7 @@ namespace csvquery {
     void SelectStatement::csv_file_writer()
     {
         //////qDebug() << "write thread started";
-        while(!done_producing.load(std::memory_order_acquire) || !write_queue->empty()){
+        while(!done_consuming.load(std::memory_order_acquire) || !write_queue->empty()){
             QString row;
             if (write_queue->pop(row)) {
                 //write_queue->pop();
@@ -1588,11 +1599,12 @@ namespace csvquery {
     void SelectStatement::csv_file_reader()
     {
         csv::CSVRow row;
-        std::deque<csv::CSVRow> batch;
-        //batch.reserve(BATCH_ROWS);
+        std::vector<csv::CSVRow> batch;
+        batch.reserve(BATCH_ROWS);
 
         while (left_file2->readRow(row)) {
-            if (canceled.load()) break;
+            if (canceled.load() || done_consuming.load(std::memory_order_acquire))
+                break;
 
             batch.push_back(std::move(row));
             //++rows_produced;
@@ -1604,18 +1616,26 @@ namespace csvquery {
             }
 
             if (batch.size() >= BATCH_ROWS) {
+
+                // After reading BATCH_ROWS items
+                std::reverse(batch.begin(), batch.end()); // FIFO
+
                 while (!queue->push(batch)) {
                     std::this_thread::yield();
                     if (canceled.load()) return;
                 }
                 rows_produced += BATCH_ROWS;
                 ++batches_produced;
-                batch = std::deque<csv::CSVRow>();
-                //batch.reserve(BATCH_ROWS);
+                batch = std::vector<csv::CSVRow>();
+                batch.reserve(BATCH_ROWS);
             }
         }
 
         if (!batch.empty() && !canceled.load()) {
+
+            // After reading BATCH_ROWS items
+            std::reverse(batch.begin(), batch.end()); // FIFO
+
             while (!queue->push(batch)) {
                 std::this_thread::yield();
                 if (canceled.load()) return;
@@ -1655,14 +1675,14 @@ namespace csvquery {
         //////qDebug() << "queue size: " << queue->size();
 
         try {
-            std::deque<csv::CSVRow> batch;
+            std::vector<csv::CSVRow> batch;
 
             for (;;) {
                 if (canceled.load()) break;
 
                 if (!reserve_batch.empty()) {
                     batch = std::move(reserve_batch);
-                    reserve_batch = std::deque<csv::CSVRow>();
+                    reserve_batch = std::vector<csv::CSVRow>();
                 }
                 else if (!queue->pop(batch)) {
                     if (done_producing.load(std::memory_order_acquire))
@@ -1672,8 +1692,8 @@ namespace csvquery {
                 }
 
                 while (!batch.empty()) {
-                    csv::CSVRow csvrow = batch.front(); //batch.takeFirst(); 
-                    batch.pop_front(); //delete first element
+                    csv::CSVRow csvrow = batch.back(); //batch.takeFirst(); 
+                    batch.pop_back(); //delete last element; vector reversed to have FIFO
 
                     QStringList row;
                     for (auto& field : csvrow)
@@ -1684,15 +1704,22 @@ namespace csvquery {
                         continue;
                     }
 
-                    bool stop = process_data(row);
+                    stop = process_data(row);
                     ++rows_consumed;
 
                     if (stop) {
-                        if (paused.load()) reserve_batch = std::move(batch);
+                        //qDebug() << "Stop requested";
+                        if (paused.load()) {
+                            reserve_batch = std::move(batch);
+                        }
                         break;
                     }
                 }
                 //reserve_batch = batch;
+
+                if (stop) {
+                    break;
+                }
             }
 
             if (!has_group_by && !is_aggregation)
@@ -1812,7 +1839,7 @@ namespace csvquery {
             group_by_result.clear();
         }
         
-        //////qDebug() << "result size:" << result->size();
+        //qDebug() << "result size:" << result->size();
 
         if (write_to_file) {
             return std::nullopt;

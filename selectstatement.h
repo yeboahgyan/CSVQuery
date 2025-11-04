@@ -44,13 +44,13 @@ namespace csvquery {
         const qsizetype BATCH_ROWS = 4048;
         //boost::lockfree::spsc_queue<QList<csv::CSVRow>, boost::lockfree::capacity< 8'388'608 >> queue;
         
-        std::unique_ptr<boost::lockfree::spsc_queue<std::deque<csv::CSVRow>, boost::lockfree::capacity<64>>> queue;
+        std::unique_ptr<boost::lockfree::spsc_queue<std::vector<csv::CSVRow>, boost::lockfree::capacity<64>>> queue;
         std::unique_ptr<boost::lockfree::spsc_queue<QString, boost::lockfree::capacity<10>>> write_queue;
 
         //std::unique_ptr<std::queue<QList<csv::CSVRow>> > queue;
         //std::unique_ptr<std::queue<QString> > write_queue; //used by file writer thread
 
-        std::deque<csv::CSVRow> reserve_batch; //used to save unprocessed rows in when pagination is done
+        std::vector<csv::CSVRow> reserve_batch; //used to save unprocessed rows in when pagination is done
 
         //const qsizetype PROCESS_BATCH_ROWS = 128;
         //boost::lockfree::queue<QList<QStringList>*> processing_queue{64}; // 128 rows / 64 batches
@@ -184,7 +184,11 @@ namespace csvquery {
             qDebug() << "destructor called";
             aggregate_expression_reg = {};
             check_if_aggregate_done = {};
-            file_reader_thread->join();
+
+            if (join_files_list.contains("left")) {
+                file_reader_thread->join();
+            }
+            
             if (this->write_to_file) {
                 file_writer_thread->join();
             }
