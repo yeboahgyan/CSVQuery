@@ -1,5 +1,7 @@
 #include "csvfile.h"
 #include <stdexcept>
+#include <QFileInfo>
+#include <QDir>
 
 namespace csvquery {
 	
@@ -7,13 +9,26 @@ namespace csvquery {
         : file_(std::make_unique<QFile>(file_path)),
         mapped_data_(nullptr),
         file_size_(0),
-        pos_(0) {
+        pos_(0),
+        file_name{ file_path }
+    {
         QIODeviceBase::OpenMode flags;
         if (mode == QIODevice::ReadOnly) {
             flags = mode | QIODevice::Text;
         }
         else if (mode == QIODevice::WriteOnly) {
             flags = mode | QIODevice::Text | QIODevice::Truncate;
+
+            QFileInfo fileInfo(file_path);
+            QDir dir;
+
+            // Extract directory part of the path (e.g., from "/home/user/data/file.txt" -> "/home/user/data")
+            QString dirPath = fileInfo.path();
+
+            // Create all missing directories in the path
+            if (!dir.exists(dirPath)) {
+                dir.mkpath(dirPath); // mkpath() creates all parent directories as needed
+            }
         }
 
         if (!file_->open(flags)) {
@@ -27,6 +42,9 @@ namespace csvquery {
                 file_->close();
                 throw std::logic_error("Failed to create memory map for file: " + file_path.toStdString());
             }
+        }
+        else {
+			text_stream_ = std::make_unique<QTextStream>(file_.get());
         }
     }
 
@@ -119,13 +137,18 @@ namespace csvquery {
 
     void CSVFile::writeLine(const QString& text) {
         // For writing, we can use a QTextStream for simplicity
-        QTextStream out(file_.get());
-        out << text << "\n";
+        //QTextStream out(file_.get());
+        //file_->write
+        //out << text << "\n";
+
+        (*text_stream_) << text <<"\n";
+
+        //qDebug() << text << " written.";
     }
 
     void CSVFile::write(const QString& text) {
-        QTextStream out(file_.get());
-        out << text;
+        //QTextStream out(file_.get());
+        (*text_stream_) << text;
     }
 
 }

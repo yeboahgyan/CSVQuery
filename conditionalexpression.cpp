@@ -810,6 +810,7 @@ namespace csvquery {
         //Term result(t);
 
         //std::cout<<"ConditionalExpression::eval(): cond_expr()\n";
+        //qDebug() << "compiling conditional";
         //result = cond_expr(data_rows, false);
         auto result_func = comp_cond_expr(data_rows, false);
         //std::cout<<"done.\n";

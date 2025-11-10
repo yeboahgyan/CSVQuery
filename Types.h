@@ -95,7 +95,7 @@ namespace csvquery {
 
 
 
-    extern QHash<QString, double> columns_table; // {COLUMNNANME, index}
+    extern QHash<QString, int> columns_table; // {COLUMNNANME, index}
 
     extern QHash<QString, double> numbers_table; // {name, number}
 

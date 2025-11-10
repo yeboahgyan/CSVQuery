@@ -4,7 +4,7 @@
 
 namespace csvquery {
 
-    QHash<QString, double> columns_table; // {COLUMNNANME, index}
+    QHash<QString, int> columns_table; // {COLUMNNANME, index}
 
     QHash<QString, double> numbers_table; // {name, number}
 

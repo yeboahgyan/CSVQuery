@@ -36,11 +36,11 @@
 #include "license.h"
 #include <Windows.h>
 #include <format>
+#include "test.h"
 
 
 
-
-int MAX_ROWS_PER_PAGE = 100;
+int MAX_ROWS_PER_PAGE = 10;
 
 void set_builtin_funcs();
 
@@ -74,10 +74,16 @@ int main(int argc, char *argv[])
     setConsoleFont(L"Cascadia Code");
 
     std::cout << "\n";
-    std::cout << "  CSVQuery ";
-    std::cout << "0.1.3";
+    std::cout << "--------------------------------------------------------------------------------------------------------------\n";
+    std::cout << "  CSVQ for CSVQuery ";
+    std::cout << "0.1.5";
     std::cout << " (c) 2025 Kwame Yeboah-Gyan\n";
-    std::cout << "  Type \"exit\" or \"quit\" to quit, \"license\" for license information.\n\n";
+	std::cout << "  A command-line tool for querying and manipulating CSV files using CSVQuery,  an SQL-like language.\n";
+    if (a.arguments().length() == 1) {
+        std::cout << "  Type \"exit\" or \"quit\" to quit, \"license\" for license information.\n";
+    }
+
+    std::cout << "--------------------------------------------------------------------------------------------------------------\n\n\n";
 
     set_builtin_funcs();
 
@@ -322,7 +328,7 @@ int main(int argc, char *argv[])
 
                             std::cout << "    Number of names loaded: " << import.num_of_columns_loaded() << "\n";
                             auto diff = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start);
-                            std::cout << "    Duration: " << format_duration(diff.count()) << "\n\n";
+                            std::cout << "    Import Duration: " << format_duration(diff.count()) << "\n\n";
                         }
                         else if (action.token_type == csvquery::TokenType::NAME) {
                             //std::cout << "assigning...\n";
@@ -333,7 +339,7 @@ int main(int argc, char *argv[])
 
                             auto end = std::chrono::system_clock::now();
                             auto diff = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start);
-                            std::cout << "    Duration: " << format_duration(diff.count()) << "\n\n";
+                            std::cout << "    Assignment Duration: " << format_duration(diff.count()) << "\n\n";
                         }
                         else if (action.token_type == csvquery::TokenType::UPDATE) {
                             csvquery::UpdateStatement update(tokens);
@@ -345,7 +351,7 @@ int main(int argc, char *argv[])
                             auto diff = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start);
 
                             std::cout << "    Number of rows updated: " << update.get_number_of_rows() << "\n";
-                            std::cout << "    Duration: " << format_duration(diff.count()) << "\n\n";
+                            std::cout << "    Update Duration: " << format_duration(diff.count()) << "\n\n";
                         }
                         else if (action.token_type == csvquery::TokenType::SELECT) {
                             int max_rows_per_page = MAX_ROWS_PER_PAGE;
@@ -353,7 +359,7 @@ int main(int argc, char *argv[])
 
                             auto start = std::chrono::system_clock::now();
                             std::optional<QList<QStringList>> result = select.execute();
-                            qDebug() << "done with select";
+                            //qDebug() << "done with select";
 
                             auto end = std::chrono::system_clock::now();
 
@@ -363,12 +369,14 @@ int main(int argc, char *argv[])
                                 print_table(result, select.get_column_names());
 
 
-                                std::cout << "\n    Number of rows read: " << select.get_number_of_rows() << "\n";
+                                std::cout << "    Number of rows read: " << select.get_number_of_rows() << "\n";
                                 auto diff = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start);
-                                std::cout << "    Duration: " << format_duration(diff.count()) << "\n\n";
+                                std::cout << "    Select Duration: " << format_duration(diff.count()) << "\n\n";
 
                                 //qDebug() << select.get_column_names();
                                 //if (max_rows_per_page < select.get_number_of_rows()) {
+                                //select.onNextPressed();
+                                //select.resume();
                                 paginate(select, rx);
                                 //}
                                 
@@ -376,31 +384,15 @@ int main(int argc, char *argv[])
                             else {
                                 std::cout << "    Number of rows read: " << select.get_number_of_rows() << "\n";
                                 auto diff = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start);
-                                std::cout << "    Duration: " << format_duration(diff.count()) << "\n\n";
+                                std::cout << "    Select Duration: " << format_duration(diff.count()) << "\n\n";
                             }
                         }
                         else {
                             //qDebug() << "invalid syntax: " << action.to_string();
-                            QString error = "Invalid statement ";
-
-                            QStringList k_list;
-                            for (auto s : keywords) {
-                                k_list.append(QString::fromStdString(s));
-                            }
-
-                            if (k_list.contains(action.string_value.toUpper()) 
-                                || csvquery::funcs_table.keys().contains(action.string_value.toLower())
-                                ) 
-                            {
-                                error += "with keyword '";
-                                error += action.string_value;
-                                error += "' on line ";
-                            }
-                            else {
-                                error += "on line ";
-                            }
-
-                            error += QString::number(action.line_number);
+                            QString error = "Invalid statement '";
+                            error += tokens.front().string_value;
+                            error += "' on line ";
+                            error += QString::number(tokens.front().line_number);
                             error += "!";
                             throw std::logic_error(error.toStdString());
                         }
@@ -412,7 +404,7 @@ int main(int argc, char *argv[])
                         }
                     }
                     catch (std::logic_error l) {
-                        std::cout << "    Parser error: " << l.what() << "\n";
+                        std::cerr << "    Parser error: " << l.what() << "\n";
                     }
 
                 }
@@ -432,13 +424,13 @@ int main(int argc, char *argv[])
 
     }
     catch(std::logic_error l){
-        std::cout<<"    Parser error 2 "<<l.what()<<"\n";
+        std::cerr<<"    Parser error 2 "<<l.what()<<"\n";
     }
     catch (const std::exception& e) {
-        std::cout << "    There was an exception - " << e.what()  << "\n";
+        std::cerr << "    There was an exception - " << e.what()  << "\n";
     }
     catch(...){
-        std::cout<< "    There was an exception!\n";
+        std::cerr << "    There was an exception!\n";
     }
 
     //test_tokenizer();
@@ -579,43 +571,78 @@ void execute_source_file(QFile& source) {
             if (tokens.isEmpty()) {
                 break;
             }
-            //std::pair<int, std::optional<QList<QStringList>>> result = parser.execute(tokens);
+            //std::pair<int, std::optional<QList<QStringList>>> result = parser.execute(tokens)
+            
 
             csvquery::Token action = tokens.front();
 
             if (action.token_type == csvquery::TokenType::IMPORT) {
                 csvquery::ImportStatement import(tokens);
+				auto start = std::chrono::system_clock::now();
                 import.execute();
+                auto end = std::chrono::system_clock::now();
                 std::cout << "    Number of names loaded: " << import.num_of_columns_loaded() << "\n";
+
+                auto diff = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start);
+                std::cout << "    Import Duration: " << format_duration(diff.count()) << "\n\n";
             }
             else if (action.token_type == csvquery::TokenType::NAME) {
                 //std::cout << "assigning...\n";
                 csvquery::AssignStatement assign(tokens);
+                auto start = std::chrono::system_clock::now();
                 assign.execute();
+                auto end = std::chrono::system_clock::now();
+
+                auto diff = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start);
+                std::cout << "    Assignemt Duration: " << format_duration(diff.count()) << "\n\n";
             }
             else if (action.token_type == csvquery::TokenType::UPDATE) {
                 csvquery::UpdateStatement update(tokens);
+                auto start = std::chrono::system_clock::now();
                 update.execute();
+                auto end = std::chrono::system_clock::now();
+
                 std::cout << "    Number of rows updated: " << update.get_number_of_rows() << "\n";
+
+                auto diff = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start);
+                std::cout << "    Update Duration: " << format_duration(diff.count()) << "\n\n";
             }
             else if (action.token_type == csvquery::TokenType::SELECT) {
                 int max_rows_per_page = MAX_ROWS_PER_PAGE;
                 csvquery::SelectStatement select(tokens, max_rows_per_page);
+
+                auto start = std::chrono::system_clock::now();
                 std::optional<QList<QStringList>> result = select.execute();
+                auto end = std::chrono::system_clock::now();
 
                 if (result.has_value()) {
                     //print result
                     //print(result);
                     print_table(result);
-                    std::cout << "\n    Number of rows read: " << select.get_number_of_rows() << "\n\n";
+                    std::cout << "    Number of rows read: " << select.get_number_of_rows() << "\n";
                     //if (max_rows_per_page < select.get_number_of_rows()) {
+
+                    auto diff = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start);
+                    std::cout << "    Select Duration: " << format_duration(diff.count()) << "\n\n";
+
                     paginate(select, rx);
                     //}
 
                 }
                 else {
-                    std::cout << "    Number of rows read: " << select.get_number_of_rows() << "\n\n";
+                    std::cout << "    Number of rows read: " << select.get_number_of_rows() << "\n";
+
+                    auto diff = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start);
+                    std::cout << "    Select Duration: " << format_duration(diff.count()) << "\n\n";
                 }
+            }
+            else {
+				QString error = "Invalid statement '";
+				error += tokens.front().string_value;
+				error += "' on line ";
+				error += QString::number(tokens.front().line_number);
+				error += "!";
+				throw std::logic_error(error.toStdString());
             }
 
 
@@ -624,8 +651,14 @@ void execute_source_file(QFile& source) {
                 break;
             }
         }
-        catch (std::logic_error l) {
+        catch (std::logic_error& l) {
             std::cout << "  Parser error 1: " << l.what() << "\n";
+        }
+        catch (std::exception& e) {
+            std::cerr << "    Parser error 2: " << e.what() << "\n";
+        }
+        catch (...) {
+            std::cerr << "    Parser error 3: Exception!";
         }
 
     }
@@ -747,8 +780,10 @@ void paginate(csvquery::SelectStatement& select, replxx::Replxx& rx)
     while (true) {
 
         auto start = std::chrono::system_clock::now();
-
+        //qDebug() << "calling select in paginate";
+        select.resume();
         std::optional<QList<QStringList>> result = select.execute();
+        //qDebug() << "done.";
 
         auto end = std::chrono::system_clock::now();
 
@@ -767,14 +802,16 @@ void paginate(csvquery::SelectStatement& select, replxx::Replxx& rx)
                 return;
             }
 
-            select.onNextPressed();
+            //select.onNextPressed();
 
             //print result
             print_table(result, select.get_column_names());
             std::cout << "    Number of rows read:" << select.get_number_of_rows() << "\n";
 
             auto diff = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start);
-            std::cout << "    Duration: " << format_duration(diff.count()) << "\n\n";
+            std::cout << "    Select Duration: " << format_duration(diff.count()) << "\n\n";
+
+            select.resume();
 
             /*
             if (select.get_max_rows_per_page() > select.get_number_of_rows()) {
@@ -804,7 +841,7 @@ std::string format_duration(const double& duration_ns)
     std::string result;
 
     if (duration_ns < 1'000.0) { // < 1 µs
-        result = std::format("{:.2f} ns", duration_ns);
+        result = std::format("{:.2f} nano sec.", duration_ns);
     }
     else if (duration_ns < 1'000'000.0) { // < 1 ms
         result = std::format("{:.2f} micro. sec.", duration_ns / 1'000.0);
@@ -813,13 +850,13 @@ std::string format_duration(const double& duration_ns)
         result = std::format("{:.2f} milli. sec.", duration_ns / 1'000'000.0);
     }
     else if (duration_ns < 60'000'000'000.0) { // < 1 min
-        result = std::format("{:.3f} s", duration_ns / 1'000'000'000.0);
+        result = std::format("{:.3f} sec.", duration_ns / 1'000'000'000.0);
     }
     else if (duration_ns < 3'600'000'000'000.0) { // < 1 hr
-        result = std::format("{:.2f} min", duration_ns / 60'000'000'000.0);
+        result = std::format("{:.2f} min.", duration_ns / 60'000'000'000.0);
     }
     else {
-        result = std::format("{:.2f} hr", duration_ns / 3'600'000'000'000.0);
+        result = std::format("{:.2f} hr.", duration_ns / 3'600'000'000'000.0);
     }
 
     return result;

@@ -86,10 +86,13 @@ namespace csvquery {
         }
 
         QString alias = last_token_pos->string_value.toLower();
-        symbol_table[alias] = TokenType::IMPORT;
+        
         //strings_table[alias] = file_name;
+        //symbol_table[alias] = TokenType::IMPORT;
 
         read_def_file(file_name, alias);
+
+        symbol_table[alias] = TokenType::IMPORT;
     }
 
 }

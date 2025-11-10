@@ -93,6 +93,8 @@ namespace csvquery {
             file_name = name_parts[0];
             column_name = name_parts[1];
 
+            //qDebug() << "symbol table: " << symbol_table.contains(file_name);
+
             if (!symbol_table.contains(file_name)) {
                 result.token_type = TokenType::ERROR;
                 result.error_msg = "Unknown column name " + token.string_value + " on line " + QString::number(token.line_number);
@@ -486,7 +488,7 @@ namespace csvquery {
         else if (token.token_type == TokenType::COLUMNNAME) {
             if (!columns_table.contains(token.string_value.toLower())) {
                 result.token_type = TokenType::ERROR;
-                result.error_msg = "Unknown column name " + token.string_value + " on line " + QString::number(token.line_number);
+                result.error_msg = "1 Unknown column name " + token.string_value + " on line " + QString::number(token.line_number);
                 throw std::logic_error(result.error_msg.toStdString());
                 //return result;
             }
@@ -520,23 +522,69 @@ namespace csvquery {
         Token result = token;
         double index = 0;
 
+        //qDebug() << "compiling term: " << token.string_value <<" type:"<< token.to_string();
+		//qDebug() << "data_rows: " << data_rows;
         QStringList row;
 
         int num_of_rows = data_rows.size();
         QString data_row_key = "$";
 
+        //check name
+        if (token.token_type == TokenType::NAME) {
+            if (token.string_value.contains(".")) { // in the format file.number
+                QString file_name;
+                QString column_name;
+                QStringList name_parts = token.string_value.split('.'); //columnname in format file.column
+
+                file_name = name_parts[0];
+                column_name = name_parts[1];
+
+                if (!symbol_table.contains(file_name)) {
+                    result.token_type = TokenType::ERROR;
+                    result.error_msg = "3 Unknown column name '" + token.string_value + "' on line " + QString::number(token.line_number);
+                    throw std::logic_error(result.error_msg.toStdString());
+                }
+
+                bool is_num;
+                double column_index = column_name.toInt(&is_num);
+                if (!is_num) {
+                    //qDebug() << "does columns_table contain '"<< column_name<<"' :"<< columns_table.contains(column_name);
+                    if (!columns_table.contains(column_name) && column_name != "*") {
+                        result.token_type = TokenType::ERROR;
+                        result.error_msg = "3 Unknown column name '" + token.string_value + "' on line " + QString::number(token.line_number);
+                        //qDebug() << "about to throw!";
+                        throw std::logic_error(result.error_msg.toStdString());
+                    }
+                    //qDebug() << "here!";
+
+                }
+
+
+            }
+            else if (!symbol_table.contains(token.string_value.toLower())) {  // name not in symbol table
+                result.token_type = TokenType::ERROR;
+                result.error_msg = "3 Unknown symbol '" + token.string_value + "' on line " + QString::number(token.line_number);
+                throw std::logic_error(result.error_msg.toStdString());
+            }
+
+        }
+
         if (num_of_rows == 1) {
             row = data_rows["$"];
         }
-        else {
+		else { // set row based on file.column format
+
             //check if name is of the format file.number
+
+            
+            /*
             QString file_name;
             QString column_name;
             QStringList name_parts = token.string_value.split('.'); //columnname in format file.column
 
             if (name_parts.size() != 2) {
                 result.token_type = TokenType::ERROR;
-                result.error_msg = "Unknown column name " + token.string_value + " on line " + QString::number(token.line_number);
+                result.error_msg = "2 Unknown column name " + token.string_value + " on line " + QString::number(token.line_number);
                 throw std::logic_error(result.error_msg.toStdString());
             }
 
@@ -545,20 +593,20 @@ namespace csvquery {
 
             if (!symbol_table.contains(file_name)) {
                 result.token_type = TokenType::ERROR;
-                result.error_msg = "Unknown column name " + token.string_value + " on line " + QString::number(token.line_number);
+                result.error_msg = "3 Unknown column name " + token.string_value + " on line " + QString::number(token.line_number);
                 throw std::logic_error(result.error_msg.toStdString());
             }
 
             TokenType tk = symbol_table[file_name];
             if (tk != TokenType::STRING) {
                 result.token_type = TokenType::ERROR;
-                result.error_msg = "Unknown column name " + token.string_value + " on line " + QString::number(token.line_number);
+                result.error_msg = "4 Unknown column name " + token.string_value + " on line " + QString::number(token.line_number);
                 throw std::logic_error(result.error_msg.toStdString());
             }
 
             if (!strings_table.contains(file_name)) {
                 result.token_type = TokenType::ERROR;
-                result.error_msg = "Unknown column name " + token.string_value + " on line " + QString::number(token.line_number);
+                result.error_msg = "5 Unknown column name " + token.string_value + " on line " + QString::number(token.line_number);
                 throw std::logic_error(result.error_msg.toStdString());
             }
 
@@ -567,7 +615,7 @@ namespace csvquery {
             row = data_rows[file_path];
             data_row_key = file_path;
             //qDebug()<<"row size: "<<row.size();
-
+            */
 
         }
 
@@ -615,7 +663,16 @@ namespace csvquery {
                 Token result = token;
                 result.token_type = TokenType::NUMBER;
                 result.number_value = token.number_value;
-                result.string_value = QString::number(token.number_value);
+
+               if (std::floor(token.number_value) == token.number_value) {
+                   result.string_value = QString::number(static_cast<qint64>(token.number_value));
+               }
+               else {
+                   result.string_value = QString::number(token.number_value, 'f', 2);
+               }
+
+
+                //result.string_value = QString::number(token.number_value);
 
                 return result;
                 };
@@ -626,7 +683,7 @@ namespace csvquery {
         if (token.token_type == TokenType::COLUMNNUMBER) {
             //qDebug()<<"I am here! "<<token.string_value;
             if (num_of_rows == 2) {
-                std::string error = "Ambigious column " + token.string_value.toStdString() + " on line ";
+                std::string error = "Ambigious column '" + token.string_value.toStdString() + "' on line ";
                 error += token.line_number;
                 throw std::logic_error(error);
             }
@@ -635,6 +692,7 @@ namespace csvquery {
 
         }
         else if (token.token_type == TokenType::COLUMNNAME) {
+            //qDebug() << "here";
             if (!columns_table.contains(token.string_value.toLower())) { //not in columns table
 
                 //check if name is of the format file.number
@@ -644,7 +702,7 @@ namespace csvquery {
 
                 if (name_parts.size() != 2) {
                     result.token_type = TokenType::ERROR;
-                    result.error_msg = "Unknown column name " + token.string_value + " on line " + QString::number(token.line_number);
+                    result.error_msg = "6 Unknown column name " + token.string_value + " on line " + QString::number(token.line_number);
                     throw std::logic_error(result.error_msg.toStdString());
                 }
 
@@ -653,6 +711,10 @@ namespace csvquery {
 
                 bool is_number;
                 int value = column_name.toInt(&is_number);
+
+                data_row_key = file_name;
+
+				qDebug() << "data_row_key: " << data_row_key <<" data_rows:"<<data_rows;
 
                 /*
                 if(num_of_rows == 2){
@@ -681,7 +743,26 @@ namespace csvquery {
                 }
             }
             else {
+				QStringList name_parts = token.string_value.split('.'); //columnname in format file.column
+
+                if (!symbol_table.contains(name_parts[0].toLower())) {
+                    result.token_type = TokenType::ERROR;
+                    result.error_msg = "Unknown column name '" + token.string_value + "' on line " + QString::number(token.line_number);
+                    throw std::logic_error(result.error_msg.toStdString());
+                }
+
+                if (!strings_table.contains(name_parts[0].toLower())) {
+                    result.token_type = TokenType::ERROR;
+                    result.error_msg = "Unable to resolve column name '" + token.string_value + "' on line " + QString::number(token.line_number);
+                    throw std::logic_error(result.error_msg.toStdString());
+                }
+                //qDebug() << "setting index and data-row-key...";
+				QString file_path = strings_table[name_parts[0].toLower()];
+				data_row_key = file_path;
+    
                 index = columns_table[token.string_value];
+				row = data_rows[data_row_key];
+				//qDebug() << "index set to " << index <<" and data-row-key:"<<data_row_key;
             }
 
             /*
@@ -764,7 +845,7 @@ namespace csvquery {
                     else if (data_rows.size() > 1) {
                         //qDebug()<<"data_rows: "<<data_rows;
                         if (!strings_table.contains(file_name)) {
-                            std::string error = "Unknown colunm name '" + token.string_value.toStdString() + "' on line ";
+                            std::string error = "7 Unknown colunm name '" + token.string_value.toStdString() + "' on line ";
                             error += token.line_number;
                             throw std::logic_error(error);
                         }
@@ -774,7 +855,7 @@ namespace csvquery {
                             data_row_key = file_path;
                         }
                         else {
-                            std::string error = "Unknown colunm name '" + token.string_value.toStdString() + "' on line ";
+                            std::string error = "8 Unknown colunm name '" + token.string_value.toStdString() + "' on line ";
                             error += token.line_number;
                             throw std::logic_error(error);
                         }
@@ -865,7 +946,7 @@ namespace csvquery {
                         return compiled_func;
                     }
                     else {
-                        std::string error = "Unknown name '" + token.string_value.toStdString() + "' on line ";
+                        std::string error = "9 Unknown name '" + token.string_value.toStdString() + "' on line ";
                         error += token.line_number;
                         throw std::logic_error(error);
                     }
@@ -881,7 +962,7 @@ namespace csvquery {
                 //foreach(auto s, symbol_table.keys()) {
                 //    qDebug() <<"Symbol: "<< s;
                 //}
-                std::string error = "Unknown name '" + token.string_value.toStdString() + "' on line ";
+                std::string error = "10 Unknown name '" + token.string_value.toStdString() + "' on line ";
                 error += token.line_number;
                 throw std::logic_error(error);
             }
@@ -935,7 +1016,8 @@ namespace csvquery {
             return compiled_func;
         }
 
-        //qDebug()<<"column index2: "<<index <<" row length: "<<row.length();
+        //qDebug()<<"column index2: "<<index <<" row length: "<<row.length() <<", data_row_key: "<<data_row_key;
+		//qDebug() << "row: " << row;
         if (index < 0 || index >(row.length() - 1)) {
             result.token_type = TokenType::ERROR;
             result.error_msg = "Invalid column index '" + QString::number(token.number_value) + "' on line " + QString::number(token.line_number);

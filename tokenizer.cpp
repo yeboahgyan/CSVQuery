@@ -217,7 +217,15 @@ namespace csvquery {
 
             (*stream) >> number;
             //qDebug() <<"number read in tokenizer: "<< number;
-            token = { .token_type = TokenType::NUMBER, .string_value = QString::number(number), .number_value = number, .line_number = line_number };
+            QString number_str;
+            if (std::floor(number) == number) {
+                number_str = QString::number(static_cast<qint64>(number));
+            }
+            else {
+                number_str = QString::number(number, 'f', 2);
+            }
+
+            token = { .token_type = TokenType::NUMBER, .string_value = number_str, .number_value = number, .line_number = line_number };
             token.token_name = token.to_string();
         }
         /* NAMES */

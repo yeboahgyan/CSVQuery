@@ -1656,9 +1656,9 @@ namespace csvquery {
 
     std::function<Term(QList<Term>)> comp_count(QList<Term> args) //aggregate function
     {
-        qDebug() << "compiling count";
+        //qDebug() << "compiling count";
         auto f =  comp_execute_aggregation(args, AggregFuncType::count);
-        qDebug() << "Done compiling count";
+        //qDebug() << "Done compiling count";
 
         return f;
     }

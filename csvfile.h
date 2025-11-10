@@ -15,6 +15,9 @@ namespace csvquery {
         qint64 pos_;
         Token token_;
 
+        std::unique_ptr<QTextStream> text_stream_;
+        QString file_name;
+
     public:
         CSVFile(const QString& file_path, QIODeviceBase::OpenMode mode = QIODevice::ReadOnly);
         ~CSVFile();
@@ -36,6 +39,10 @@ namespace csvquery {
 
         void seek_to(qint64 pos) {
             pos_ = pos;
+        }
+
+        QString get_file_name() const {
+            return file_name;
         }
 
         QString read_string(); // Kept for compatibility, but optimized below
