@@ -76,7 +76,7 @@ int main(int argc, char *argv[])
     std::cout << "\n";
     std::cout << "--------------------------------------------------------------------------------------------------------------\n";
     std::cout << "  CSVQ for CSVQuery ";
-    std::cout << "0.1.5";
+    std::cout << "0.1.5.2";
     std::cout << " (c) 2025 Kwame Yeboah-Gyan\n";
 	std::cout << "  A command-line tool for querying and manipulating CSV files using CSVQuery,  an SQL-like language.\n";
     if (a.arguments().length() == 1) {
