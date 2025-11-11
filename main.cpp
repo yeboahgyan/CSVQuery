@@ -40,7 +40,7 @@
 
 
 
-int MAX_ROWS_PER_PAGE = 10;
+int MAX_ROWS_PER_PAGE = 50;
 
 void set_builtin_funcs();
 
