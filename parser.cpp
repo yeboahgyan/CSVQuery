@@ -61,6 +61,9 @@ namespace csvquery {
             update.execute();
             result.first = update.get_number_of_rows();
         }
+        else if (statement_tokens.front().token_type == TokenType::SEMICOLON) {
+			return result; // do nothing for empty statement
+        }
         else {
             QString error = "Unkown statement on line ";
             error += QString::number(statement_tokens.front().line_number);

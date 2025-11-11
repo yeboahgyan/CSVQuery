@@ -577,7 +577,10 @@ void execute_source_file(QFile& source) {
 
             csvquery::Token action = tokens.front();
 
-            if (action.token_type == csvquery::TokenType::IMPORT) {
+            if (action.token_type == csvquery::TokenType::SEMICOLON) {
+				continue; //empty statement
+            }
+            else if (action.token_type == csvquery::TokenType::IMPORT) {
                 csvquery::ImportStatement import(tokens);
 				auto start = std::chrono::system_clock::now();
                 import.execute();
