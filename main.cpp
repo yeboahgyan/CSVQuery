@@ -622,7 +622,7 @@ void execute_source_file(QFile& source) {
                 if (result.has_value()) {
                     //print result
                     //print(result);
-                    print_table(result);
+                    print_table(result, select.get_column_names());
                     std::cout << "    Number of rows read: " << select.get_number_of_rows() << "\n";
                     //if (max_rows_per_page < select.get_number_of_rows()) {
 

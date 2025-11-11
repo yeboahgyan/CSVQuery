@@ -91,6 +91,7 @@ namespace csvquery {
         QString to_string() const;
 
         bool boolean_value;
+		QStringList star_field_vals; //save result of * (star) operator as  a list of strings
     };
 
 

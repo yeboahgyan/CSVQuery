@@ -10,7 +10,8 @@ namespace csvquery {
         mapped_data_(nullptr),
         file_size_(0),
         pos_(0),
-        file_name{ file_path }
+        file_name{ file_path },
+        file_stream_{std::make_unique<std::ofstream>(file_path.toStdString(), std::ios::out | std::ios::trunc)}
     {
         QIODeviceBase::OpenMode flags;
         if (mode == QIODevice::ReadOnly) {
@@ -31,7 +32,14 @@ namespace csvquery {
             }
         }
 
+        /*
         if (!file_->open(flags)) {
+            throw std::logic_error("Failed to open file: " + file_path.toStdString());
+        }
+        */
+
+        //new
+        if (!file_stream_->is_open()) {
             throw std::logic_error("Failed to open file: " + file_path.toStdString());
         }
 
@@ -44,18 +52,27 @@ namespace csvquery {
             }
         }
         else {
-			text_stream_ = std::make_unique<QTextStream>(file_.get());
+			//text_stream_ = std::make_unique<QTextStream>(file_.get());
+            csv_writer_ = std::make_unique<csv::CSVWriter<std::ofstream>>(*file_stream_);
         }
+
+        
+
+		
     }
 
     CSVFile::~CSVFile() {
-
+        /*
         if (text_stream_ != nullptr) {
             text_stream_->flush();
         }
 
         if (mapped_data_) {
             file_->unmap(reinterpret_cast<uchar*>(mapped_data_));
+        }
+        */
+        if (file_stream_ != nullptr) {
+			file_stream_->flush();
         }
     }
 
@@ -149,6 +166,18 @@ namespace csvquery {
         (*text_stream_) << text <<"\n";
 
         //qDebug() << text << " written.";
+    }
+
+    void CSVFile::writeLine(const QStringList& row)
+    {
+		std::vector<std::string> fields;
+		fields.reserve(row.size());
+
+		for (const QString& field : row) {
+			fields.emplace_back(field.toStdString());
+		}
+
+        (*csv_writer_) << fields;
     }
 
     void CSVFile::write(const QString& text) {

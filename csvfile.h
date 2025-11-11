@@ -5,6 +5,8 @@
 #include <QBuffer>
 #include <QFile>
 #include "Types.h"
+#include <fstream>
+#include <csv-parser/include/csv.hpp>
 
 namespace csvquery {
 
@@ -18,12 +20,16 @@ namespace csvquery {
         std::unique_ptr<QTextStream> text_stream_ = nullptr;
         QString file_name;
 
+        std::unique_ptr<std::ofstream> file_stream_;
+        std::unique_ptr < csv::CSVWriter<std::ofstream>> csv_writer_ = nullptr;
+
     public:
         CSVFile(const QString& file_path, QIODeviceBase::OpenMode mode = QIODevice::ReadOnly);
         ~CSVFile();
 
         QStringList readRow();
         void writeLine(const QString& text);
+        void writeLine(const QStringList& row);
         void write(const QString& text);
 
         bool end_of_file() const {

@@ -444,6 +444,7 @@ namespace csvquery {
                 Token result = token;
                 result.token_type = TokenType::STRING;
                 result.string_value = row.join(',');
+                result.star_field_vals = row;
 
                 return result;
                 };
@@ -638,6 +639,7 @@ namespace csvquery {
                 Token result = token;
                 result.token_type = TokenType::STRING;
                 result.string_value = row.join(',');
+				result.star_field_vals = row;
 
                 return result;
                 };
@@ -724,6 +726,7 @@ namespace csvquery {
                 if (column_name == '*') { // if column name is of the form, file_name.*
                     result.token_type = TokenType::STRING;
                     result.string_value = row.join(',');
+                    result.star_field_vals = row;
 
                     auto compiled_func = [token = token, data_row_key](const QMap<QString, QStringList>& data_rows) {
                         QStringList row;
@@ -732,6 +735,7 @@ namespace csvquery {
                         Token result = token;
                         result.token_type = TokenType::STRING;
                         result.string_value = row.join(',');
+                        result.star_field_vals = row;
 
                         return result;
                         };

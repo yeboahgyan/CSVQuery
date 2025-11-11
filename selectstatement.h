@@ -45,11 +45,11 @@ namespace csvquery {
         //boost::lockfree::spsc_queue<QList<csv::CSVRow>, boost::lockfree::capacity< 8'388'608 >> queue;
         
         std::unique_ptr<boost::lockfree::spsc_queue<std::vector<csv::CSVRow>, boost::lockfree::capacity<128>>> queue;
-        std::unique_ptr<boost::lockfree::spsc_queue< std::vector<QString>, boost::lockfree::capacity<128>>> write_queue;
+        std::unique_ptr<boost::lockfree::spsc_queue< std::vector<QStringList>, boost::lockfree::capacity<128>>> write_queue;
 
         const qsizetype WRITE_BATCH_ROWS = 256;
-        std::vector<QString> write_batch;
-        void push_to_write_queue(const QString& row);
+        std::vector<QStringList> write_batch;
+        void push_to_write_queue(const QStringList& row);
 		void flush_write_queue(); //writes partail batch to write queue; used in destructor
 
         //std::unique_ptr<std::queue<QList<csv::CSVRow>> > queue;

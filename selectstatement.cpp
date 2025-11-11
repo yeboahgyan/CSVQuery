@@ -15,7 +15,7 @@ namespace csvquery {
         queue = std::make_unique<boost::lockfree::spsc_queue<std::vector<csv::CSVRow>, boost::lockfree::capacity<128>>>();
 
         //queue = std::make_unique<std::queue<QList<csv::CSVRow>> >();
-        write_queue = std::make_unique<boost::lockfree::spsc_queue< std::vector<QString>, boost::lockfree::capacity<128>>>();
+        write_queue = std::make_unique<boost::lockfree::spsc_queue< std::vector<QStringList>, boost::lockfree::capacity<128>>>();
 
         //reserve_queue = std::make_unique<std::queue<QList<csv::CSVRow>> >();
 
@@ -1216,7 +1216,9 @@ namespace csvquery {
             compiled_columns.append(expr.compile(data_rows)); // Must capture data_rows by value!
         }
 
-        return [compiled_columns = std::move(compiled_columns)](
+		bool write_to_file_flag = this->write_to_file;
+
+        return [write_to_file_flag, compiled_columns = std::move(compiled_columns)](
             const QMap<QString, QStringList>& data_row) mutable -> QStringList
             {
                 QStringList result;
@@ -1242,7 +1244,13 @@ namespace csvquery {
                         col = ""; // or "<null>", or throw
                         break;
                     }
-                    result.append(col);
+
+                    if (!token.star_field_vals.empty() && write_to_file_flag) {
+                        result.append(token.star_field_vals);
+                    }
+                    else {
+                        result.append(col);
+                    }
                 }
                 return result;
             };
@@ -1489,7 +1497,7 @@ namespace csvquery {
                         //out_file->writeLine(columns.join(','));
                        // write_queue->push(columns.join(','));
 
-                        push_to_write_queue(columns.join(','));
+                        push_to_write_queue(columns);
                        
 
                         ++NUMBER_OF_ROWS;
@@ -1590,7 +1598,7 @@ namespace csvquery {
                 if (write_to_file) {
                     //out_file->writeLine(columns.join(','));
                     //write_queue->push(columns.join(','));
-                    push_to_write_queue(columns.join(','));
+                    push_to_write_queue(columns);
                     ++NUMBER_OF_ROWS;
 
                     //++NUMBER_OF_ROWS_IN_CSV; // used for count(*)
@@ -1671,14 +1679,14 @@ namespace csvquery {
         //qDebug() << "write thread started";
         while(!done_consuming.load(std::memory_order_acquire) || !write_queue->empty()){
             //QString row;
-			std::vector<QString> rows;
+			std::vector<QStringList> rows;
 
             if (write_queue->pop(rows)) {
                 //write_queue->pop();
                 //////////qDebug()() << "writing row";
 
                 for (auto& row : rows) {
-                    if (row.trimmed() == "") {
+                    if (row.isEmpty()) {
                         continue;
                     }
 
@@ -1698,20 +1706,20 @@ namespace csvquery {
             // After reading BATCH_ROWS items
             std::reverse(write_batch.begin(), write_batch.end()); // FIFO
             for (auto& row : write_batch) {
-                if (row.trimmed() == "") {
+                if (row.isEmpty()) {
                     continue;
                 }
 
                 out_file->writeLine(row);
                 //qDebug() << "Written row: " << row;
             }
-            write_batch = std::vector<QString>();
+            write_batch = std::vector<QStringList>();
         }
 
         //qDebug() << "exiting write thread";
     }
 
-    void SelectStatement::push_to_write_queue(const QString& row)
+    void SelectStatement::push_to_write_queue(const QStringList& row)
     {
         if (write_batch.size() >= WRITE_BATCH_ROWS) {
 
@@ -1724,7 +1732,7 @@ namespace csvquery {
             }
             //rows_produced += BATCH_ROWS;
             //++batches_produced;
-            write_batch = std::vector<QString>();
+            write_batch = std::vector<QStringList>();
             write_batch.reserve(WRITE_BATCH_ROWS);
 			write_batch.push_back(row);
         }
@@ -1744,7 +1752,7 @@ namespace csvquery {
             }
             //rows_produced += BATCH_ROWS;
             //++batches_produced;
-            write_batch = std::vector<QString>();
+            write_batch = std::vector<QStringList>();
 		}
     }
 
@@ -1949,7 +1957,7 @@ namespace csvquery {
                     if (t.get_token().boolean_value == true) {
                         if (write_to_file) {
                             //out_file->writeLine(row.join(','));
-                            push_to_write_queue(row.join(','));
+                            push_to_write_queue(row);
                             ++NUMBER_OF_ROWS;
                             //++NUMBER_OF_ROWS_IN_CSV; // used for count(*)
                             //NUMBER_OF_ROWS.fetch_add(1);
@@ -1975,7 +1983,7 @@ namespace csvquery {
                 else {
                     if (write_to_file) {
                         //out_file->writeLine(row.join(','));
-                        push_to_write_queue(row.join(','));
+                        push_to_write_queue(row);
                         ++NUMBER_OF_ROWS;
                         //++NUMBER_OF_ROWS_IN_CSV; // used for count(*)
                         //NUMBER_OF_ROWS.fetch_add(1);
@@ -2424,7 +2432,7 @@ namespace csvquery {
                     if (t.get_token().boolean_value == true) {
                         if (write_to_file) {
                             //out_file->writeLine(row.join(','));
-                            push_to_write_queue(row.join(','));
+                            push_to_write_queue(row);
                             ++NUMBER_OF_ROWS;
                             //++NUMBER_OF_ROWS_IN_CSV; // used for count(*)
                             //NUMBER_OF_ROWS.fetch_add(1);
@@ -2450,7 +2458,7 @@ namespace csvquery {
                 else {
                     if (write_to_file) {
                         //out_file->writeLine(row.join(','));
-                        push_to_write_queue(row.join(','));
+                        push_to_write_queue(row);
                         ++NUMBER_OF_ROWS;
                         //++NUMBER_OF_ROWS_IN_CSV; // used for count(*)
                         //NUMBER_OF_ROWS.fetch_add(1);
@@ -2736,7 +2744,7 @@ namespace csvquery {
                     if (t.get_token().boolean_value == true) {
                         if (write_to_file) {
                             //out_file->writeLine(row.join(','));
-                            push_to_write_queue(row.join(','));
+                            push_to_write_queue(row);
                             ++NUMBER_OF_ROWS;
                             //++NUMBER_OF_ROWS_IN_CSV; // used for count(*)
                             //NUMBER_OF_ROWS.fetch_add(1);
@@ -2762,7 +2770,7 @@ namespace csvquery {
                 else {
                     if (write_to_file) {
                         //out_file->writeLine(row.join(','));
-                        push_to_write_queue(row.join(','));
+                        push_to_write_queue(row);
                         ++NUMBER_OF_ROWS;
                         //++NUMBER_OF_ROWS_IN_CSV; // used for count(*)
                         //NUMBER_OF_ROWS.fetch_add(1);
