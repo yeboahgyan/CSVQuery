@@ -49,6 +49,11 @@ namespace csvquery {
     }
 
     CSVFile::~CSVFile() {
+
+        if (text_stream_ != nullptr) {
+            text_stream_->flush();
+        }
+
         if (mapped_data_) {
             file_->unmap(reinterpret_cast<uchar*>(mapped_data_));
         }

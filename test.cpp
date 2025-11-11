@@ -11,7 +11,7 @@ void test_main()
     std::cout << "running..." << "\n";
     //QString source = "a='d:\\software\\test_csv\\customers.csv'; select count(a.*) from a where a.3 = 'mumbai';";
     //QString source = "c='d:\\software\\test_csv\\customers_11.csv'; o='d:\\software\\test_csv\\orders_11.csv'; select c.*, o.* from c inner join o on c.0=o.0;";
-    QString source = " out='D:\\software\\test_csv\\2020-12-08_orders.csv'; orders='D:\\software\\test_csv\\orders.csv'; select orders.2, orders.* from orders where date_eq(orders.2, 'yyyy-mm-dd','2020-12-08') limit 100 into out;";
+    QString source = " out='D:\\software\\test_csv\\2020-12-08_orders.csv'; orders='D:\\software\\test_csv\\orders.csv'; select orders.2, orders.* from orders where date_eq(orders.2, 'yyyy-mm-dd','2020-12-08') into out;";
     //QString source = " o='d:\\software\\test_csv\\test_update.csv'; update o set o.1='Abena' into 'd:\\software\\test_csv\\test_update2.csv';";
     //QString source = "select * from 'd:\\software\\test_csv\\customers.csv' where [3] = 'london' into 'd:\\software\\test_csv\\london_customers.csv';";
     try {

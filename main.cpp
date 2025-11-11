@@ -76,7 +76,7 @@ int main(int argc, char *argv[])
     std::cout << "\n";
     std::cout << "--------------------------------------------------------------------------------------------------------------\n";
     std::cout << "  CSVQ for CSVQuery ";
-    std::cout << "0.1.5.2";
+    std::cout << "0.1.7";
     std::cout << " (c) 2025 Kwame Yeboah-Gyan\n";
 	std::cout << "  A command-line tool for querying and manipulating CSV files using CSVQuery,  an SQL-like language.\n";
     if (a.arguments().length() == 1) {
@@ -292,7 +292,8 @@ int main(int argc, char *argv[])
                 }
             }
 
-            if (statement.trimmed() == ";" && buffer.empty()) {
+            //if (statement.trimmed() == ";" && source.trimmed().isEmpty()) {
+            if (statement.trimmed() == ";" && (statement.trimmed() == source.trimmed())) {
                 buffer.clear();
                 continue; //empty statement
             }
@@ -300,7 +301,7 @@ int main(int argc, char *argv[])
 
             if (!statement.trimmed().isEmpty() && statement.trimmed().back() == ';') { //buffer.at(buffer.size() - 2) == ';')
                 // Command complete
-                //std::cout << "Executing: " << buffer << "\n";
+                //std::cout << "Executing: " << buffer << ", size:"<<buffer.size()<<"\n";
 
                 //statement_before_comment = false; //reset
 

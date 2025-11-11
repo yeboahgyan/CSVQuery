@@ -15,7 +15,7 @@ namespace csvquery {
         qint64 pos_;
         Token token_;
 
-        std::unique_ptr<QTextStream> text_stream_;
+        std::unique_ptr<QTextStream> text_stream_ = nullptr;
         QString file_name;
 
     public:

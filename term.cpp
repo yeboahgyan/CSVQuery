@@ -714,7 +714,7 @@ namespace csvquery {
 
                 data_row_key = file_name;
 
-				qDebug() << "data_row_key: " << data_row_key <<" data_rows:"<<data_rows;
+				//qDebug() << "data_row_key: " << data_row_key <<" data_rows:"<<data_rows;
 
                 /*
                 if(num_of_rows == 2){

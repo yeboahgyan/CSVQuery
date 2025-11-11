@@ -1966,7 +1966,7 @@ namespace csvquery {
                                     paginate = true;
                                     return std::nullopt;
                                 }
-
+                                paginate = true;
                                 return result;
                             }
                         }
@@ -1992,7 +1992,7 @@ namespace csvquery {
                                 paginate = true;
                                 return std::nullopt;
                             }
-
+                            paginate = true;
                             return result;
                         }
                     }
@@ -2441,7 +2441,7 @@ namespace csvquery {
                                     paginate = true;
                                     return std::nullopt;
                                 }
-
+                                paginate = true;
                                 return result;
                             }
                         }
@@ -2467,7 +2467,7 @@ namespace csvquery {
                                 paginate = true;
                                 return std::nullopt;
                             }
-
+                            paginate = true;
                             return result;
                         }
                     }
@@ -2753,7 +2753,7 @@ namespace csvquery {
                                     paginate = true;
                                     return std::nullopt;
                                 }
-
+                                paginate = true;
                                 return result;
                             }
                         }
@@ -2779,7 +2779,7 @@ namespace csvquery {
                                 paginate = true;
                                 return std::nullopt;
                             }
-
+                            paginate = true;
                             return result;
                         }
                     }
