@@ -1685,6 +1685,8 @@ namespace csvquery {
                 //write_queue->pop();
                 //////////qDebug()() << "writing row";
 
+                //std::reverse(rows.begin(), rows.end()); // FIFO
+
                 for (auto& row : rows) {
                     if (row.isEmpty()) {
                         continue;
@@ -1702,9 +1704,10 @@ namespace csvquery {
             
         }
 
+		//handle batch that was not pushed to queue yet
         if (!write_batch.empty()) {
             // After reading BATCH_ROWS items
-            std::reverse(write_batch.begin(), write_batch.end()); // FIFO
+            //std::reverse(write_batch.begin(), write_batch.end()); // FIFO
             for (auto& row : write_batch) {
                 if (row.isEmpty()) {
                     continue;
