@@ -10,8 +10,8 @@ namespace csvquery {
         mapped_data_(nullptr),
         file_size_(0),
         pos_(0),
-        file_name{ file_path },
-        file_stream_{std::make_unique<std::ofstream>(file_path.toStdString(), std::ios::out | std::ios::trunc)}
+        file_name{ file_path }
+        
     {
         QIODeviceBase::OpenMode flags;
         if (mode == QIODevice::ReadOnly) {
@@ -38,9 +38,11 @@ namespace csvquery {
         }
         */
 
+        file_stream_ = std::make_unique<std::ofstream>(file_path.toStdString(), std::ios::out | std::ios::trunc);
+
         //new
         if (!file_stream_->is_open()) {
-            throw std::logic_error("Failed to open file: " + file_path.toStdString());
+            throw std::logic_error("~ Failed to open file: " + file_path.toStdString());
         }
 
         if (mode == QIODevice::ReadOnly) {

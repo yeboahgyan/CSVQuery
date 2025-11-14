@@ -578,37 +578,38 @@ namespace csvquery {
             //check if name is of the format file.number
 
             //check if name is of the format file.number
+            /*
             QString file_name;
             QString column_name;
             QStringList name_parts = token.string_value.split('.'); //columnname in format file.column
 
             if (name_parts.size() != 2) {
                 result.token_type = TokenType::ERROR;
-                result.error_msg = "Unknown column name " + token.string_value + " on line " + QString::number(token.line_number);
+                result.error_msg = "A0 Unknown column name " + token.string_value + " on line " + QString::number(token.line_number);
                 throw std::logic_error(result.error_msg.toStdString());
             }
 
             file_name = name_parts[0];
             column_name = name_parts[1];
 
-            //qDebug() << "symbol table: " << symbol_table.contains(file_name);
+            qDebug() << "symbol table: " << symbol_table.contains(file_name);
 
             if (!symbol_table.contains(file_name)) {
                 result.token_type = TokenType::ERROR;
-                result.error_msg = "Unknown column name " + token.string_value + " on line " + QString::number(token.line_number);
+                result.error_msg = "A1 Unknown column name " + token.string_value + " on line " + QString::number(token.line_number);
                 throw std::logic_error(result.error_msg.toStdString());
             }
 
             TokenType tk = symbol_table[file_name];
             if (tk != TokenType::STRING) {
                 result.token_type = TokenType::ERROR;
-                result.error_msg = "Unknown column name " + token.string_value + " on line " + QString::number(token.line_number);
+                result.error_msg = "A2 Unknown column name " + token.string_value + " on line " + QString::number(token.line_number);
                 throw std::logic_error(result.error_msg.toStdString());
             }
 
             if (!strings_table.contains(file_name)) {
                 result.token_type = TokenType::ERROR;
-                result.error_msg = "Unknown column name " + token.string_value + " on line " + QString::number(token.line_number);
+                result.error_msg = "A3 Unknown column name " + token.string_value + " on line " + QString::number(token.line_number);
                 throw std::logic_error(result.error_msg.toStdString());
             }
 
@@ -616,7 +617,7 @@ namespace csvquery {
 
             row = data_rows[file_path];
 			data_row_key = file_path;
-
+            */
             
             /*
             QString file_name;
