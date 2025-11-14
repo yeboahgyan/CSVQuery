@@ -577,6 +577,46 @@ namespace csvquery {
 
             //check if name is of the format file.number
 
+            //check if name is of the format file.number
+            QString file_name;
+            QString column_name;
+            QStringList name_parts = token.string_value.split('.'); //columnname in format file.column
+
+            if (name_parts.size() != 2) {
+                result.token_type = TokenType::ERROR;
+                result.error_msg = "Unknown column name " + token.string_value + " on line " + QString::number(token.line_number);
+                throw std::logic_error(result.error_msg.toStdString());
+            }
+
+            file_name = name_parts[0];
+            column_name = name_parts[1];
+
+            //qDebug() << "symbol table: " << symbol_table.contains(file_name);
+
+            if (!symbol_table.contains(file_name)) {
+                result.token_type = TokenType::ERROR;
+                result.error_msg = "Unknown column name " + token.string_value + " on line " + QString::number(token.line_number);
+                throw std::logic_error(result.error_msg.toStdString());
+            }
+
+            TokenType tk = symbol_table[file_name];
+            if (tk != TokenType::STRING) {
+                result.token_type = TokenType::ERROR;
+                result.error_msg = "Unknown column name " + token.string_value + " on line " + QString::number(token.line_number);
+                throw std::logic_error(result.error_msg.toStdString());
+            }
+
+            if (!strings_table.contains(file_name)) {
+                result.token_type = TokenType::ERROR;
+                result.error_msg = "Unknown column name " + token.string_value + " on line " + QString::number(token.line_number);
+                throw std::logic_error(result.error_msg.toStdString());
+            }
+
+            QString file_path = strings_table[file_name];
+
+            row = data_rows[file_path];
+			data_row_key = file_path;
+
             
             /*
             QString file_name;
@@ -694,7 +734,7 @@ namespace csvquery {
 
         }
         else if (token.token_type == TokenType::COLUMNNAME) {
-            //qDebug() << "here";
+            //qDebug() << "here COLUMNNAME";
             if (!columns_table.contains(token.string_value.toLower())) { //not in columns table
 
                 //check if name is of the format file.number
@@ -714,7 +754,7 @@ namespace csvquery {
                 bool is_number;
                 int value = column_name.toInt(&is_number);
 
-                data_row_key = file_name;
+                data_row_key = (num_of_rows == 1)? "$" : file_name;
 
 				//qDebug() << "data_row_key: " << data_row_key <<" data_rows:"<<data_rows;
 
@@ -743,6 +783,7 @@ namespace csvquery {
                 }
                 else if (is_number) {
                     //qDebug()<<"column index: "<<value;
+                    data_row_key = (num_of_rows == 1) ? "$" : file_name;
                     index = value;
                 }
             }
@@ -762,7 +803,8 @@ namespace csvquery {
                 }
                 //qDebug() << "setting index and data-row-key...";
 				QString file_path = strings_table[name_parts[0].toLower()];
-				data_row_key = file_path;
+				//data_row_key = file_path;
+                data_row_key = (num_of_rows == 1) ? "$" : file_path;
     
                 index = columns_table[token.string_value];
 				row = data_rows[data_row_key];
@@ -856,7 +898,8 @@ namespace csvquery {
                         QString file_path = strings_table[file_name];
                         if (data_rows.contains(file_path)) {
                             row = data_rows[file_path];
-                            data_row_key = file_path;
+                            //data_row_key = file_path;
+                            data_row_key = (num_of_rows == 1) ? "$" : file_path;
                         }
                         else {
                             std::string error = "8 Unknown colunm name '" + token.string_value.toStdString() + "' on line ";
@@ -1020,8 +1063,12 @@ namespace csvquery {
             return compiled_func;
         }
 
+        
+		row = data_rows[data_row_key];
         //qDebug()<<"column index2: "<<index <<" row length: "<<row.length() <<", data_row_key: "<<data_row_key;
-		//qDebug() << "row: " << row;
+
+        //qDebug() << "row: " << row;
+
         if (index < 0 || index >(row.length() - 1)) {
             result.token_type = TokenType::ERROR;
             result.error_msg = "Invalid column index '" + QString::number(token.number_value) + "' on line " + QString::number(token.line_number);
