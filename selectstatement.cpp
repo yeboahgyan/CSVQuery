@@ -2243,6 +2243,7 @@ namespace csvquery {
             ////qDebug()() << "indexing done.";
 			//qDebug() << "Index built. Number of keys in index: " << *query_lookup_index2;
             is_indexing_done = true;
+			this->right_file2.reset(); //delete csvfile2 object to free memory
         }
 
         //QStringList r;
@@ -2536,6 +2537,8 @@ namespace csvquery {
             query_lookup_index2 = build_index2(this->right_file2, this->query_index);
             ////qDebug()() << "indexing done.";
             is_indexing_done = true;
+            this->right_file2.reset(); //delete csvfile2 object to free memory
+
         }
 
         //QStringList r;
