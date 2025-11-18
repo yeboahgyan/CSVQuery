@@ -598,7 +598,7 @@ void execute_source_file(QFile& source) {
                 auto end = std::chrono::system_clock::now();
 
                 auto diff = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start);
-                std::cout << "    Assignemt Duration: " << format_duration(diff.count()) << "\n\n";
+                std::cout << "    Assignment Duration: " << format_duration(diff.count()) << "\n\n";
             }
             else if (action.token_type == csvquery::TokenType::UPDATE) {
                 csvquery::UpdateStatement update(tokens);
@@ -656,13 +656,16 @@ void execute_source_file(QFile& source) {
             }
         }
         catch (std::logic_error& l) {
-            std::cout << "  Parser error 1: " << l.what() << "\n";
+            std::cerr << "  Parser error 1: " << l.what() << "\n";
+            break;
         }
         catch (std::exception& e) {
             std::cerr << "    Parser error 2: " << e.what() << "\n";
+            break;
         }
         catch (...) {
             std::cerr << "    Parser error 3: Exception!";
+            break;
         }
 
     }
