@@ -550,7 +550,7 @@ namespace csvquery {
                 double column_index = column_name.toInt(&is_num);
                 if (!is_num) {
                     //qDebug() << "does columns_table contain '"<< column_name<<"' :"<< columns_table.contains(column_name);
-                    if (!columns_table.contains(column_name) && column_name != "*") {
+                    if (!columns_table.contains(token.string_value.toLower()) && column_name != "*") {
                         result.token_type = TokenType::ERROR;
                         result.error_msg = "3 Unknown column name '" + token.string_value + "' on line " + QString::number(token.line_number);
                         //qDebug() << "about to throw!";
