@@ -1,0 +1,10 @@
+# Build folders
+build/
+debug/
+release/
+
+# Qt / MSVC artifacts
+*.pdb
+*.obj
+*.ilk
+*.exe
