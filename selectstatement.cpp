@@ -1092,6 +1092,7 @@ namespace csvquery {
             throw std::logic_error(error);
         }
 
+
         optional_actions[last_token_pos->token_type](); //call handler function for the next valid token
     }
 
@@ -1455,7 +1456,7 @@ namespace csvquery {
                         result_key = compiled_group_by_key_func(data_rows);
                     }
 
-                    aggregate_expression_reg_key = result_key;
+					aggregate_expression_reg_key = result_key; // $ if no group by columns, else key based on group by comma separated column values. This is used to register aggregate expression results in the correct group in group_by_result
 
                     //columns = compute_columns(data_rows);
 
@@ -1561,6 +1562,8 @@ namespace csvquery {
                     columns = compiled_columns_func(data_rows);
                 }
 
+				//qDebug() << "processing group by without where clause. data_rows:"<<data_rows;
+
                 group_by_result[result_key] = columns;
             }
             else {
@@ -1633,12 +1636,14 @@ namespace csvquery {
         //columns = {}; //reset
         ////////qDebug()() << "Resetting is_aggregation";
         if (has_group_by || is_aggregation) {
-            for (auto it = check_if_aggregate_done.begin(); it != check_if_aggregate_done.end(); ++it) {
-                //it.value().value() = false;
-                for (auto i = it.value().begin(); i != it.value().end(); ++i) {
-                    i.value() = false;
-                }
-            }
+            check_if_aggregate_done.clear();
+            //for (auto it = check_if_aggregate_done.begin(); it != check_if_aggregate_done.end(); ++it) {
+            //    it.value() = false;
+
+                //for (auto i = it.value().begin(); i != it.value().end(); ++i) {
+                //    i.value() = false;
+                //}
+           // }
         }
         //qDebug() << "\nDone. Result is "<<result;
 
@@ -2052,6 +2057,7 @@ namespace csvquery {
     std::shared_ptr<QHash<QString, QList<QStringList>> > SelectStatement::build_index2(const std::shared_ptr<CSVFile2>& rhs, const int& column_index)
     {
         auto index = std::make_shared<QHash<QString, QList<QStringList>>>();
+        index->reserve(20'000'000);
         csv::CSVRow csvrow;
 
         //unsigned int rhs_rows_read = 0;

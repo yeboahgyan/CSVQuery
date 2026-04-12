@@ -35,9 +35,15 @@ namespace csvquery {
             "QUIT", "EXIT", "NUMBER", "GROUP BY", "COUNT", "SUM", "AVG", "MIN", "MAX"
     };
     
-    QString aggregate_expression_reg_key; // This is set within SelectStatement class and  used in aggregate functions 
-    QMap<QString, QMap<QString, std::shared_ptr<AggregateCounter> > > aggregate_expression_reg; // select statement initiates this with aggregate functions; it also empties it when done
-    QMap<QString, QMap<QString, bool>> check_if_aggregate_done; // used to prevent multiple aggregation in a select execution loop
+	//QString aggregate_expression_reg_key; // This is set within SelectStatement class and  used in aggregate functions. It is $ if there is no group by, otherwise it is the group by column values separated by commas. 
+    //QMap<QString, QMap<QString, std::shared_ptr<AggregateCounter> > > aggregate_expression_reg; // select statement initiates this with aggregate functions; it also empties it when done
+    //QMap<QString, QMap<QString, bool>> check_if_aggregate_done; // used to prevent multiple aggregation in a select execution loop
+
+    QString aggregate_expression_reg_key; // This is set within SelectStatement class and  used in aggregate functions. It is $ if there is no group by, otherwise it is the group by column values separated by commas. 
+    QHash<QString, std::shared_ptr<AggregateCounter> > aggregate_expression_reg; // select statement initiates this with aggregate functions; it also empties it when done
+    QHash<QString, bool> check_if_aggregate_done; // used to prevent multiple aggregation in a select execution loop
+
+
 
     qint64 NUMBER_OF_ROWS_IN_CSV = 0;
     QHash<bool, qint64> eq_count; //debugging

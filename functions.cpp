@@ -666,13 +666,17 @@ namespace csvquery {
 
             //qDebug() << "aggregate key is " << aggregate_expression_reg_key;
 
-            if (aggregate_expression_reg[aggregate_expression_reg_key].contains(aggregate_name)) {
-                std::shared_ptr<AggregateCounter>& count_counter = aggregate_expression_reg[aggregate_expression_reg_key][aggregate_name];
+            //if (aggregate_expression_reg[aggregate_expression_reg_key].contains(aggregate_name)) {
+            if (aggregate_expression_reg.contains(aggregate_expression_reg_key+"|" + aggregate_name)) {
+                //std::shared_ptr<AggregateCounter>& count_counter = aggregate_expression_reg[aggregate_expression_reg_key][aggregate_name];
+                std::shared_ptr<AggregateCounter>& count_counter = aggregate_expression_reg[aggregate_expression_reg_key+"|" + aggregate_name];
 
                 bool function_called_already = false;
 
-                if (check_if_aggregate_done[aggregate_expression_reg_key].contains(aggregate_name)) {
-                    function_called_already = check_if_aggregate_done[aggregate_expression_reg_key][aggregate_name];
+                //if (check_if_aggregate_done[aggregate_expression_reg_key].contains(aggregate_name)) {
+                if (check_if_aggregate_done.contains(aggregate_expression_reg_key+"|" + aggregate_name)) {
+                    //function_called_already = check_if_aggregate_done[aggregate_expression_reg_key][aggregate_name];
+                    function_called_already = check_if_aggregate_done.contains(aggregate_expression_reg_key+"|" + aggregate_name);
                 }
 
 
@@ -703,7 +707,8 @@ namespace csvquery {
 
                     result = Term(t);
 
-                    check_if_aggregate_done[aggregate_expression_reg_key][aggregate_name] = true; // skip aggregation if same aggregate function and parameter is called
+                    //check_if_aggregate_done[aggregate_expression_reg_key][aggregate_name] = true; // skip aggregation if same aggregate function and parameter is called
+                    check_if_aggregate_done[aggregate_expression_reg_key+"|" + aggregate_name] = true; // skip aggregation if same aggregate function and parameter is called
 
                     //qDebug() << "current count: " << count_counter->get_value();
                 }
@@ -711,19 +716,24 @@ namespace csvquery {
             }
             else {// first time this aggregation is being called with this parameter
                 if (func_type == AggregFuncType::count) {
-                    aggregate_expression_reg[aggregate_expression_reg_key][aggregate_name] = std::make_shared<CountCounter>();
+                    //aggregate_expression_reg[aggregate_expression_reg_key][aggregate_name] = std::make_shared<CountCounter>();
+                    aggregate_expression_reg[aggregate_expression_reg_key+"|" + aggregate_name] = std::make_shared<CountCounter>();
                 }
                 else if (func_type == AggregFuncType::avg) {
-                    aggregate_expression_reg[aggregate_expression_reg_key][aggregate_name] = std::make_shared<AvgCounter>();
+                    //aggregate_expression_reg[aggregate_expression_reg_key][aggregate_name] = std::make_shared<AvgCounter>();
+                    aggregate_expression_reg[aggregate_expression_reg_key+"|" + aggregate_name] = std::make_shared<AvgCounter>();
                 }
                 else if (func_type == AggregFuncType::sum) {
-                    aggregate_expression_reg[aggregate_expression_reg_key][aggregate_name] = std::make_shared<SumCounter>();
+                    //aggregate_expression_reg[aggregate_expression_reg_key][aggregate_name] = std::make_shared<SumCounter>();
+                    aggregate_expression_reg[aggregate_expression_reg_key+"|"+aggregate_name] = std::make_shared<SumCounter>();
                 }
                 else if (func_type == AggregFuncType::min) {
-                    aggregate_expression_reg[aggregate_expression_reg_key][aggregate_name] = std::make_shared<MinCounter>();
+                    //aggregate_expression_reg[aggregate_expression_reg_key][aggregate_name] = std::make_shared<MinCounter>();
+                    aggregate_expression_reg[aggregate_expression_reg_key+"|"+aggregate_name] = std::make_shared<MinCounter>();
                 }
                 else if (func_type == AggregFuncType::max) {
-                    aggregate_expression_reg[aggregate_expression_reg_key][aggregate_name] = std::make_shared<MaxCounter>();
+                    //aggregate_expression_reg[aggregate_expression_reg_key][aggregate_name] = std::make_shared<MaxCounter>();
+                    aggregate_expression_reg[aggregate_expression_reg_key+"|" + aggregate_name] = std::make_shared<MaxCounter>();
                 }
                 else {
                     QString error = "Internal error executing aggregate function on line ";
@@ -732,7 +742,8 @@ namespace csvquery {
                 }
                 
 
-                std::shared_ptr<AggregateCounter>& count_counter = aggregate_expression_reg[aggregate_expression_reg_key][aggregate_name];
+                //std::shared_ptr<AggregateCounter>& count_counter = aggregate_expression_reg[aggregate_expression_reg_key][aggregate_name];
+                std::shared_ptr<AggregateCounter>& count_counter = aggregate_expression_reg[aggregate_expression_reg_key+"|" + aggregate_name];
 
                 if (args.at(0).get_token().token_type == TokenType::STRING) {
                     count_counter->process_data(args.at(0).get_token().string_value);
@@ -752,7 +763,8 @@ namespace csvquery {
 
                 result = Term(t);
 
-                check_if_aggregate_done[aggregate_expression_reg_key][aggregate_name] = true; // skip aggregation if same aggregate function and parameter is called
+                //check_if_aggregate_done[aggregate_expression_reg_key][aggregate_name] = true; // skip aggregation if same aggregate function and parameter is called
+                check_if_aggregate_done[aggregate_expression_reg_key+"|" + aggregate_name] = true; // skip aggregation if same aggregate function and parameter is called
                 //qDebug() << "current count: " << count_counter->get_value();
             }
         }
@@ -1531,7 +1543,8 @@ namespace csvquery {
             // check if already updated for this count and parameter
             // if so return counter without updating
             // else update counter and return new value
-
+            
+            /*
             QString data_to_count;
             if (args.at(0).get_token().token_type == TokenType::STRING) {
                 data_to_count = args.at(0).get_token().string_value;
@@ -1539,9 +1552,18 @@ namespace csvquery {
             else if (args.at(0).get_token().token_type == TokenType::NUMBER) {
                 data_to_count = QString::number(args.at(0).get_token().number_value);
             }
+            */
 
-            func_result = [data_to_count, func_type](const QList<Term> args) {
+            func_result = [/* data_to_count, */ func_type](const QList<Term> args) {
                 Term result;
+
+                QString data_to_count;
+                if (args.at(0).get_token().token_type == TokenType::STRING) {
+                    data_to_count = args.at(0).get_token().string_value;
+                }
+                else if (args.at(0).get_token().token_type == TokenType::NUMBER) {
+                    data_to_count = QString::number(args.at(0).get_token().number_value);
+                }
 
                 QString aggregate_name = args.at(1).get_token().string_value;
 
@@ -1550,13 +1572,17 @@ namespace csvquery {
 
                 //qDebug() << "aggregate key is " << aggregate_expression_reg_key;
 
-                if (aggregate_expression_reg[aggregate_expression_reg_key].contains(aggregate_name)) {
-                    std::shared_ptr<AggregateCounter>& count_counter = aggregate_expression_reg[aggregate_expression_reg_key][aggregate_name];
+                //if (aggregate_expression_reg[aggregate_expression_reg_key].contains(aggregate_name)) {
+                if (aggregate_expression_reg.contains(aggregate_expression_reg_key+"|" + aggregate_name)) {
+                    //std::shared_ptr<AggregateCounter>& count_counter = aggregate_expression_reg[aggregate_expression_reg_key][aggregate_name];
+                    std::shared_ptr<AggregateCounter>& count_counter = aggregate_expression_reg[aggregate_expression_reg_key+"|" + aggregate_name];
 
                     bool function_called_already = false;
 
-                    if (check_if_aggregate_done[aggregate_expression_reg_key].contains(aggregate_name)) {
-                        function_called_already = check_if_aggregate_done[aggregate_expression_reg_key][aggregate_name];
+                    //if (check_if_aggregate_done[aggregate_expression_reg_key].contains(aggregate_name)) {
+                    if (check_if_aggregate_done.contains(aggregate_expression_reg_key+"|" + aggregate_name)) {
+                        //function_called_already = check_if_aggregate_done[aggregate_expression_reg_key][aggregate_name];
+                        function_called_already = check_if_aggregate_done[aggregate_expression_reg_key+"|" + aggregate_name];
                     }
 
 
@@ -1590,7 +1616,8 @@ namespace csvquery {
 
                         result = Term(t);
 
-                        check_if_aggregate_done[aggregate_expression_reg_key][aggregate_name] = true; // skip aggregation if same aggregate function and parameter is called
+                        //check_if_aggregate_done[aggregate_expression_reg_key][aggregate_name] = true; // skip aggregation if same aggregate function and parameter is called
+                        check_if_aggregate_done[aggregate_expression_reg_key+"|" + aggregate_name] = true; // skip aggregation if same aggregate function and parameter is called
 
                         //qDebug() << "current count: " << count_counter->get_value();
                     }
@@ -1598,19 +1625,24 @@ namespace csvquery {
                 }
                 else {// first time this aggregation is being called with this parameter
                     if (func_type == AggregFuncType::count) {
-                        aggregate_expression_reg[aggregate_expression_reg_key][aggregate_name] = std::make_shared<CountCounter>();
+                        //aggregate_expression_reg[aggregate_expression_reg_key][aggregate_name] = std::make_shared<CountCounter>();
+                        aggregate_expression_reg[aggregate_expression_reg_key+"|" + aggregate_name] = std::make_shared<CountCounter>();
                     }
                     else if (func_type == AggregFuncType::avg) {
-                        aggregate_expression_reg[aggregate_expression_reg_key][aggregate_name] = std::make_shared<AvgCounter>();
+                        //aggregate_expression_reg[aggregate_expression_reg_key][aggregate_name] = std::make_shared<AvgCounter>();
+                        aggregate_expression_reg[aggregate_expression_reg_key+"|" + aggregate_name] = std::make_shared<AvgCounter>();
                     }
                     else if (func_type == AggregFuncType::sum) {
-                        aggregate_expression_reg[aggregate_expression_reg_key][aggregate_name] = std::make_shared<SumCounter>();
+                        //aggregate_expression_reg[aggregate_expression_reg_key][aggregate_name] = std::make_shared<SumCounter>();
+                        aggregate_expression_reg[aggregate_expression_reg_key+"|" + aggregate_name] = std::make_shared<SumCounter>();
                     }
                     else if (func_type == AggregFuncType::min) {
-                        aggregate_expression_reg[aggregate_expression_reg_key][aggregate_name] = std::make_shared<MinCounter>();
+                        //aggregate_expression_reg[aggregate_expression_reg_key][aggregate_name] = std::make_shared<MinCounter>();
+                        aggregate_expression_reg[aggregate_expression_reg_key+"|" + aggregate_name] = std::make_shared<MinCounter>();
                     }
                     else if (func_type == AggregFuncType::max) {
-                        aggregate_expression_reg[aggregate_expression_reg_key][aggregate_name] = std::make_shared<MaxCounter>();
+                        //aggregate_expression_reg[aggregate_expression_reg_key][aggregate_name] = std::make_shared<MaxCounter>();
+                        aggregate_expression_reg[aggregate_expression_reg_key+"|" + aggregate_name] = std::make_shared<MaxCounter>();
                     }
                     else {
                         QString error = "Internal error executing aggregate function on line ";
@@ -1619,7 +1651,8 @@ namespace csvquery {
                     }
 
 
-                    std::shared_ptr<AggregateCounter>& count_counter = aggregate_expression_reg[aggregate_expression_reg_key][aggregate_name];
+                    //std::shared_ptr<AggregateCounter>& count_counter = aggregate_expression_reg[aggregate_expression_reg_key][aggregate_name];
+                    std::shared_ptr<AggregateCounter>& count_counter = aggregate_expression_reg[aggregate_expression_reg_key+"|" + aggregate_name];
 
                     /*
                     if (args.at(0).get_token().token_type == TokenType::STRING) {
@@ -1642,7 +1675,8 @@ namespace csvquery {
 
                     result = Term(t);
 
-                    check_if_aggregate_done[aggregate_expression_reg_key][aggregate_name] = true; // skip aggregation if same aggregate function and parameter is called
+                    //check_if_aggregate_done[aggregate_expression_reg_key][aggregate_name] = true; // skip aggregation if same aggregate function and parameter is called
+                    check_if_aggregate_done[aggregate_expression_reg_key+"|" + aggregate_name] = true; // skip aggregation if same aggregate function and parameter is called
                     //qDebug() << "current count: " << count_counter->get_value();
                 }
 

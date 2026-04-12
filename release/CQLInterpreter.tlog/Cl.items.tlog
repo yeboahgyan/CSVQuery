@@ -1,0 +1,17 @@
+D:\Documents\Documents\Qt\CQLInterpreter\assignstatement.cpp;D:\Documents\Documents\Qt\CQLInterpreter\release\assignstatement.obj
+D:\Documents\Documents\Qt\CQLInterpreter\commandprompt.cpp;D:\Documents\Documents\Qt\CQLInterpreter\release\commandprompt.obj
+D:\Documents\Documents\Qt\CQLInterpreter\conditionalexpression.cpp;D:\Documents\Documents\Qt\CQLInterpreter\release\conditionalexpression.obj
+D:\Documents\Documents\Qt\CQLInterpreter\csvfile.cpp;D:\Documents\Documents\Qt\CQLInterpreter\release\csvfile.obj
+D:\Documents\Documents\Qt\CQLInterpreter\CSVFile2.cpp;D:\Documents\Documents\Qt\CQLInterpreter\release\CSVFile2.obj
+D:\Documents\Documents\Qt\CQLInterpreter\expression.cpp;D:\Documents\Documents\Qt\CQLInterpreter\release\expression.obj
+D:\Documents\Documents\Qt\CQLInterpreter\functions.cpp;D:\Documents\Documents\Qt\CQLInterpreter\release\functions.obj
+D:\Documents\Documents\Qt\CQLInterpreter\importstatement.cpp;D:\Documents\Documents\Qt\CQLInterpreter\release\importstatement.obj
+D:\Documents\Documents\Qt\CQLInterpreter\license.cpp;D:\Documents\Documents\Qt\CQLInterpreter\release\license.obj
+D:\Documents\Documents\Qt\CQLInterpreter\main.cpp;D:\Documents\Documents\Qt\CQLInterpreter\release\main.obj
+D:\Documents\Documents\Qt\CQLInterpreter\parser.cpp;D:\Documents\Documents\Qt\CQLInterpreter\release\parser.obj
+D:\Documents\Documents\Qt\CQLInterpreter\selectstatement.cpp;D:\Documents\Documents\Qt\CQLInterpreter\release\selectstatement.obj
+D:\Documents\Documents\Qt\CQLInterpreter\term.cpp;D:\Documents\Documents\Qt\CQLInterpreter\release\term.obj
+D:\Documents\Documents\Qt\CQLInterpreter\test.cpp;D:\Documents\Documents\Qt\CQLInterpreter\release\test.obj
+D:\Documents\Documents\Qt\CQLInterpreter\tokenizer.cpp;D:\Documents\Documents\Qt\CQLInterpreter\release\tokenizer.obj
+D:\Documents\Documents\Qt\CQLInterpreter\types.cpp;D:\Documents\Documents\Qt\CQLInterpreter\release\types.obj
+D:\Documents\Documents\Qt\CQLInterpreter\updatestatement.cpp;D:\Documents\Documents\Qt\CQLInterpreter\release\updatestatement.obj

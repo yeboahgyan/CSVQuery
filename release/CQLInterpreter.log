@@ -1,0 +1,10 @@
+﻿   Qt/MSBuild: 3.5.0.0
+  Reading Qt configuration (D:/Qt/6.9.0/msvc2022_64/bin/qmake)
+   Qt: 6.9.0
+  selectstatement.cpp
+D:\Documents\Documents\Qt\CQLInterpreter\selectstatement.cpp(1308,65): warning C4100: 'data_rows': unreferenced parameter
+D:\Documents\Documents\Qt\CQLInterpreter\selectstatement.cpp(1732,32): warning C4018: '>=': signed/unsigned mismatch
+D:\Documents\Documents\Qt\CQLInterpreter\selectstatement.cpp(1795,30): warning C4018: '>=': signed/unsigned mismatch
+D:\Documents\Documents\Qt\CQLInterpreter\selectstatement.cpp(2298,26): warning C4189: 'common_rows_found': local variable is initialized but not referenced
+D:\Documents\Documents\Qt\CQLInterpreter\selectstatement.cpp(2593,26): warning C4189: 'common_rows_found': local variable is initialized but not referenced
+LINK : fatal error LNK1104: cannot open file 'release\\CQLInterpreter.exe'

@@ -11,6 +11,9 @@ namespace csvquery {
         : tokenizer(stream)
     {
 
+		//pre-allocate globals defined in types.cpp to prevent rehashing and improve performance; these can grow during execution but they will not shrink
+        aggregate_expression_reg.reserve(20'000'000);
+        check_if_aggregate_done.reserve(20'000'000);
     }
 
     QList<Token> Parser::read_statement()

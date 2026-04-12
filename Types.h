@@ -11,6 +11,7 @@
 #include <QMap>
 #include <QDebug>
 #include <limits>
+#include <QHash>
 
 namespace csvquery {
 
@@ -158,7 +159,9 @@ namespace csvquery {
                 double num = data.toDouble(&is_number);
 
                 if (is_number) {
+                    //qDebug() << "sum: " << QString::number(sum, 'f', 0) << ", num: " << QString::number(num, 'f', 0);
                     sum += num;
+					//qDebug() << "updated sum: " << QString::number(sum, 'f', 0);
                 }
             }
         }
@@ -231,9 +234,13 @@ namespace csvquery {
         }
     };
 
+    //extern QString aggregate_expression_reg_key; // This is set within SelectStatement class and  used in aggregate functions 
+    //extern  QMap<QString, QMap<QString,std::shared_ptr<AggregateCounter> > > aggregate_expression_reg; // select statement initiates this with aggregate functions; it also empties it when done
+    //extern QMap<QString, QMap<QString, bool>> check_if_aggregate_done; // used to prevent multiple aggregation in a select execution loop {group_by_key, {function , bool}}
+
     extern QString aggregate_expression_reg_key; // This is set within SelectStatement class and  used in aggregate functions 
-    extern  QMap<QString, QMap<QString,std::shared_ptr<AggregateCounter> > > aggregate_expression_reg; // select statement initiates this with aggregate functions; it also empties it when done
-    extern QMap<QString, QMap<QString, bool>> check_if_aggregate_done; // used to prevent multiple aggregation in a select execution loop {group_by_key, {function , bool}}
+    extern QHash<QString, std::shared_ptr<AggregateCounter> > aggregate_expression_reg; // select statement initiates this with aggregate functions; it also empties it when done
+    extern QHash<QString, bool> check_if_aggregate_done; // used to prevent multiple aggregation in a select execution loop {group_by_key|function, bool}
 
     extern qint64 NUMBER_OF_ROWS_IN_CSV; // This is use for count(*); counting is done in SelectStatement::process_data and reset to 0 in the destructor of SelectStatement
 

@@ -1,0 +1,9 @@
+﻿  Generate moc_predefs.h
+D:\Programs\Microsoft Visual Studio\2022\Community\MSBuild\Microsoft\VC\v170\Microsoft.CppCommon.targets(254,5): warning MSB8064: Custom build for item "debug\moc_predefs.h.cbt" succeeded, but specified dependency "d:\documents\documents\qt\cqlinterpreter\debug\moc_predefs.h.cbt" does not exist. This may cause incremental build to work incorrectly.
+   Qt/MSBuild: 3.4.1.0
+  Reading Qt configuration (D:/Qt/6.9.0/msvc2022_64/bin/qmake)
+   Qt: 6.9.0
+  main.cpp
+  CQLInterpreter.vcxproj -> D:\Documents\Documents\Qt\CQLInterpreter\debug\CQLInterpreter.exe
+  'pwsh.exe' is not recognized as an internal or external command,
+  operable program or batch file.

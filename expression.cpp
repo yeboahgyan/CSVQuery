@@ -902,12 +902,13 @@ namespace csvquery {
             auto f_comp = left_token.comp_func;
             auto compiled_func = f_comp(arg_results);
 
+
             //call function
             //left = f(arg_results);
             move_to_next_term();
 
             //if (left_token.string_value.toLower().contains("count") && exprs.front().is_star()) {
-            //    qDebug() << "using NUMBER_OF_ROWS_IN_CSV for count(*) ";
+            //    qDebug() << "using NUMBER_OF_sROWS_IN_CSV for count(*) ";
             //    left_func = [left_token](const QMap<QString, QStringList>& data_rows) {
             //Token t = left_token;
             //        t.token_type = TokenType::NUMBER;
