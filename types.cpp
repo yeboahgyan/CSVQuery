@@ -31,8 +31,8 @@ namespace csvquery {
             "SELECT", "FROM", "UPDATE", "IMPORT", "WHERE", "NOT LIKE",
             "INTO", "INNER JOIN", "OUTER JOIN", "ON", "SET", "LIKE", "HAVING",
             "TRIM", "LENGTH", "SUBSTRING", "LEFT", "RIGHT", "AS", "LIMIT",
-            "DATE_GT", "DATE_GE", "DATE_LT", "DATE_LE", "DATE_EQ", "STRIP_QUOTES",
-            "QUIT", "EXIT", "NUMBER", "GROUP BY", "COUNT", "SUM", "AVG", "MIN", "MAX"
+            "DATE_GT", "DATE_GE", "DATE_LT", "DATE_LE", "DATE_EQ", "STRIP_QUOTES","CASE", "WHEN", "THEN", "ELSE", "ENDCASE",
+            "QUIT", "EXIT", "NUMBER", "GROUP BY", "COUNT", "SUM", "AVG", "MIN", "MAX", "MODULO"
     };
     
 	//QString aggregate_expression_reg_key; // This is set within SelectStatement class and  used in aggregate functions. It is $ if there is no group by, otherwise it is the group by column values separated by commas. 
@@ -106,6 +106,11 @@ namespace csvquery {
         case TokenType::NOTLIKE: { str = "TokenType::NOTLIKE"; break; }
         case TokenType::LIMIT : { str = "TokenType::LIMIT"; break; }
         case TokenType::HAVING: { str = "TokenType::HAVING"; break; }
+        //case TokenType::CASE: { str = "TokenType::CASE"; break; }
+		case TokenType::WHEN: { str = "TokenType::WHEN"; break; }
+		case TokenType::THEN: { str = "TokenType::THEN"; break; }
+		case TokenType::ELSE: { str = "TokenType::ELSE"; break; }
+        case TokenType::ENDCASE: { str = "TokenType::ENDCASE"; break; }
         }
 
         return str;

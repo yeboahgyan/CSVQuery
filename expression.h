@@ -91,7 +91,7 @@ namespace csvquery {
             //}
         }
 
-        std::function<Term(const QMap<QString, QStringList>& data_rows)> comp_eval_star_term(const QMap<QString, QStringList> data_rows) { // is * ? (select all columns)
+        std::function<Term(const QMap<QString, QStringList>& data_rows)> comp_eval_star_term(const QMap<QString, QStringList>& data_rows) { // is * ? (select all columns)
             Term t = terms.front();
 
             //if(is_star()){
@@ -106,9 +106,9 @@ namespace csvquery {
             return func;
         }
 
-        std::function<Term(const QMap<QString, QStringList>& data_rows)> comp_expr(const QMap<QString, QStringList> data_rows, bool get);
-        std::function<Term(const QMap<QString, QStringList>& data_rows)> comp_term(const QMap<QString, QStringList> data_rows, bool get);
-        std::function<Term(const QMap<QString, QStringList>& data_rows)> comp_primary(const QMap<QString, QStringList> data_rows, bool get);
+        std::function<Term(const QMap<QString, QStringList>& data_rows)> comp_expr(const QMap<QString, QStringList>& data_rows, bool get);
+        std::function<Term(const QMap<QString, QStringList>& data_rows)> comp_term(const QMap<QString, QStringList>& data_rows, bool get);
+        std::function<Term(const QMap<QString, QStringList>& data_rows)> comp_primary(const QMap<QString, QStringList>& data_rows, bool get);
 
         double get_iterator_pos() const {
             return item_left;
@@ -128,7 +128,7 @@ namespace csvquery {
         //Term eval(const QStringList& row );
 
         Term eval(const QMap<QString, QStringList>& data_rows);
-        std::function<Term(const QMap<QString, QStringList>& data_rows)> compile(const QMap<QString, QStringList> data_rows);
+        std::function<Term(const QMap<QString, QStringList>& data_rows)> compile(const QMap<QString, QStringList>& data_rows);
     };
 
 }

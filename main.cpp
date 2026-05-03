@@ -40,6 +40,8 @@
 
 
 
+
+
 int MAX_ROWS_PER_PAGE = 50;
 
 void set_builtin_funcs();
@@ -76,7 +78,7 @@ int main(int argc, char *argv[])
     std::cout << "\n";
     std::cout << "--------------------------------------------------------------------------------------------------------------\n";
     std::cout << "  CSVQ for CSVQuery ";
-    std::cout << "0.1.9";
+    std::cout << "0.2.0";
     std::cout << " (c) 2025 Kwame Yeboah-Gyan\n";
 	std::cout << "  A command-line tool for querying and manipulating CSV files using CSVQuery,  an SQL-like language.\n";
     if (a.arguments().length() == 1) {
@@ -120,7 +122,7 @@ int main(int argc, char *argv[])
         "SELECT", "FROM", "UPDATE", "IMPORT", "WHERE", "HAVING",
         "INTO", "INNER JOIN", "OUTER JOIN", "ON", "SET", "LIKE", "NOT LIKE",
         "TRIM", "LENGTH", "SUBSTRING", "LEFT", "RIGHT", "AS","COUNT", "SUM", "AVG", "MIN", "MAX",
-        "DATE_GT", "DATE_GE", "DATE_LT", "DATE_LE", "DATE_EQ", "STRIP_QUOTES",
+		"DATE_GT", "DATE_GE", "DATE_LT", "DATE_LE", "DATE_EQ", "STRIP_QUOTES", "MODULO","CASE", "WHEN", "THEN", "ELSE", "ENDCASE",
         "QUIT", "EXIT", "AND", "OR", "NUMBER", "GROUP BY", "LIMIT"
         };
         
@@ -475,6 +477,8 @@ void set_builtin_funcs()
     csvquery::symbol_table["min"] = csvquery::TokenType::FUNCTION;
     csvquery::symbol_table["sum"] = csvquery::TokenType::FUNCTION;
     csvquery::symbol_table["avg"] = csvquery::TokenType::FUNCTION;
+    csvquery::symbol_table["modulo"] = csvquery::TokenType::FUNCTION;
+    csvquery::symbol_table["case"] = csvquery::TokenType::FUNCTION;
 
     std::function<csvquery::Term(QList<csvquery::Term>)> _trim = csvquery::trim;
     std::function<csvquery::Term(QList<csvquery::Term>)> _length = csvquery::length;
@@ -493,6 +497,8 @@ void set_builtin_funcs()
     std::function<csvquery::Term(QList<csvquery::Term>)> _max = csvquery::max;
     std::function<csvquery::Term(QList<csvquery::Term>)> _min = csvquery::min;
     std::function<csvquery::Term(QList<csvquery::Term>)> _avg = csvquery::avg;
+    std::function<csvquery::Term(QList<csvquery::Term>)> _modulo = csvquery::modulo;
+    std::function<csvquery::Term(QList<csvquery::Term>)> _case = csvquery::case_function;
 
     csvquery::funcs_table["trim"] = _trim;
     csvquery::funcs_table["length"] = _length;
@@ -511,6 +517,8 @@ void set_builtin_funcs()
     csvquery::funcs_table["max"] = _max;
     csvquery::funcs_table["min"] = _min;
     csvquery::funcs_table["avg"] = _avg;
+	csvquery::funcs_table["modulo"] = _modulo;
+    csvquery::funcs_table["case"] = _case;
 
     QList<csvquery::TokenType> only_string_arg = { csvquery::TokenType::STRING};
     QList<csvquery::TokenType> string_and_number = { csvquery::TokenType::STRING, csvquery::TokenType::NUMBER};
@@ -536,6 +544,8 @@ void set_builtin_funcs()
     csvquery::func_args_type_list["max"] = only_string_arg;
     csvquery::func_args_type_list["min"] = only_string_arg;
     csvquery::func_args_type_list["avg"] = only_string_arg;
+	csvquery::func_args_type_list["modulo"] = str_num_num; // it can also take string and string
+    csvquery::func_args_type_list["case"] = only_string_arg;
 
     // Map functions to their compiler functions 
     csvquery::funcs_compiler_table["trim"] = csvquery::comp_trim;
@@ -555,8 +565,8 @@ void set_builtin_funcs()
     csvquery::funcs_compiler_table["max"] = csvquery::comp_max;
     csvquery::funcs_compiler_table["min"] = csvquery::comp_min;
     csvquery::funcs_compiler_table["avg"] = csvquery::comp_avg;
-
-
+	csvquery::funcs_compiler_table["modulo"] = csvquery::comp_modulo;
+    csvquery::funcs_compiler_table["case"] = csvquery::comp_case_function;
 
 }
 

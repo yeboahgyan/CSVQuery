@@ -603,7 +603,7 @@ namespace csvquery {
 
     //compiled expression functions
 
-    std::function<Term(const QMap<QString, QStringList>& data_rows)> Expression::comp_expr(const QMap<QString, QStringList> data_rows, bool get)
+    std::function<Term(const QMap<QString, QStringList>& data_rows)> Expression::comp_expr(const QMap<QString, QStringList>& data_rows, bool get)
     {
         //Term left = term(data_rows, get);
         auto left_func = comp_term(data_rows, get);
@@ -655,7 +655,7 @@ namespace csvquery {
         return left_func;
     }
 
-    std::function<Term(const QMap<QString, QStringList>& data_rows)> Expression::comp_term(const QMap<QString, QStringList> data_rows, bool get)
+    std::function<Term(const QMap<QString, QStringList>& data_rows)> Expression::comp_term(const QMap<QString, QStringList>& data_rows, bool get)
     {
         //Term left = primary(data_rows, get);
         auto left_func = comp_primary(data_rows, get);
@@ -714,7 +714,7 @@ namespace csvquery {
         return left_func;
     }
 
-    std::function<Term(const QMap<QString, QStringList>& data_rows)> Expression::comp_primary(const QMap<QString, QStringList> data_rows, bool get)
+    std::function<Term(const QMap<QString, QStringList>& data_rows)> Expression::comp_primary(const QMap<QString, QStringList>& data_rows, bool get)
     {
         std::function<Term(const QMap<QString, QStringList>& data_rows)> left_func;
 
@@ -985,7 +985,7 @@ namespace csvquery {
     }
 
     
-    std::function<Term(const QMap<QString, QStringList>& data_rows)> Expression::compile(const QMap<QString, QStringList> data_rows) //instead of eval
+    std::function<Term(const QMap<QString, QStringList>& data_rows)> Expression::compile(const QMap<QString, QStringList>& data_rows) //instead of eval
     {
         if (is_star()) {
 

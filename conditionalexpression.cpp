@@ -475,6 +475,10 @@ namespace csvquery {
             ConditionalExpression ce(ts);
             Term t = ce.eval(data_rows);
 
+            if (current_term == terms.end()) {
+                throw std::logic_error("Expected a ) before end of conditional expression");
+            }
+
             if (current_term->get_token().token_type != TokenType::RBRACKET) {
                 //std::cout<<"next token "<<current_term->get_token().to_string().toStdString()<<"\n";
                 QString error = "Expected a ) on line " + QString::number(current_term->get_token().line_number);
@@ -531,14 +535,15 @@ namespace csvquery {
         return result;
     }
 
+    /* 
     QList<Term> ConditionalExpression::read_cond_expression()
     {
         QList<Term> ts;
 
-        /*
-        QList<QString> relational_tokens = {"TokenType::ASSIGN", "TokenType::AND", "TokenType::OR", "TokenType::LESSTHAN", "TokenType::GREATERTHAN",
-                                            "TokenType::LESSTHANOREQUAL", "TokenType::GREATERTHANOREQUAL", "TokenType::NOTEQUALTO", "TokenType::RBRACKET"};
-        */
+        
+        //QList<QString> relational_tokens = {"TokenType::ASSIGN", "TokenType::AND", "TokenType::OR", "TokenType::LESSTHAN", "TokenType::GREATERTHAN",
+        //                                    "TokenType::LESSTHANOREQUAL", "TokenType::GREATERTHANOREQUAL", "TokenType::NOTEQUALTO", "TokenType::RBRACKET"};
+        
         QList<QString> relational_tokens = { "TokenType::RBRACKET" };
 
         while (current_term != terms.end()) {
@@ -552,7 +557,42 @@ namespace csvquery {
         //Expression e(ts);
         //return e;
         return ts;
+    }*/
+
+    // new version handles nested brackets
+    QList<Term> ConditionalExpression::read_cond_expression()
+    {
+        QList<Term> ts;
+        int depth = 0;
+
+        while (current_term != terms.end()) {
+            TokenType type = current_term->get_token().token_type;
+
+            if (type == TokenType::LBRACKET) {
+                ++depth;
+                ts.append(*current_term);
+                move_to_next_term();
+                continue;
+            }
+
+            if (type == TokenType::RBRACKET) {
+                if (depth == 0) {
+                    break; // this is the closing paren for the caller
+                }
+
+                --depth;
+                ts.append(*current_term);
+                move_to_next_term();
+                continue;
+            }
+
+            ts.append(*current_term);
+            move_to_next_term();
+        }
+
+        return ts;
     }
+
 
     Expression ConditionalExpression::read_expression()
     {
@@ -770,7 +810,12 @@ namespace csvquery {
 
             left_func = ce.compile(data_rows);
 
+            if (current_term == terms.end()) {
+                throw std::logic_error("Expected a ) before end of conditional expression");
+            }
+
             if (current_term->get_token().token_type != TokenType::RBRACKET) {
+
                 //std::cout<<"next token "<<current_term->get_token().to_string().toStdString()<<"\n";
                 QString error = "Expected a ) on line " + QString::number(current_term->get_token().line_number);
                 throw std::logic_error(error.toStdString());

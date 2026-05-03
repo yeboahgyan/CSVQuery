@@ -624,6 +624,275 @@ namespace csvquery {
         
         return result;
     }
+
+    Term modulo(QList<Term> args) // modulo of 2 numbers
+    {
+        Term result;
+
+        QList<TokenType> arg_types;
+        foreach(auto t, args) {
+            arg_types.append(t.get_token().token_type);
+        }
+
+        QList<TokenType> expected_arg_types1 = { TokenType::STRING, TokenType::NUMBER };
+        QList<TokenType> expected_arg_types2= { TokenType::STRING, TokenType::STRING };
+        QList<TokenType> expected_arg_types3 = { TokenType::NUMBER, TokenType::NUMBER };
+        int expected_num_of_args = 2;
+
+        if (args.length() != expected_num_of_args) {
+            QString error = "modulo(string, number) or modulo(string, string) expects 2 arguments (string, number) or (string, string) on line ";
+            error += QString::number(args.at(0).get_token().line_number);
+            throw std::logic_error(error.toStdString());
+        }
+
+
+        if (arg_types == expected_arg_types1) { //string, number
+
+            QString num_str = args[0].get_token().string_value;
+            bool is_number = false;
+            int numerator = num_str.toInt(&is_number);
+
+            int denominator = args[1].get_token().number_value;
+
+            if (!is_number) {
+                QString error = "Unable to convert an argument passed to modulo(string, number) or modulo(string, string) to an integer on line ";
+                error += QString::number(args.at(0).get_token().line_number);
+                throw std::logic_error(error.toStdString());
+            }
+
+            if (denominator == 0) {
+                QString error = "Division by zero in modulo(string, number) or modulo(string, string) on line ";
+                error += QString::number(args.at(0).get_token().line_number);
+                throw std::logic_error(error.toStdString());
+            }
+            
+            int mod_result = (numerator % denominator + denominator) % denominator;//std::fmod(numerator, denominator);
+            Token t;
+            t.token_type = TokenType::NUMBER;
+            t.number_value = mod_result;
+            t.string_value = QString::number(mod_result);
+            t.line_number = args.at(0).get_token().line_number;
+            result = Term(t);
+            
+        }
+		else if (arg_types == expected_arg_types2) { // both arguments are Numbers
+
+
+            int numerator = args[0].get_token().number_value;
+
+            int denominator = args[1].get_token().number_value;
+
+
+            if (denominator == 0) {
+                QString error = "Division by zero in modulo(string, number) or modulo(string, string) on line ";
+                error += QString::number(args.at(0).get_token().line_number);
+                throw std::logic_error(error.toStdString());
+            }
+            
+            double mod_result = (numerator % denominator + denominator) % denominator;
+            Token t;
+            t.token_type = TokenType::NUMBER;
+            t.number_value = mod_result;
+            t.string_value = QString::number(mod_result);
+            t.line_number = args.at(0).get_token().line_number;
+            result = Term(t);
+            
+        }
+        else if (arg_types == expected_arg_types3) { //number, number
+
+            QString num_str = args[0].get_token().string_value;
+            bool is_number = false;
+            int numerator = num_str.toInt(&is_number);
+
+            int denominator = args[1].get_token().number_value;
+
+            if (!is_number) {
+                QString error = "Unable to convert an argument passed to modulo(string, number) or modulo(string, string) to an integer on line ";
+                error += QString::number(args.at(0).get_token().line_number);
+                throw std::logic_error(error.toStdString());
+            }
+
+            if (denominator == 0) {
+                QString error = "Division by zero in modulo(string, number) or modulo(string, string) on line ";
+                error += QString::number(args.at(0).get_token().line_number);
+                throw std::logic_error(error.toStdString());
+            }
+
+            int mod_result = (numerator % denominator + denominator) % denominator;//std::fmod(numerator, denominator);
+            Token t;
+            t.token_type = TokenType::NUMBER;
+            t.number_value = mod_result;
+            t.string_value = QString::number(mod_result);
+            t.line_number = args.at(0).get_token().line_number;
+            result = Term(t);
+
+        }
+        else {
+            QString error = "modulo(string, number) or modulo(string, string) expects 2 arguments (string, number) or (string, string) on line ";
+            error += QString::number(args.at(0).get_token().line_number);
+			throw std::logic_error(error.toStdString());
+        }
+
+
+        return result;
+    }
+
+    /*
+    Term case_function(QList<Term> args)
+    {
+        //case function is handled as a special form in the interpreter and should not be called here
+		//syntax: CASE variable WHEN value1 THEN result1 ... ELSE default_result END
+
+        const Term& key = args.at(0);
+        TokenType key_type = key.get_token_type();
+
+        auto it = args.cbegin();
+        
+        int i = 1;
+        while (it != args.cend()) {
+
+            if (it == args.cbegin()) {
+				++it; // move to first value to compare against key
+            }
+
+
+            if (i % 2 != 0) {
+                const Term& value = *it;
+                TokenType value_type = value.get_token_type();
+
+				++it; // move to result corresponding to value
+                ++i; // used to check for even/odd to determine if current term is value to compare against key or result corresponding to value
+
+                if (it == args.cend()) { // Handle Else branch
+					return value; // no more values, return current value term as default result
+                }
+
+                if (key_type != value_type) {
+                    QString error = "Type mismatch in CASE function on line ";
+                    error += QString::number(key.get_token().line_number);
+                    throw std::logic_error(error.toStdString());
+                }
+
+                if (key.get_token_type() == TokenType::NUMBER) {
+                    if (key.get_token().number_value == value.get_token().number_value) {
+                        return *it;
+                    }
+                }
+                else if (key.get_token_type() == TokenType::STRING) {
+                    if (key.get_token().string_value == value.get_token().string_value) {
+                        return *it;
+                    }
+                }
+                
+
+            }
+
+			++i; // used to check for even/odd to determine if current term is value to compare against key or result corresponding to value
+            ++it;
+        }
+
+		// no match found and no else branch, return null
+        Term result;
+		Token t;
+		t.token_type = TokenType::STRING;
+        t.string_value = "";
+        t.line_number = key.get_token().line_number;
+        result = Term(t);
+
+		return result;
+    }
+    */
+
+    Term case_function(QList<Term> args)
+    {
+        if (args.size() < 3) {
+            throw std::logic_error("Invalid CASE expression");
+        }
+
+        const Term& key = args.at(0);
+
+        int i = 1;
+        while (i + 1 < args.size()) {
+            const Term& value = args.at(i);
+            const Term& result = args.at(i + 1);
+
+            if (key.get_token_type() != value.get_token_type()) {
+                QString error = "Type mismatch in CASE function on line ";
+                error += QString::number(key.get_token().line_number);
+                throw std::logic_error(error.toStdString());
+            }
+
+            if (key.get_token_type() == TokenType::NUMBER &&
+                key.get_token().number_value == value.get_token().number_value) {
+                return result;
+            }
+
+            if (key.get_token_type() == TokenType::STRING &&
+                key.get_token().string_value.toLower() == value.get_token().string_value.toLower()) {
+                return result;
+            }
+
+            i += 2;
+        }
+
+        // ELSE branch exists if there is one leftover argument
+        if (i < args.size()) {
+            return args.at(i);
+        }
+
+        // no match and no ELSE
+        Token t;
+        t.token_type = TokenType::STRING;
+        t.string_value = "";
+        t.line_number = key.get_token().line_number;
+        return Term(t);
+    }
+
+    Term dynamic_case_function(QList<Term> args)
+    {
+        if (args.size() < 3) {
+            throw std::logic_error("Invalid CASE expression");
+        }
+
+        const Term& key = args.at(0);
+
+        int i = 1;
+        while (i + 1 < args.size()) {
+            const Term& value = args.at(i);
+            const Term& result = args.at(i + 1);
+
+            if (key.get_token_type() != value.get_token_type()) {
+                QString error = "Type mismatch in CASE function on line ";
+                error += QString::number(key.get_token().line_number);
+                throw std::logic_error(error.toStdString());
+            }
+
+            if (key.get_token_type() == TokenType::NUMBER &&
+                key.get_token().number_value == value.get_token().number_value) {
+                return result;
+            }
+
+            if (key.get_token_type() == TokenType::STRING &&
+                key.get_token().string_value == value.get_token().string_value) {
+                return result;
+            }
+
+            i += 2;
+        }
+
+        // ELSE branch exists if there is one leftover argument
+        if (i < args.size()) {
+            return args.at(i);
+        }
+
+        // no match and no ELSE
+        Token t;
+        t.token_type = TokenType::STRING;
+        t.string_value = "";
+        t.line_number = key.get_token().line_number;
+        return Term(t);
+    }
+
     
     //Aggregate functions have an extra hidden argument (the function token itself)
     // that is added before the function is called when evaluating the expression
@@ -801,9 +1070,9 @@ namespace csvquery {
 
     //compiled functions
     //compile equivalents functions
-    std::function<Term(QList<Term>)> comp_trim(QList<Term> args)
+    std::function<Term(const QList<Term>&)> comp_trim(const QList<Term>& args)
     {
-        std::function<Term(QList<Term>)> func_result;
+        std::function<Term(const QList<Term>&)> func_result;
 
         QList<TokenType> arg_types;
         foreach(auto t, args) {
@@ -824,7 +1093,7 @@ namespace csvquery {
             throw std::logic_error(error.toStdString());
         }
         else {
-            func_result = [](QList<Term> args) {
+            func_result = [](const QList<Term>& args) {
                 Term result;
                 QString str = args.front().get_token().string_value;
                 Token t;
@@ -840,9 +1109,9 @@ namespace csvquery {
         return func_result;
     }
 
-    std::function<Term(QList<Term>)> comp_length(QList<Term> args)
+    std::function<Term(const QList<Term>&)> comp_length(const QList<Term>& args)
     {
-        std::function<Term(QList<Term>)> func_result;
+        std::function<Term(const QList<Term>&)> func_result;
 
         QList<TokenType> arg_types;
         foreach(auto t, args) {
@@ -863,7 +1132,7 @@ namespace csvquery {
             throw std::logic_error(error.toStdString());
         }
         else {
-            func_result = [](QList<Term> args) {
+            func_result = [](const QList<Term>& args) {
                 Term result;
 
                 QString str = args.front().get_token().string_value;
@@ -881,9 +1150,9 @@ namespace csvquery {
         return func_result;
     }
 
-    std::function<Term(QList<Term>)> comp_substring(QList<Term> args)
+    std::function<Term(const QList<Term>&)> comp_substring(const QList<Term>& args)
     {
-        std::function<Term(QList<Term>)> func_result;
+        std::function<Term(const QList<Term>&)> func_result;
 
         QList<TokenType> arg_types;
         foreach(auto t, args) {
@@ -919,7 +1188,7 @@ namespace csvquery {
                 throw std::logic_error(error.toStdString());
             }
             else {
-                func_result = [index, length](QList<Term> args) {
+                func_result = [index, length](const QList<Term>& args) {
                     Term result;
                     Token t;
                     QString str = args[0].get_token().string_value;
@@ -936,9 +1205,9 @@ namespace csvquery {
 
     }
 
-    std::function<Term(QList<Term>)> comp_left(QList<Term> args)
+    std::function<Term(const QList<Term>&)> comp_left(const QList<Term>& args)
     {
-        std::function<Term(QList<Term>)> func_result;
+        std::function<Term(const QList<Term>&)> func_result;
 
         QList<TokenType> arg_types;
         foreach(auto t, args) {
@@ -974,7 +1243,7 @@ namespace csvquery {
                 throw std::logic_error(error.toStdString());
             }
             else {
-                func_result = [length](QList<Term> args) {
+                func_result = [length](const QList<Term>& args) {
                     Term result;
                     Token t;
                     QString str = args[0].get_token().string_value;
@@ -992,9 +1261,9 @@ namespace csvquery {
         return func_result;
     }
 
-    std::function<Term(QList<Term>)> comp_right(QList<Term> args)
+    std::function<Term(const QList<Term>&)> comp_right(const QList<Term>& args)
     {
-        std::function<Term(QList<Term>)> func_result;
+        std::function<Term(const QList<Term>&)> func_result;
 
         QList<TokenType> arg_types;
         foreach(auto t, args) {
@@ -1024,7 +1293,7 @@ namespace csvquery {
                 throw std::logic_error(error.toStdString());
             }
             else {
-                func_result = [length](QList<Term> args) {
+                func_result = [length](const QList<Term>& args) {
                     Term result;
                     Token t;
                     QString str = args[0].get_token().string_value;
@@ -1041,9 +1310,9 @@ namespace csvquery {
         return func_result;
     }
 
-    std::function<Term(QList<Term>)> comp_strip_quotes(QList<Term> args) //remove doubles from column value surrounded by double quotes
+    std::function<Term(const QList<Term>&)> comp_strip_quotes(const QList<Term>& args) //remove doubles from column value surrounded by double quotes
     {
-        std::function<Term(QList<Term>)> func_result;
+        std::function<Term(const QList<Term>&)> func_result;
 
         QList<TokenType> arg_types;
         foreach(auto t, args) {
@@ -1064,7 +1333,7 @@ namespace csvquery {
             throw std::logic_error(error.toStdString());
         }
         else {
-            func_result = [](QList<Term> args) {
+            func_result = [](const QList<Term>& args) {
                 Term result;
                 QString str = args.front().get_token().string_value;
 
@@ -1089,9 +1358,9 @@ namespace csvquery {
         return func_result;
     }
 
-    std::function<Term(QList<Term>)> comp_date_gt(QList<Term> args) // date greater then
+    std::function<Term(const QList<Term>&)> comp_date_gt(const QList<Term>& args) // date greater then
     {
-        std::function<Term(QList<Term>)> func_result;
+        std::function<Term(const QList<Term>&)> func_result;
 
         QList<TokenType> arg_types;
         foreach(auto t, args) {
@@ -1118,7 +1387,7 @@ namespace csvquery {
             QString format1 = args[1].get_token().string_value;
             QString format2 = (args.length() == 4) ? args[3].get_token().string_value : format1;
 
-            func_result = [format1, format2](QList<Term> args) {
+            func_result = [format1, format2](const QList<Term>& args) {
                 Term result;
 
                 QString date_str1 = args[0].get_token().string_value;
@@ -1160,9 +1429,9 @@ namespace csvquery {
         return func_result;
     }
 
-    std::function<Term(QList<Term>)> comp_date_lt(QList<Term> args) // date less than
+    std::function<Term(const QList<Term>&)> comp_date_lt(const QList<Term>& args) // date less than
     {
-        std::function<Term(QList<Term>)> func_result;
+        std::function<Term(const QList<Term>&)> func_result;
 
         QList<TokenType> arg_types;
         foreach(auto t, args) {
@@ -1189,7 +1458,7 @@ namespace csvquery {
             QString format1 = args[1].get_token().string_value;
             QString format2 = (args.length() == 4) ? args[3].get_token().string_value : format1;
 
-            func_result = [format1, format2](QList<Term> args) {
+            func_result = [format1, format2](const QList<Term>& args) {
                 Term result;
                 QString date_str1 = args[0].get_token().string_value;
                 
@@ -1232,9 +1501,9 @@ namespace csvquery {
         return func_result;
     }
 
-    std::function<Term(QList<Term>)> comp_date_ge(QList<Term> args) // date greater than or equal
+    std::function<Term(const QList<Term>&)> comp_date_ge(const QList<Term>& args) // date greater than or equal
     {
-        std::function<Term(QList<Term>)> func_result;
+        std::function<Term(const QList<Term>&)> func_result;
 
         QList<TokenType> arg_types;
         foreach(auto t, args) {
@@ -1261,7 +1530,7 @@ namespace csvquery {
             QString format1 = args[1].get_token().string_value;
             QString format2 = (args.length() == 4) ? args[3].get_token().string_value : format1;
 
-            func_result = [format1, format2](QList<Term> args) {
+            func_result = [format1, format2](const QList<Term>& args) {
                 Term result;
                 QString date_str1 = args[0].get_token().string_value;
                 
@@ -1302,9 +1571,9 @@ namespace csvquery {
         return func_result;
     }
 
-    std::function<Term(QList<Term>)> comp_date_le(QList<Term> args) // date less than or equal
+    std::function<Term(const QList<Term>&)> comp_date_le(const QList<Term>& args) // date less than or equal
     {
-        std::function<Term(QList<Term>)> func_result;
+        std::function<Term(const QList<Term>&)> func_result;
 
         QList<TokenType> arg_types;
         foreach(auto t, args) {
@@ -1331,7 +1600,7 @@ namespace csvquery {
             QString format1 = args[1].get_token().string_value;
             QString format2 = (args.length() == 4) ? args[3].get_token().string_value : format1;
 
-            func_result = [format1, format2](QList<Term> args) {
+            func_result = [format1, format2](const QList<Term>& args) {
                 Term result;
 
                 QString date_str1 = args[0].get_token().string_value;
@@ -1376,9 +1645,9 @@ namespace csvquery {
         return func_result;
     }
 
-    std::function<Term(QList<Term>)> comp_date_eq(QList<Term> args) // date equal
+    std::function<Term(const QList<Term>&)> comp_date_eq(const QList<Term>& args) // date equal
     {
-        std::function<Term(QList<Term>)> func_result;
+        std::function<Term(const QList<Term>&)> func_result;
 
         QList<TokenType> arg_types;
         foreach(auto t, args) {
@@ -1406,7 +1675,7 @@ namespace csvquery {
         QString format1 = args[1].get_token().string_value;
         QString format2 = (args.length() == 4) ? args[3].get_token().string_value : format1;
 
-        func_result = [format1, format2](QList<Term> args) {
+        func_result = [format1, format2](const QList<Term>& args) {
             Term result;
 
             QString date_str1 = args[0].get_token().string_value;
@@ -1445,9 +1714,9 @@ namespace csvquery {
         return func_result;
     }
 
-    std::function<Term(QList<Term>)> comp_number(QList<Term> args) // convert string to number or throw exception
+    std::function<Term(const QList<Term>&)> comp_number(const QList<Term>& args) // convert string to number or throw exception
     {
-        std::function<Term(QList<Term>)> func_result;
+        std::function<Term(const QList<Term>&)> func_result;
 
         QList<TokenType> arg_types;
         foreach(auto t, args) {
@@ -1469,7 +1738,7 @@ namespace csvquery {
             throw std::logic_error(error.toStdString());
         }
 
-        func_result = [](QList<Term> args) {
+        func_result = [](const QList<Term>& args) {
             Term result;
 
             QString num_str = args[0].get_token().string_value;
@@ -1513,9 +1782,9 @@ namespace csvquery {
     }
 
     //enum class AggregFuncType { count, sum, min, max, avg };
-    std::function<Term(QList<Term> args)> comp_execute_aggregation(const QList<Term> args, AggregFuncType func_type)
+    std::function<Term(const QList<Term>& args)> comp_execute_aggregation(const QList<Term>& args, const AggregFuncType& func_type)
     {
-        std::function<Term(QList<Term> args)> func_result;
+        std::function<Term(const QList<Term>& args)> func_result;
 
         QList<TokenType> arg_types;
         foreach(auto t, args) {
@@ -1688,7 +1957,7 @@ namespace csvquery {
         return func_result;
     }
 
-    std::function<Term(QList<Term>)> comp_count(QList<Term> args) //aggregate function
+    std::function<Term(const QList<Term>&)> comp_count(const QList<Term>& args) //aggregate function
     {
         //qDebug() << "compiling count";
         auto f =  comp_execute_aggregation(args, AggregFuncType::count);
@@ -1697,23 +1966,382 @@ namespace csvquery {
         return f;
     }
 
-    std::function<Term(QList<Term>)> comp_sum(QList<Term> args) //aggregate function
+    std::function<Term(const QList<Term>&)> comp_sum(const QList<Term>& args) //aggregate function
     {
         return comp_execute_aggregation(args, AggregFuncType::sum);
     }
 
-    std::function<Term(QList<Term>)> comp_min(QList<Term> args) //aggregate function
+    std::function<Term(const QList<Term>&)> comp_min(const QList<Term>& args) //aggregate function
     {
         return comp_execute_aggregation(args, AggregFuncType::min);
     }
 
-    std::function<Term(QList<Term>)> comp_max(QList<Term> args) //aggregate function
+    std::function<Term(const QList<Term>&)> comp_max(const QList<Term>& args) //aggregate function
     {
         return comp_execute_aggregation(args, AggregFuncType::max);
     }
 
-    std::function<Term(QList<Term>)> comp_avg(QList<Term> args) //aggregate function
+    std::function<Term(const QList<Term>&)> comp_avg(const QList<Term>& args) //aggregate function
     {
         return comp_execute_aggregation(args, AggregFuncType::avg);
     }
+
+    std::function<Term(const QList<Term>&)> comp_modulo(const QList<Term>& args)
+    {
+        std::function<Term(const QList<Term>&)> func_result;
+
+        QList<TokenType> arg_types;
+        foreach(auto t, args) {
+            arg_types.append(t.get_token().token_type);
+        }
+
+
+        QList<TokenType> expected_arg_types1 = { TokenType::STRING, TokenType::NUMBER };
+        QList<TokenType> expected_arg_types2 = { TokenType::STRING, TokenType::STRING };
+        QList<TokenType> expected_arg_types3 = { TokenType::NUMBER, TokenType::NUMBER };
+        int expected_num_of_args = 2;
+
+        if (args.length() != expected_num_of_args) {
+            QString error = "modulo(string, number) or modulo(string, string) expects 2 arguments (string, number) or (string, string) on line ";
+            error += QString::number(args.at(0).get_token().line_number);
+            throw std::logic_error(error.toStdString());
+        }
+
+        
+
+        if (arg_types == expected_arg_types1) { //String, Number
+
+            int denominator = args[1].get_token().number_value;
+
+            if (denominator == 0) {
+                QString error = "Division by zero in modulo(string, number) on line ";
+                error += QString::number(args.at(0).get_token().line_number);
+                throw std::logic_error(error.toStdString());
+            }
+
+            func_result = [denominator](const QList<Term>& args) {
+
+                Term result;
+
+                QString num_str = args[0].get_token().string_value;
+                bool is_number = false;
+                int numerator = num_str.toInt(&is_number);
+
+                if (!is_number) {
+                    QString error = "Unable to convert numerator argument passed to modulo(string, number) to an integer on line ";
+                    error += QString::number(args.at(0).get_token().line_number);
+                    throw std::logic_error(error.toStdString());
+                }
+                
+                int mod_result = (numerator % denominator + denominator) % denominator;//std::fmod(numerator, denominator);
+                Token t;
+                t.token_type = TokenType::NUMBER;
+                t.number_value = mod_result;
+                t.string_value = QString::number(mod_result);
+                t.line_number = args.at(0).get_token().line_number;
+                    
+                result = Term(t);
+				return result;
+
+             };
+
+            
+        }
+        else if (arg_types == expected_arg_types2) { // both arguments are strings, convert both to numbers
+            QString denom_str = args[1].get_token().string_value;
+            bool is_denominator_number = false;
+            int denominator = denom_str.toInt(&is_denominator_number);
+
+            if (!is_denominator_number) {
+                QString error = "Unable to convert an denominator passed to modulo(string, string) to an integer on line ";
+                error += QString::number(args.at(0).get_token().line_number);
+                throw std::logic_error(error.toStdString());
+            }
+
+            if (denominator == 0) {
+                QString error = "Division by zero in modulo(string, string) on line ";
+                error += QString::number(args.at(0).get_token().line_number);
+                throw std::logic_error(error.toStdString());
+            }
+
+            func_result = [denominator](const QList<Term>& args) {
+				Term result;
+                QString num_str = args[0].get_token().string_value;
+                bool is_number = false;
+                int numerator = num_str.toInt(&is_number);
+
+                if (!is_number) {
+                    QString error = "Unable to convert numerator argument passed to modulo(string, string) to an integer on line ";
+                    error += QString::number(args.at(0).get_token().line_number);
+                    throw std::logic_error(error.toStdString());
+                }
+
+                double mod_result = (numerator % denominator + denominator) % denominator;
+                Token t;
+                t.token_type = TokenType::NUMBER;
+                t.number_value = mod_result;
+                t.string_value = QString::number(mod_result);
+                t.line_number = args.at(0).get_token().line_number;
+                result = Term(t);
+
+				return result;
+
+                };
+
+            
+        }
+        else if (arg_types == expected_arg_types3) { //both are Numbers
+
+
+            int denominator = args[1].get_token().number_value;
+
+            if (denominator == 0) {
+                QString error = "Division by zero in modulo(string, string) on line ";
+                error += QString::number(args.at(0).get_token().line_number);
+                throw std::logic_error(error.toStdString());
+            }
+
+            func_result = [denominator](const QList<Term>& args) {
+                Term result;
+                int numerator = args[0].get_token().number_value;
+
+                double mod_result = (numerator % denominator + denominator) % denominator;
+                Token t;
+                t.token_type = TokenType::NUMBER;
+                t.number_value = mod_result;
+                t.string_value = QString::number(mod_result);
+                t.line_number = args.at(0).get_token().line_number;
+                result = Term(t);
+
+                return result;
+
+                };
+        }
+        else {
+            QString error = "modulo(string, number) or modulo(string, string) expects 2 arguments (string, number) or (string, string) on line ";
+            error += QString::number(args.at(0).get_token().line_number);
+            throw std::logic_error(error.toStdString());
+        }
+
+        return func_result;
+    }
+
+    /*
+    std::function<Term(const QList<Term>&)> comp_case_function(const QList<Term>& args)
+    {
+        if (args.size() < 3) {
+            throw std::logic_error("Invalid CASE expression");
+        }
+
+        const TokenType case_type = args.at(1).get_token_type();
+
+        bool has_default = false;
+        Term default_result;
+
+        int i = 1;
+
+        if (case_type == TokenType::NUMBER) {
+            QHash<double, Term> lookup;
+
+            while (i + 1 < args.size()) {
+                const Term& value = args.at(i);
+                const Term& result = args.at(i + 1);
+
+                if (value.get_token_type() != TokenType::NUMBER) {
+                    throw std::logic_error("Mixed WHEN types in CASE function");
+                }
+
+                double key = value.get_token().number_value;
+
+                if (!lookup.contains(key)) {
+                    lookup.insert(key, result);
+                }
+
+                i += 2;
+            }
+
+            if (i < args.size()) {
+                has_default = true;
+                default_result = args.at(i);
+            }
+
+            return [lookup, has_default, default_result](const QList<Term>& runtime_args) -> Term {
+                if (runtime_args.isEmpty()) {
+                    throw std::logic_error("CASE function missing runtime key");
+                }
+
+                const Term& key = runtime_args.at(0);
+
+                if (key.get_token_type() != TokenType::NUMBER) {
+                    throw std::logic_error("Type mismatch in CASE function");
+                }
+
+                auto it = lookup.constFind(key.get_token().number_value);
+                if (it != lookup.constEnd()) {
+                    return it.value();
+                }
+
+                if (has_default) {
+                    return default_result;
+                }
+
+                Token t;
+                t.token_type = TokenType::STRING;
+                t.string_value = "";
+                t.line_number = key.get_token().line_number;
+                return Term(t);
+                };
+        }
+
+        if (case_type == TokenType::STRING) {
+            QHash<QString, Term> lookup;
+
+            while (i + 1 < args.size()) {
+                const Term& value = args.at(i);
+                const Term& result = args.at(i + 1);
+
+                if (value.get_token_type() != TokenType::STRING) {
+                    throw std::logic_error("Mixed WHEN types in CASE function");
+                }
+
+                QString key = value.get_token().string_value;
+
+                if (!lookup.contains(key)) {
+                    lookup.insert(key, result);
+                }
+
+                i += 2;
+            }
+
+            if (i < args.size()) {
+                has_default = true;
+                default_result = args.at(i);
+            }
+
+            return [lookup, has_default, default_result](const QList<Term>& runtime_args) -> Term {
+                if (runtime_args.isEmpty()) {
+                    throw std::logic_error("CASE function missing runtime key");
+                }
+
+                const Term& key = runtime_args.at(0);
+
+                if (key.get_token_type() != TokenType::STRING) {
+                    throw std::logic_error("Type mismatch in CASE function");
+                }
+
+                auto it = lookup.constFind(key.get_token().string_value);
+                if (it != lookup.constEnd()) {
+                    return it.value();
+                }
+
+                if (has_default) {
+                    return default_result;
+                }
+
+                Token t;
+                t.token_type = TokenType::STRING;
+                t.string_value = "";
+                t.line_number = key.get_token().line_number;
+                return Term(t);
+                };
+        }
+
+        throw std::logic_error("Unsupported CASE key type");
+    }
+    */
+
+    std::function<Term(const QList<Term>&)> comp_case_function(const QList<Term>& args)
+    {
+        if (args.size() < 3) {
+            throw std::logic_error("Invalid CASE expression");
+        }
+    
+        const Term& first_when = args.at(1);
+        const TokenType case_type = first_when.get_token_type();
+    
+        QHash<double, Term> number_lookup;
+        QHash<QString, Term> string_lookup;
+    
+        bool has_default = false;
+        Term default_result;
+    
+        int i = 1;
+    
+        while (i + 1 < args.size()) {
+            const Term& value = args.at(i);
+            const Term& result = args.at(i + 1);
+    
+            if (value.get_token_type() != case_type) {
+                QString error = "Mixed WHEN types in CASE function on line ";
+                error += QString::number(value.get_token().line_number);
+                throw std::logic_error(error.toStdString());
+            }
+    
+            if (case_type == TokenType::NUMBER) {
+                double key = value.get_token().number_value;
+    
+                // Preserve SQL CASE behavior: first matching WHEN wins.
+                if (!number_lookup.contains(key)) {
+                    number_lookup.insert(key, result);
+                }
+            }
+            else if (case_type == TokenType::STRING) {
+                QString key = value.get_token().string_value.toLower();
+    
+                if (!string_lookup.contains(key)) {
+                    string_lookup.insert(key, result);
+                }
+            }
+            else {
+                throw std::logic_error("Unsupported CASE key type");
+            }
+    
+            i += 2;
+        }
+    
+        if (i < args.size()) {
+            has_default = true;
+            default_result = args.at(i);
+        }
+    
+        return [case_type, number_lookup, string_lookup, has_default, default_result]
+        (const QList<Term>& runtime_args) -> Term
+            {
+                if (runtime_args.isEmpty()) {
+                    throw std::logic_error("CASE function missing runtime key");
+                }
+    
+                const Term& key = runtime_args.at(0);
+    
+                if (key.get_token_type() != case_type) {
+                    QString error = "Type mismatch in CASE function on line ";
+                    error += QString::number(key.get_token().line_number);
+                    throw std::logic_error(error.toStdString());
+                }
+    
+                if (case_type == TokenType::NUMBER) {
+                    auto it = number_lookup.constFind(key.get_token().number_value);
+                    if (it != number_lookup.constEnd()) {
+                        return it.value();
+                    }
+                }
+                else if (case_type == TokenType::STRING) {
+                    auto it = string_lookup.constFind(key.get_token().string_value.toLower());
+                    if (it != string_lookup.constEnd()) {
+                        return it.value();
+                    }
+                }
+    
+                if (has_default) {
+                    return default_result;
+                }
+    
+                Token t;
+                t.token_type = TokenType::STRING;
+                t.string_value = "";
+                t.line_number = key.get_token().line_number;
+                return Term(t);
+            };
+    }
+
 }

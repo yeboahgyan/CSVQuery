@@ -46,7 +46,7 @@ namespace csvquery {
             index = columns_table[token.string_value];
         }
 
-        if (index < 0 || index > row.length()) {
+        if (index < 0 || index >= row.length()) {
             result.token_type = TokenType::ERROR;
             result.error_msg = "Invalid column index " + QString::number(token.number_value) + " on line " + QString::number(token.line_number);
             throw std::logic_error(result.error_msg.toStdString());
@@ -416,7 +416,7 @@ namespace csvquery {
         }
 
         //qDebug()<<"column index2: "<<index <<" row length: "<<row.length();
-        if (index < 0 || index > (row.length() -1)) {
+        if (index < 0 || index >= row.length()) {
             result.token_type = TokenType::ERROR;
             result.error_msg = "Invalid column index '" + QString::number(token.number_value) + "' on line " + QString::number(token.line_number);
             throw std::logic_error(result.error_msg.toStdString());
@@ -429,7 +429,7 @@ namespace csvquery {
         return result;
     }
 
-    std::function <Token(const QStringList& row)> Term::compile_eval(const QStringList row) 
+    std::function <Token(const QStringList& row)> Term::compile_eval(const QStringList& row) 
     {
         Token result;
         double index = 0;
@@ -496,7 +496,7 @@ namespace csvquery {
             index = columns_table[token.string_value];
         }
 
-        if (index < 0 || index > row.length()) {
+        if (index < 0 || index >= row.length()) {
             result.token_type = TokenType::ERROR;
             result.error_msg = "Invalid column index " + QString::number(token.number_value) + " on line " + QString::number(token.line_number);
             throw std::logic_error(result.error_msg.toStdString());
@@ -510,6 +510,13 @@ namespace csvquery {
 
             Token result = token;
             result.token_type = TokenType::STRING;
+            //if ((index < 0 || index > row.length()) || row.length() == 0) {
+            //    qDebug() << "row: "<< row <<" lenght:"<<row.length();
+            //    result.string_value = "";
+            //}
+            //else {
+            //    result.string_value = row.at(index);
+            //}
             result.string_value = row.at(index);
 
             return result;
@@ -517,7 +524,7 @@ namespace csvquery {
         return compiled_func;
     }
     
-    std::function<Token(const QMap<QString, QStringList>& data_rows)> Term::compile(const QMap<QString, QStringList> data_rows)
+    std::function<Token(const QMap<QString, QStringList>& data_rows)> Term::compile(const QMap<QString, QStringList>& data_rows)
     {
         // ColumnResult result;
         Token result = token;
@@ -676,12 +683,10 @@ namespace csvquery {
             auto compiled_func = [token = token, data_row_key](const QMap<QString, QStringList>& data_rows) {
                 QStringList row; 
                 row = data_rows[data_row_key];
-
                 Token result = token;
                 result.token_type = TokenType::STRING;
                 result.string_value = row.join(',');
-				result.star_field_vals = row;
-
+				result.star_field_vals = std::move(row);
                 return result;
                 };
             return compiled_func;
@@ -767,7 +772,7 @@ namespace csvquery {
                 if (column_name == '*') { // if column name is of the form, file_name.*
                     result.token_type = TokenType::STRING;
                     result.string_value = row.join(',');
-                    result.star_field_vals = row;
+                    result.star_field_vals = std::move(row);
 
                     auto compiled_func = [token = token, data_row_key](const QMap<QString, QStringList>& data_rows) {
                         QStringList row;
@@ -776,7 +781,7 @@ namespace csvquery {
                         Token result = token;
                         result.token_type = TokenType::STRING;
                         result.string_value = row.join(',');
-                        result.star_field_vals = row;
+                        result.star_field_vals = std::move(row);
 
                         return result;
                         };
@@ -1070,7 +1075,7 @@ namespace csvquery {
 
         //qDebug() << "row: " << row;
 
-        if (index < 0 || index >(row.length() - 1)) {
+        if (index < 0 || index >= row.length()) {
             result.token_type = TokenType::ERROR;
             result.error_msg = "Invalid column index '" + QString::number(token.number_value) + "' on line " + QString::number(token.line_number);
             throw std::logic_error(result.error_msg.toStdString());

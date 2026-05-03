@@ -238,7 +238,10 @@ namespace csvquery {
             // is a keyword
             //QStringList expected_joins = { "inner", "outer", "cross"}; //joins
             QStringList composite_keywords = { "inner", "outer", "cross", "not", "group"}; // first part of composite keyword
-            if (keywords.contains(token.string_value.toLower()) || composite_keywords.contains(token.string_value.toLower())) {
+            if ((keywords.contains(token.string_value.toLower()) || composite_keywords.contains(token.string_value.toLower()))
+                //&& keywords.contains("case") && keywords.contains("when") && keywords.contains("then") && keywords.contains("else")
+                //&& keywords.contains("end")
+                ) {
 
                 if (composite_keywords.contains(token.string_value.toLower())) { // is a composite keyword
                     //std::cout<<"new token read!\n";
@@ -343,78 +346,137 @@ namespace csvquery {
                     QList<TokenType> arg_types = func_args_type_list[token.string_value.toLower()];
                     Token next_token = get();
 
-                    if (next_token.token_type != TokenType::LBRACKET) {
-                        std::string num;
-                        num += line_number;
-                        throw std::logic_error("Unexpected character after function " + token.string_value.toStdString() + " on line " + num);
-                    }
+                    //qDebug() << "case...1: "<< token.string_value.toLower();
 
-                    //int count = arg_types.length();
-                    //std::cout<<"number of args for "<<func_token.string_value.toLower().toStdString()<<" is "<<count<<"\n";
+					//handle special CASE for case when function since it has a different syntax than other functions
+                    if (func_token.string_value.toLower() == "case") {
 
-                    next_token = get();
-                    while (next_token.token_type != TokenType::RBRACKET) {
+                        //Get CASE key
+                        
+                        func_token.func_args.append(next_token);
 
-                        if (next_token.token_type == TokenType::END) {
-                            QString error = "Unexpected end to function ";
-                            error += func_token.string_value;
-                            error += " on line ";
-                            error += QString::number(next_token.line_number);
-                            throw std::logic_error(error.toStdString());
+                        //qDebug() << "case...2";
+                        //qDebug() << next_token.to_string();
+
+                        Token next_token = get();
+
+                        while (next_token.token_type != TokenType::END
+                            && next_token.token_type != TokenType::SEMICOLON
+                            && next_token.token_type != TokenType::ENDCASE
+                            )
+                        {
+                            //qDebug() << next_token.to_string();
+
+                            if (next_token.token_type == TokenType::WHEN
+                                || next_token.token_type == TokenType::THEN
+                                || next_token.token_type == TokenType::ELSE
+                                )
+                            {
+                                Token comma = next_token;
+                                comma.token_type = TokenType::COMMA; // treat when, then and else as comma for easier processing in execution since they are just separators between different parts of the function
+                                comma.string_value = ",";
+
+                                func_token.func_args.append(comma);
+                                next_token = get();
+                                //qDebug() << next_token.to_string();
+
+                                continue;
+                            }
+
+                            func_token.func_args.append(next_token);
+                            next_token = get();
+                            
                         }
 
 
+                        if (next_token.token_type != TokenType::ENDCASE)
+                        {
+                            //qDebug() << "token found: " << next_token.to_string();
+                            std::string error = "Unexpected end to CASE on line ";
+                            error += QString::number(line_number).toStdString();
+                            throw std::logic_error(error);
+                        }
+
+                        token = func_token;
+
+                    }
+					//end CASE special handling
+                    else {
+                        if (next_token.token_type != TokenType::LBRACKET) {
+                            std::string num;
+                            num += line_number;
+                            throw std::logic_error("Unexpected character after function " + token.string_value.toStdString() + " on line " + num);
+                        }
+
+                        //int count = arg_types.length();
+                        //std::cout<<"number of args for "<<func_token.string_value.toLower().toStdString()<<" is "<<count<<"\n";
+
+                        next_token = get();
+                        while (next_token.token_type != TokenType::RBRACKET) {
+
+                            if (next_token.token_type == TokenType::END) {
+                                QString error = "Unexpected end to function ";
+                                error += func_token.string_value;
+                                error += " on line ";
+                                error += QString::number(next_token.line_number);
+                                throw std::logic_error(error.toStdString());
+                            }
+
+
+                            /*
+                            if(next_token.token_type == TokenType::RBRACKET){
+                                std::string error = "Unexpected end to function arguments on line ";
+                                error += QString::number(line_number).toStdString();
+                                error += " " + token.string_value.toStdString();
+                                error += "requires ";
+                                error += arg_types.length();
+                                error += "arguments";
+                                throw std::logic_error(error);
+                            }
+
+                            if(next_token.token_type == TokenType::COMMA){
+                                continue;
+                            }*/
+
+                            // save function arguments
+                            func_token.func_args.append(next_token);
+                            next_token = get();
+
+
+                            //if(next_token.token_type != arg_type){
+                            //    std::string error ="Argument number ";
+                            //    error += count;
+                            //    error += " should be of type ";
+                            //    error += token_to_string[arg_type].toStdString();
+                            //    throw std::logic_error(error);
+                            //}
+                            //count--;
+                        }
+
                         /*
-                        if(next_token.token_type == TokenType::RBRACKET){
-                            std::string error = "Unexpected end to function arguments on line ";
+                        if(count != 0){
+                            std::string error = "Fewer arguments provided to function on line ";
                             error += QString::number(line_number).toStdString();
                             error += " " + token.string_value.toStdString();
                             error += "requires ";
                             error += arg_types.length();
                             error += "arguments";
                             throw std::logic_error(error);
-                        }
-
-                        if(next_token.token_type == TokenType::COMMA){
-                            continue;
                         }*/
 
-                        // save function arguments
-                        func_token.func_args.append(next_token);
-                        next_token = get();
-
-
-                        //if(next_token.token_type != arg_type){
-                        //    std::string error ="Argument number ";
-                        //    error += count;
-                        //    error += " should be of type ";
-                        //    error += token_to_string[arg_type].toStdString();
-                        //    throw std::logic_error(error);
-                        //}
-                        //count--;
+                        //eat ) bracket
+                        //next_token = get();
+                        //std::cout<<"\n token after function args: "<<next_token.to_string().toStdString()<<"\n";
+                        if (next_token.token_type != TokenType::RBRACKET) {
+                            std::string error = "invalid function syntax on line ";
+                            error += QString::number(line_number).toStdString();
+                            throw std::logic_error(error);
+                        }
+                        token = func_token;
+                    }
                     }
 
-                    /*
-                    if(count != 0){
-                        std::string error = "Fewer arguments provided to function on line ";
-                        error += QString::number(line_number).toStdString();
-                        error += " " + token.string_value.toStdString();
-                        error += "requires ";
-                        error += arg_types.length();
-                        error += "arguments";
-                        throw std::logic_error(error);
-                    }*/
-
-                    //eat ) bracket
-                    //next_token = get();
-                    //std::cout<<"\n token after function args: "<<next_token.to_string().toStdString()<<"\n";
-                    if (next_token.token_type != TokenType::RBRACKET) {
-                        std::string error = "invalid function syntax on line ";
-                        error += QString::number(line_number).toStdString();
-                        throw std::logic_error(error);
-                    }
-                    token = func_token;
-                }
+                    
             }
             else { // it is an unknown name
                 token.token_name = token.to_string();

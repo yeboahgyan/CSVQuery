@@ -12,7 +12,7 @@ namespace csvquery {
         tokens{ tks }
         , NUMBER_OF_ROWS_PER_PAGE{ max_rows_per_page }
     {
-        queue = std::make_unique<boost::lockfree::spsc_queue<std::vector<csv::CSVRow>, boost::lockfree::capacity<128>>>();
+        queue = std::make_unique<boost::lockfree::spsc_queue<std::vector<csv::CSVRow>, boost::lockfree::capacity<256>>>();
 
         //queue = std::make_unique<std::queue<QList<csv::CSVRow>> >();
         write_queue = std::make_unique<boost::lockfree::spsc_queue< std::vector<QStringList>, boost::lockfree::capacity<128>>>();
@@ -330,6 +330,7 @@ namespace csvquery {
         QString f;
         if ((last_token_pos->token_type == TokenType::NAME) || (last_token_pos->token_type == TokenType::STRING)) {
             if (last_token_pos->token_type == TokenType::NAME) { // name
+                //qDebug()<<"File: 2"<<last_token_pos->string_value.toLower();
                 if (!symbol_table.contains(last_token_pos->string_value.toLower())) {
                     double line_numer = (*last_token_pos).line_number;
                     QString str_num = QString::number(line_numer);
@@ -389,6 +390,7 @@ namespace csvquery {
         QString f;
         if ((last_token_pos->token_type == TokenType::NAME) || (last_token_pos->token_type == TokenType::STRING)) {
             if (last_token_pos->token_type == TokenType::NAME) { // name
+                //qDebug() << "File: " << last_token_pos->string_value.toLower();
                 if (!symbol_table.contains(last_token_pos->string_value.toLower())) {
                     double line_numer = (*last_token_pos).line_number;
                     QString str_num = QString::number(line_numer);
@@ -1206,7 +1208,7 @@ namespace csvquery {
         return columns;
     }
 
-    std::function<QStringList(const QMap<QString, QStringList>&)> SelectStatement::compile_columns(const QMap<QString, QStringList> data_rows)
+    std::function<QStringList(const QMap<QString, QStringList>&)> SelectStatement::compile_columns(const QMap<QString, QStringList>& data_rows)
     {
         QList<std::function<Term(const QMap<QString, QStringList>&)>> compiled_columns;
         compiled_columns.reserve(column_exprs.size());
@@ -1876,16 +1878,18 @@ namespace csvquery {
                 batch.pop_back(); //delete last element; vector reversed to have FIFO
 
                 QStringList row;
+                row.reserve(static_cast<int>(csvrow.size()));
                 for (auto& field : csvrow)
                     row.append(QString::fromStdString(field.get<std::string>()));
 
-                if (row.count() == 1 && row.at(0).trimmed().isEmpty()) {
+                if (row.isEmpty() || (row.count() == 1 && row.at(0).isEmpty()) || row.count() == 0) {
                     //++skipped_rows;
                     continue;
                 }
 
                 QMap<QString, QStringList> data_rows;
-                data_rows["$"] = row;
+                //data_rows["$"] = row;
+                data_rows.insert("$", std::move(row));
 
                 stop = process_data(data_rows);
                 ++rows_consumed;
@@ -2057,7 +2061,7 @@ namespace csvquery {
     std::shared_ptr<QHash<QString, QList<QStringList>> > SelectStatement::build_index2(const std::shared_ptr<CSVFile2>& rhs, const int& column_index)
     {
         auto index = std::make_shared<QHash<QString, QList<QStringList>>>();
-        index->reserve(20'000'000);
+        index->reserve(16'777'216);
         csv::CSVRow csvrow;
 
         //unsigned int rhs_rows_read = 0;
@@ -2070,17 +2074,31 @@ namespace csvquery {
             for (auto& field : csvrow)
                 row.append(QString::fromStdString(field.get<std::string>()));
 
-            if (row.size() == 1 && row.at(0).trimmed().isEmpty())
+            if (row.isEmpty() || (row.size() == 1 && row[0].isEmpty()) || row.size() == 0)
                 continue;
 
             //++rhs_rows_read;
 
-            if (column_index < row.size())
-                (*index)[row[column_index]].append(row);
+            //if (column_index < row.size())
+            //    (*index)[row[column_index]].append(row);
+
+            const QString& key = row[column_index];
+
+            auto it = index->find(key);
+            if (it == index->end()){
+                it = index->insert(key, {});
+             }
+
+            if (number_of_columns_for_rhs_csv == 0)
+                number_of_columns_for_rhs_csv = row.size();
+
+            it.value().append(std::move(row));
+
+            
             //else
                 //++failed_read_count;
 
-            number_of_columns_for_rhs_csv = row.size();
+            //number_of_columns_for_rhs_csv = row.size();
         }
 
         ////qDebug()() << "RHS File rows read:" << rhs_rows_read;
@@ -2316,16 +2334,18 @@ namespace csvquery {
                     batch.pop_back(); //delete last element; vector reversed to have FIFO
 
                     QStringList row;
+                    row.reserve(static_cast<int>(csvrow.size()));
                     for (auto& field : csvrow)
                         row.append(QString::fromStdString(field.get<std::string>()));
 
-                    if (row.count() == 1 && row.at(0).trimmed().isEmpty()) {
+                    if (row.isEmpty() || (row.count() == 1 && row.at(0).isEmpty()) || row.count() == 0) {
                         ++skipped_rows;
                         continue;
                     }
 
                     QMap<QString, QStringList> data_rows;
-                    data_rows[join_files_list["left"]] = row;
+                    //data_rows[join_files_list["left"]] = row;
+                    data_rows.insert(join_files_list["left"], std::move(row));
 
                     //QList<qint64> indices = (*query_lookup_index)[row[query_index]];
                     //qDebug() << "\nindex: " << query_lookup_index2->keys() << "\n";
@@ -2614,7 +2634,7 @@ namespace csvquery {
                     for (auto& field : csvrow)
                         row.append(QString::fromStdString(field.get<std::string>()));
 
-                    if (row.count() == 1 && row.at(0).trimmed().isEmpty()) {
+                    if (row.isEmpty() || (row.count() == 1 && row.at(0).isEmpty()) || row.count() == 0) {
                         ++skipped_rows;
                         continue;
                     }

@@ -1,9 +1,12 @@
-﻿  Generate moc_predefs.h
-D:\Programs\Microsoft Visual Studio\2022\Community\MSBuild\Microsoft\VC\v170\Microsoft.CppCommon.targets(254,5): warning MSB8064: Custom build for item "debug\moc_predefs.h.cbt" succeeded, but specified dependency "d:\documents\documents\qt\cqlinterpreter\debug\moc_predefs.h.cbt" does not exist. This may cause incremental build to work incorrectly.
-   Qt/MSBuild: 3.4.1.0
+﻿   Qt/MSBuild: 3.5.0.0
   Reading Qt configuration (D:/Qt/6.9.0/msvc2022_64/bin/qmake)
    Qt: 6.9.0
-  main.cpp
+  selectstatement.cpp
+D:\Documents\Documents\Qt\CQLInterpreter\selectstatement.cpp(1308,65): warning C4100: 'data_rows': unreferenced parameter
+D:\Documents\Documents\Qt\CQLInterpreter\selectstatement.cpp(1732,32): warning C4018: '>=': signed/unsigned mismatch
+D:\Documents\Documents\Qt\CQLInterpreter\selectstatement.cpp(1795,30): warning C4018: '>=': signed/unsigned mismatch
+D:\Documents\Documents\Qt\CQLInterpreter\selectstatement.cpp(2300,26): warning C4189: 'common_rows_found': local variable is initialized but not referenced
+D:\Documents\Documents\Qt\CQLInterpreter\selectstatement.cpp(2597,26): warning C4189: 'common_rows_found': local variable is initialized but not referenced
   CQLInterpreter.vcxproj -> D:\Documents\Documents\Qt\CQLInterpreter\debug\CQLInterpreter.exe
   'pwsh.exe' is not recognized as an internal or external command,
   operable program or batch file.

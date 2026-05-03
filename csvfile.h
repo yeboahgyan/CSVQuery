@@ -6,7 +6,8 @@
 #include <QFile>
 #include "Types.h"
 #include <fstream>
-#include <csv-parser/include/csv.hpp>
+//#include <csv-parser/include/csv.hpp>
+#include <vincentlaucsb-csv-parser/csv.hpp> // uses single header code in exterl_lib folder in the project directory; this path is set under Additional Include Directories in the project settings
 
 namespace csvquery {
 

@@ -20,6 +20,7 @@ namespace csvquery {
                                                              {"inner join", TokenType::INNERJOIN}, {"outer join", TokenType::OUTERJOIN}, {"cross join", TokenType::CROSSJOIN},
                                                             {"as", TokenType::AS}, {"on", TokenType::ON}, {"like", TokenType::LIKE} , {"not like", TokenType::NOTLIKE},
                                                             {"group by", TokenType::GROUPBY }, {"limit", TokenType::LIMIT }, {"having", TokenType::HAVING }
+                                                            /*,{"case", TokenType::CASE}*/ , {"when", TokenType::WHEN}, {"then", TokenType::THEN}, {"else", TokenType::ELSE}, {"endcase", TokenType::ENDCASE}
         };
 
         //QList<TokenType> read_func_args();

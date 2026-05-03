@@ -41,13 +41,13 @@ namespace csvquery {
         //std::unique_ptr<std::thread> consumer_thread3;
 
         //const size_t BUFFER_SIZE = 32;
-        const qsizetype BATCH_ROWS = 256;
+        const qsizetype BATCH_ROWS = 8192;//256
         //boost::lockfree::spsc_queue<QList<csv::CSVRow>, boost::lockfree::capacity< 8'388'608 >> queue;
         
-        std::unique_ptr<boost::lockfree::spsc_queue<std::vector<csv::CSVRow>, boost::lockfree::capacity<128>>> queue;
-        std::unique_ptr<boost::lockfree::spsc_queue< std::vector<QStringList>, boost::lockfree::capacity<128>>> write_queue;
+        std::unique_ptr<boost::lockfree::spsc_queue<std::vector<csv::CSVRow>, boost::lockfree::capacity<256>>> queue; //128
+        std::unique_ptr<boost::lockfree::spsc_queue< std::vector<QStringList>, boost::lockfree::capacity<128>>> write_queue; //128
 
-        const qsizetype WRITE_BATCH_ROWS = 256;
+        const qsizetype WRITE_BATCH_ROWS = 8192;//256
         std::vector<QStringList> write_batch;
         void push_to_write_queue(const QStringList& row);
 		void flush_write_queue(); //writes partail batch to write queue; used in destructor
@@ -171,7 +171,7 @@ namespace csvquery {
         void parse();
         //QString selected_rows();
         QStringList compute_columns(const QMap<QString, QStringList>& data_rows);
-        std::function<QStringList(const QMap<QString, QStringList>&)> compile_columns(const QMap<QString, QStringList> data_rows);
+        std::function<QStringList(const QMap<QString, QStringList>&)> compile_columns(const QMap<QString, QStringList>& data_rows);
 
         std::shared_ptr<QHash<QString, QList<qint64>>> build_index(const std::shared_ptr<CSVFile>& rhs, const int& column_index);
         std::shared_ptr<QHash<QString, QList<QStringList>> > build_index2(const std::shared_ptr<CSVFile2>& rhs, const int& column_index);

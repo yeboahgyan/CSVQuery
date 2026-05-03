@@ -4,8 +4,8 @@
 #include "Types.h"
 #include <memory>
 #include <QStringList>
-//#include <vincentlaucsb-csv-parser/csv.hpp>
-#include <csv-parser/include/csv.hpp>
+#include <vincentlaucsb-csv-parser/csv.hpp> // uses single header code in exterl_lib folder in the project directory; this path is set under Additional Include Directories in the project settings
+//#include <csv-parser/include/csv.hpp>
 
 
 

@@ -14,9 +14,10 @@ namespace csvquery {
         QString variable_name;
         Term assignment_value;
 
+		//keywords that cannot be used as variable names; functions are not included in this list because they they checked using the symbol table
         QStringList keywords = { "select", "from", "where", "and", "or", "into", "update",
                                  "delete", "import", "into", "set", "inner join", "outer join", "cross join",
-                                 "as", "on", "like", "not like", "group by", "limit"
+                                 "as", "on", "like", "not like", "group by", "limit", "when", "then", "else", "endcase"
         };
 
 

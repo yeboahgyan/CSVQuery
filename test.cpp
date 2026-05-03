@@ -11,7 +11,8 @@ void test_main()
     std::cout << "running..." << "\n";
     //QString source = "a='d:\\software\\test_csv\\customers.csv'; select count(a.*) from a where a.3 = 'mumbai';";
     //QString source = "c='d:\\software\\test_csv\\customers_11.csv'; o='d:\\software\\test_csv\\orders_11.csv'; select c.*, o.* from c inner join o on c.0=o.0;";
-    QString source = " out='D:\\software\\test_csv\\2020-12-08_orders.csv'; orders='D:\\software\\test_csv\\orders.csv'; select orders.2, orders.* from orders where date_eq(orders.2, 'yyyy-mm-dd','2020-12-08') into out;";
+    ///QString source = " out='D:\\software\\test_csv\\2020-12-08_orders.csv'; orders='D:\\software\\test_csv\\orders.csv'; select orders.2, orders.* from orders where date_eq(orders.2, 'yyyy-mm-dd','2020-12-08') into out;";
+    QString source = "c='D:\\software\\test_csv\\customers.csv';select count(*) from c where (c.0 != '50' and (c.3 = 'paris' or c.3 = 'tokyo')); ";
     //QString source = " o='d:\\software\\test_csv\\test_update.csv'; update o set o.1='Abena' into 'd:\\software\\test_csv\\test_update2.csv';";
     //QString source = "select * from 'd:\\software\\test_csv\\customers.csv' where [3] = 'london' into 'd:\\software\\test_csv\\london_customers.csv';";
     try {
@@ -23,10 +24,10 @@ void test_main()
         csvquery::AssignStatement assign(tokens);
         assign.execute();
 
-        QList<csvquery::Token> tokens2 = parser.read_statement();
+        //QList<csvquery::Token> tokens2 = parser.read_statement();
 
-        csvquery::AssignStatement assign2(tokens2); // orders assignment
-        assign2.execute();
+        //csvquery::AssignStatement assign2(tokens2); // orders assignment
+        //assign2.execute();
 
         QList<csvquery::Token> select_tokens = parser.read_statement();
 
