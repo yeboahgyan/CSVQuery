@@ -6,9 +6,10 @@ namespace csvquery {
 
     UpdateStatement::UpdateStatement(const QList<Token>& tks)
         :
-        tokens(tks)
+        tokens(tks),
+        last_token_pos(tokens.begin()),
+        write_queue(std::make_unique<boost::lockfree::spsc_queue<QStringList, boost::lockfree::capacity<128>>>())
     {
-        last_token_pos = tokens.begin();
         parse();
     }
 
@@ -21,8 +22,6 @@ namespace csvquery {
 
             throw std::logic_error("Unexpected end to Update statement on line " + str_num.toStdString());
         }
-
-        write_queue = std::make_unique<boost::lockfree::spsc_queue<QString, boost::lockfree::capacity<128>>>();
     }
 
     std::shared_ptr<CSVFile> UpdateStatement::read_file(QIODeviceBase::OpenMode m)
@@ -234,6 +233,8 @@ namespace csvquery {
             Expression rhs_expr = read_expression();
             column_update_list.append(std::make_pair(lhs_token, rhs_expr));
 
+            throw_exception_if_unexpected_end();
+
             if ((last_token_pos->token_type == TokenType::INTO)
                 || (last_token_pos->token_type == TokenType::WHERE)
                 || (last_token_pos->token_type == TokenType::SEMICOLON)
@@ -252,7 +253,9 @@ namespace csvquery {
         QList<Term> cond_terms;
 
         for (; last_token_pos != tokens.cend(); ++last_token_pos) {
-            if (last_token_pos->token_type == TokenType::INTO) {
+            if (last_token_pos->token_type == TokenType::INTO
+                || last_token_pos->token_type == TokenType::SEMICOLON
+                || last_token_pos->token_type == TokenType::END) {
                 break;
             }
 
@@ -290,7 +293,10 @@ namespace csvquery {
         read_column_update_list();
 
         if (last_token_pos->token_type == TokenType::SEMICOLON || last_token_pos->token_type == TokenType::END) {
-            return;
+            double line_numer = last_token_pos->line_number;
+            QString str_num = QString::number(line_numer);
+
+            throw std::logic_error("Expected an INTO clause. Invalid syntax in Update statement on line " + str_num.toStdString());
         }
 
 
@@ -306,11 +312,13 @@ namespace csvquery {
             where_expr = read_where_clause();
         }
 
+        throw_exception_if_unexpected_end();
+
         if (last_token_pos->token_type != TokenType::INTO) {
             double line_numer = (--last_token_pos)->line_number;
             QString str_num = QString::number(line_numer);
 
-            throw std::logic_error("Expected an INTO clasuse. Invalid syntax in Update statement on line " + str_num.toStdString());
+            throw std::logic_error("Expected an INTO clause. Invalid syntax in Update statement on line " + str_num.toStdString());
         }
 
         ++last_token_pos; //move to next token
@@ -427,6 +435,7 @@ namespace csvquery {
                     if (!are_columns_compiled) {
                         compiled_columns_func = compile_update_list(data_rows);
                         row = compiled_columns_func(data_rows);
+                        are_columns_compiled = true;
                     }
                     else {
                         row = compiled_columns_func(data_rows);
@@ -435,7 +444,7 @@ namespace csvquery {
 
                     //write updated data to file
                     //out_file->writeLine(row.join(','));
-                    while (!write_queue->push(row.join(','))) {
+                    while (!write_queue->push(row)) {
                         std::this_thread::yield();
                         //if (canceled.load()) return true; //stop processing
                     }
@@ -445,7 +454,7 @@ namespace csvquery {
                 else {
                     //write data unchanged to file
                     //out_file->writeLine(row.join(','));
-                    while (!write_queue->push(row.join(','))) {
+                    while (!write_queue->push(row)) {
                         std::this_thread::yield();
                         //if (canceled.load()) return true; //stop processing
                     }
@@ -456,6 +465,7 @@ namespace csvquery {
                 if (!are_columns_compiled) {
                     compiled_columns_func = compile_update_list(data_rows);
                     row = compiled_columns_func(data_rows);
+                    are_columns_compiled = true;
                 }
                 else {
                     row = compiled_columns_func(data_rows);
@@ -463,7 +473,7 @@ namespace csvquery {
 
 
                 //out_file->writeLine(row.join(','));
-                while (!write_queue->push(row.join(','))) {
+                while (!write_queue->push(row)) {
                     std::this_thread::yield();
                     //if (canceled.load()) return true; //stop processing
                 }
@@ -480,11 +490,11 @@ namespace csvquery {
     {
         //////////qDebug()() << "write thread started";
         while (!done_producing.load(std::memory_order_acquire) || !write_queue->empty()) {
-            QString row;
+            QStringList row;
             if (write_queue->pop(row)) {
                 //write_queue->pop();
                 //////////qDebug()() << "writing row";
-                if (row.trimmed() == "") {
+                if (row.size() == 1 && row.at(0).trimmed().isEmpty()) {
                     continue;
                 }
 

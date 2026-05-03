@@ -8,6 +8,7 @@
 #include <utility>
 #include "CSVFile2.h"
 #include <boost/lockfree/spsc_queue.hpp>
+#include <QStringList>
 
 
 namespace csvquery {
@@ -23,7 +24,7 @@ namespace csvquery {
 
         std::unique_ptr<std::thread> file_writer_thread = nullptr;
 
-        std::unique_ptr<boost::lockfree::spsc_queue<QString, boost::lockfree::capacity<128>>> write_queue;
+        std::unique_ptr<boost::lockfree::spsc_queue<QStringList, boost::lockfree::capacity<128>>> write_queue;
 
         bool has_where_clause = false;
         bool is_conditional_compiled = false;

@@ -1,7 +1,10 @@
 ﻿   Qt/MSBuild: 3.5.0.0
   Reading Qt configuration (D:/Qt/6.9.0/msvc2022_64/bin/qmake)
    Qt: 6.9.0
-  functions.cpp
+  main.cpp
+  parser.cpp
+  test.cpp
+  updatestatement.cpp
   CQLInterpreter.vcxproj -> D:\Documents\Documents\Qt\CQLInterpreter\release\CQLInterpreter.exe
   'pwsh.exe' is not recognized as an internal or external command,
   operable program or batch file.
