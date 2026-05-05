@@ -1,3 +1,0 @@
-D:\Documents\Documents\Qt\CQLInterpreter\release\CQLInterpreter.exe
-D:\Documents\Documents\Qt\CQLInterpreter\release\CQLInter.4DA6DA3B.Up2Date
-D:\Documents\Documents\Qt\CQLInterpreter\release\replxx.dll

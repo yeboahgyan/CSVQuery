@@ -8,3 +8,14 @@ release/
 *.obj
 *.ilk
 *.exe
+
+# Qt Creator local settings
+*.pro.user
+
+# Visual Studio local user settings and filters
+*.vcxproj.user
+*.aps
+*.qtvscr
+
+# QMake cache
+.qmake.stash
