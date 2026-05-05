@@ -296,6 +296,8 @@ Example: `date_le("2020-12-12", "yyyy-MM-dd", "2023-01-12")`
 - Column indices start at `0` — `[0]` is the first column.
 - Comments using `#` are ignored during execution.
 - The language is **case-insensitive** (`select`, `Select`, and `SELECT` are equivalent).
+- Only equi-joins (equality-based `ON` conditions) are supported.
+- Join queries are limited to only two CSV files at a time.
 - Scripts can be written in any text editor and run via the interpreter:
   ```
   csvq.exe my_script
