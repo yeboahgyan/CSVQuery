@@ -26,6 +26,7 @@ CSVQuery is an SQL-like scripting language designed to simplify querying and man
     - [Aggregate Functions](#aggregate-functions)
   - [Notes](#notes)
   - [Keywords](#keywords)
+  - [Credits](#credits)
 
 ---
 
@@ -102,10 +103,18 @@ Using column indices:
 select [0], [2] from users_csv;
 ```
 
+```sql
+select users_csv.0, users_csv.2 from users_csv;
+```
+
 Using wildcard to select all columns:
 
 ```sql
 select * from users_csv;
+```
+
+```sql
+select users_csv.* from users_csv;
 ```
 
 Saving results to a file with the `INTO` clause:
@@ -203,6 +212,8 @@ on users_csv.0 = salaries.0;
 | `Right(string, length)` | Returns the last `length` characters of the string. |
 | `Strip_quotes(string)` | Removes double quotes from the beginning and end of the string. |
 | `Number(string)` | Converts a string to a number; returns `0` if conversion fails. Useful since CSV data is stored as strings. |
+| `strip_quotes(string)` |  Removes double quotes from the beginning and end of the string. |
+
 
 ### Date Comparison Functions
 
@@ -277,9 +288,19 @@ HAVING        INTO          TRIM          LEFT
 RIGHT         SUBSTRING     LENGTH        NUMBER
 STRIP_QUOTES  DATE_EQ       DATE_GT       DATE_GE
 DATE_LT       DATE_LE       MAX           MIN
-AVG           COUNT         SUM
+AVG           COUNT         SUM           STRIP_QUOTES
+CASE          WHEN           THEN          ELSE
+ENDCASE
 ```
 
+---
+
+## Credits
+The following libraries were used:
+    - Qt Framework
+    - Vince's CSV-Parser (https://github.com/vincentlaucsb/csv-parser)
+    - Tabulate (https://github.com/p-ranav/tabulate)
+    - Replxx (https://github.com/AmokHuginnsson/replxx)
 ---
 
 *CSVQuery was designed and built by Kwame Yeboah-Gyan in late 2025.*

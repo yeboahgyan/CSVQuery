@@ -31,7 +31,7 @@ namespace csvquery {
 
 	Term right(QList<Term>);
 
-	Term strip_quotes(QList<Term>); //remove doubles from column value surrounded by double quotes
+	Term strip_quotes(QList<Term>); //remove double quotes from column string value surrounded by double quotes
 
 	Term date_gt(QList<Term>); // date greater then
 
