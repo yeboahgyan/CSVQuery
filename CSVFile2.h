@@ -7,7 +7,9 @@
 #include <vincentlaucsb-csv-parser/csv.hpp> // uses single header code in exterl_lib folder in the project directory; this path is set under Additional Include Directories in the project settings
 //#include <csv-parser/include/csv.hpp>
 
-
+// CSVQuery - An SQL-like query language for CSV files
+// Copyright (c) 2025-2026 Kwame Yeboah-Gyan
+// Distributed under the MIT License.
 
 class CSVFile2
 {

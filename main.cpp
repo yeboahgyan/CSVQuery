@@ -1,4 +1,8 @@
-﻿#include <QCoreApplication>
+﻿// CSVQuery - An SQL-like query language for CSV files
+// Copyright (c) 2025-2026 Kwame Yeboah-Gyan
+// Distributed under the MIT License.
+
+#include <QCoreApplication>
 #include <QHash>
 #include <QList>
 #include <QString>
@@ -75,17 +79,34 @@ int main(int argc, char *argv[])
 
     setConsoleFont(L"Cascadia Code");
 
-    std::cout << "\n";
-    std::cout << "--------------------------------------------------------------------------------------------------------------\n";
-    std::cout << "  CSVQ for CSVQuery ";
-    std::cout << "0.2.0";
-    std::cout << " (c) 2025 Kwame Yeboah-Gyan\n";
-	std::cout << "  A command-line tool for querying and manipulating CSV files using CSVQuery,  an SQL-like language.\n";
-    if (a.arguments().length() == 1) {
-        std::cout << "  Type \"exit\" or \"quit\" to quit, \"license\" for license information.\n";
-    }
+    //std::cout << "\n";
+    //std::cout << "--------------------------------------------------------------------------------------------------------------\n";
+    //std::cout << "  CSVQ for CSVQuery ";
+    //std::cout << "0.2.0";
+    //std::cout << " (c) 2025-2026 Kwame Yeboah-Gyan\n";
+	//std::cout << "  Distributed under the MIT License.\n";
+	//std::cout << "  A command-line tool for querying and manipulating CSV files using CSVQuery,  an SQL-like language.\n";
+    //if (a.arguments().length() == 1) {
+    //    std::cout << "  Type \"exit\" or \"quit\" to quit, \"license\" for license information.\n";
+    //}
+    //
+    //std::cout << "--------------------------------------------------------------------------------------------------------------\n\n\n";
 
-    std::cout << "--------------------------------------------------------------------------------------------------------------\n\n\n";
+    std::string license_to_display = R"(            --- CSVQuery v0.2.0 ---
+    Copyright (c) 2025-2026 Kwame Yeboah-Gyan
+    Distributed under the MIT License.)";
+    
+	std::string options_to_display = R"(
+    Commands:
+        exit  Exit the program
+        quit  Exit the program
+        license    View license information)";
+
+	std::cout << license_to_display << std::endl;
+    if (a.arguments().length() == 1) {
+		std::cout << options_to_display << std::endl;
+    }
+	std::cout << "\n\n";
 
     set_builtin_funcs();
 
