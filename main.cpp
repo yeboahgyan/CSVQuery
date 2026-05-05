@@ -37,7 +37,7 @@
 
 //import pretty;
 #include <replxx.hxx>
-#include "license.h"
+#include "about_license.h"
 #include <Windows.h>
 #include <format>
 #include "test.h"
@@ -82,7 +82,7 @@ int main(int argc, char *argv[])
     //std::cout << "\n";
     //std::cout << "--------------------------------------------------------------------------------------------------------------\n";
     //std::cout << "  CSVQ for CSVQuery ";
-    //std::cout << "0.2.0";
+    //std::cout << "1.0.0";
     //std::cout << " (c) 2025-2026 Kwame Yeboah-Gyan\n";
 	//std::cout << "  Distributed under the MIT License.\n";
 	//std::cout << "  A command-line tool for querying and manipulating CSV files using CSVQuery,  an SQL-like language.\n";
@@ -92,7 +92,7 @@ int main(int argc, char *argv[])
     //
     //std::cout << "--------------------------------------------------------------------------------------------------------------\n\n\n";
 
-    std::string license_to_display = R"(            --- CSVQuery v0.2.0 ---
+    std::string license_to_display = R"(            --- CSVQuery v1.0.0 ---
     Copyright (c) 2025-2026 Kwame Yeboah-Gyan
     Distributed under the MIT License.)";
     

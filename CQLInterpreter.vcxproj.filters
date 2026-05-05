@@ -69,7 +69,7 @@
     <ClCompile Include="updatestatement.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="license.cpp">
+    <ClCompile Include="about_license.cpp">
       <Filter>Header Files</Filter>
     </ClCompile>
     <ClCompile Include="CSVFile2.cpp">
@@ -131,7 +131,7 @@
     <ClInclude Include="resource1.h">
       <Filter>Generated Files</Filter>
     </ClInclude>
-    <ClInclude Include="license.h">
+    <ClInclude Include="about_license.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="types_inc.h">

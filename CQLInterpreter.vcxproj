@@ -178,7 +178,7 @@
     <ClCompile Include="expression.cpp" />
     <ClCompile Include="functions.cpp" />
     <ClCompile Include="importstatement.cpp" />
-    <ClCompile Include="license.cpp" />
+    <ClCompile Include="about_license.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="parser.cpp" />
     <ClCompile Include="selectstatement.cpp" />
@@ -191,7 +191,7 @@
   <ItemGroup>
     <ClInclude Include="atomicops.h" />
     <ClInclude Include="CSVFile2.h" />
-    <ClInclude Include="license.h" />
+    <ClInclude Include="about_license.h" />
     <ClInclude Include="readerwriterqueue.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="resource1.h" />
