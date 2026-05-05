@@ -23,6 +23,7 @@ CSVQuery is an SQL-like scripting language designed to simplify querying and man
   - [Statements](#statements)
   - [Supported Functions](#supported-functions)
     - [String Functions](#string-functions)
+    - [Mathematical Functions](#mathematical-functions)
     - [Date Comparison Functions](#date-comparison-functions)
     - [Aggregate Functions](#aggregate-functions)
   - [Notes](#notes)
@@ -208,6 +209,8 @@ endcase
 from users_csv;
 ```
 
+---
+
 ## Statements
 
 | Statement    | Description |
@@ -232,7 +235,13 @@ from users_csv;
 | `Right(string, length)` | Returns the last `length` characters of the string. |
 | `Strip_quotes(string)` | Removes double quotes from the beginning and end of the string. |
 | `Number(string)` | Converts a string to a number; returns `0` if conversion fails. Useful since CSV data is stored as strings. |
-| `strip_quotes(string)` |  Removes double quotes from the beginning and end of the string. |
+
+
+### Mathematical Functions
+
+| Function | Description |
+|----------|-------------|
+| `modulo(string, number) or modulo(string, string) or modulo(number, number)` |  Returns the modulo of two integers. |
 
 
 ### Date Comparison Functions
@@ -309,18 +318,21 @@ RIGHT         SUBSTRING     LENGTH        NUMBER
 STRIP_QUOTES  DATE_EQ       DATE_GT       DATE_GE
 DATE_LT       DATE_LE       MAX           MIN
 AVG           COUNT         SUM           STRIP_QUOTES
-CASE          WHEN           THEN          ELSE
-ENDCASE
+CASE          WHEN          THEN          ELSE
+ENDCASE       MODULO
 ```
 
 ---
 
 ## Credits
-The following libraries were used:
-    - Qt Framework
-    - Vince's CSV-Parser (https://github.com/vincentlaucsb/csv-parser)
-    - Tabulate (https://github.com/p-ranav/tabulate)
-    - Replxx (https://github.com/AmokHuginnsson/replxx)
+
+This project makes use of the following open-source libraries:
+
+- [Qt Framework](https://www.qt.io/)
+- [csv-parser](https://github.com/vincentlaucsb/csv-parser) by Vincent La
+- [tabulate](https://github.com/p-ranav/tabulate) by p-ranav
+- [Replxx](https://github.com/AmokHuginnsson/replxx) by AmokHuginnsson
+
 ---
 
 *CSVQuery was designed and built by Kwame Yeboah-Gyan in late 2025.*
