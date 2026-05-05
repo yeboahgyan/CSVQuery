@@ -19,6 +19,7 @@ CSVQuery is an SQL-like scripting language designed to simplify querying and man
     - [Step 6: Updating Data](#step-6-updating-data)
     - [Step 7: Direct CSV Queries](#step-7-direct-csv-queries)
     - [Step 8: Join Queries](#step-8-join-queries)
+    - [Step 9: CASE Expressions](#step-9-case-expressions)
   - [Statements](#statements)
   - [Supported Functions](#supported-functions)
     - [String Functions](#string-functions)
@@ -187,6 +188,25 @@ on users_csv.0 = salaries.0;
 ```
 
 ---
+
+### Step 9: CASE Expressions
+The language currently supports a simple CASE expression that takes an input expression but only supports a string or a number literal for the WHEN and ELSE clauses.
+
+```sql
+select case modulo(users_csv.id, 2)
+when '0' then 'Even'
+when '1' then 'Odd'
+endcase
+from users_csv;
+```
+
+```sql
+select case users_csv.first_name
+when 'Alice' then 'Hi Alice!'
+else  'Hi!'
+endcase
+from users_csv;
+```
 
 ## Statements
 
