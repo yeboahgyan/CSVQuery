@@ -321,7 +321,7 @@ STRIP_QUOTES  DATE_EQ       DATE_GT       DATE_GE
 DATE_LT       DATE_LE       MAX           MIN
 AVG           COUNT         SUM           STRIP_QUOTES
 CASE          WHEN          THEN          ELSE
-ENDCASE       MODULO
+ENDCASE       MODULO        LIKE          NOT LIKE
 ```
 
 ---
