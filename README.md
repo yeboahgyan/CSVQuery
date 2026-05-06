@@ -34,9 +34,14 @@ CSVQuery is an SQL-like scripting language designed to simplify querying and man
 
 ## Overview
 
-Comma-separated values (CSV) is one of the most widely used formats for tabular data. Despite its ubiquity, querying CSV files can be inconvenient — common approaches involve importing data into a full database system or writing custom scripts, both of which can be unnecessarily complex for simple tasks.
+CSV is one of the most widely used formats for tabular data — and one of the most frustrating to work with programmatically. Common 
+approaches either involve importing data into a full database system or writing one-off scripts, both of which are overkill for the kinds 
+of querying and transformation tasks that come up constantly in practice.
 
-CSVQuery solves this by providing a dynamic, SQL-inspired scripting language built specifically for CSV data. It supports four core statements: `IMPORT`, `ASSIGNMENT`, `SELECT`, and `UPDATE`. Every statement is terminated with a semicolon (`;`). The language is **case-insensitive**.
+CSVQuery was born out of a specific operational need in a production banking environment. Postilion — ACI Worldwide's payment switch — and its companion card management system, Postcard, depend heavily on CSV files for data extraction, upload, and reporting. Every data task traditionally required a bespoke script, written from scratch, used once, and discarded. There was no reusable, readable way to ask simple questions of the data or make targeted changes to it.
+
+CSVQuery fixes that. It is a dynamic, SQL-inspired scripting language built specifically for CSV data — letting you query, filter, join, and update CSV files using familiar relational syntax, without importing anything into a database. It supports four core statement types: 
+`IMPORT`, `ASSIGNMENT`, `SELECT`, and `UPDATE`. Statements are terminated with a semicolon (`;`) and the language is case-insensitive.
 
 ---
 
