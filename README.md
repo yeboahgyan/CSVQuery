@@ -331,7 +331,7 @@ ENDCASE       MODULO        LIKE          NOT LIKE
 
 ## Credits
 
-This project makes use of the following open-source libraries:
+This project makes use of the following libraries:
 
 - [Qt Framework](https://www.qt.io/)
 - [csv-parser](https://github.com/vincentlaucsb/csv-parser) by Vincent La
