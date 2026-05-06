@@ -339,5 +339,3 @@ This project makes use of the following libraries:
 - [Replxx](https://github.com/AmokHuginnsson/replxx) by AmokHuginnsson
 
 ---
-
-*CSVQuery was designed and built by Kwame Yeboah-Gyan in late 2025.*
