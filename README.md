@@ -337,5 +337,3 @@ This project makes use of the following libraries:
 - [csv-parser](https://github.com/vincentlaucsb/csv-parser) by Vincent La
 - [tabulate](https://github.com/p-ranav/tabulate) by p-ranav
 - [Replxx](https://github.com/AmokHuginnsson/replxx) by AmokHuginnsson
-
----
