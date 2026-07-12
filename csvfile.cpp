@@ -77,8 +77,10 @@ namespace csvquery {
             file_->unmap(reinterpret_cast<uchar*>(mapped_data_));
         }
         */
-        if (file_stream_ != nullptr) {
-			file_stream_->flush();
+        //if (file_stream_ != nullptr) {
+        if (csv_writer_ != nullptr) {
+			//file_stream_->flush();
+			csv_writer_->flush();
         }
     }
 
@@ -184,6 +186,7 @@ namespace csvquery {
 		}
 
         (*csv_writer_) << fields;
+		//csv_writer_->flush();
     }
 
     void CSVFile::write(const QString& text) {

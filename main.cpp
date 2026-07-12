@@ -92,7 +92,7 @@ int main(int argc, char *argv[])
     //
     //std::cout << "--------------------------------------------------------------------------------------------------------------\n\n\n";
 
-    std::string license_to_display = R"(            --- CSVQuery v1.0.0 ---
+    std::string license_to_display = R"(            --- CSVQuery v1.0.1 ---
     Copyright (c) 2025-2026 Kwame Yeboah-Gyan
     Distributed under the MIT License.)";
     
