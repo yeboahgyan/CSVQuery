@@ -45,7 +45,7 @@ list(APPEND CMAKE_PREFIX_PATH
 find_package(Qt5 REQUIRED COMPONENTS Core)
 
 
-add_executable(CQLInterpreter
+set(SOURCES
     "include/about_license.h"
     "include/assignstatement.h"
     
@@ -80,6 +80,14 @@ add_executable(CQLInterpreter
     "src/updatestatement.cpp"
     "src/main.cpp"
 )
+
+if(WIN32)
+    list(APPEND SOURCES
+        resources/CQLInterpreter.rc
+    )
+endif()
+
+add_executable(CQLInterpreter ${SOURCES})
 
 # Add include directory for the Boost libraries & project's own include directory
 target_include_directories(CQLInterpreter PRIVATE
