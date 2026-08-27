@@ -4,7 +4,9 @@
 #include "Types.h"
 #include <memory>
 #include <QStringList>
-#include <vincentlaucsb-csv-parser/csv.hpp> // uses single header code in exterl_lib folder in the project directory; this path is set under Additional Include Directories in the project settings
+#include "csv.hpp"
+
+//#include <vincentlaucsb-csv-parser/csv.hpp> // uses single header code in exterl_lib folder in the project directory; this path is set under Additional Include Directories in the project settings
 //#include <csv-parser/include/csv.hpp>
 
 // CSVQuery - An SQL-like query language for CSV files

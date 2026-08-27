@@ -50,7 +50,7 @@ namespace csvquery {
         void csv_file_writer();
 
         std::shared_ptr<CSVFile2> read_file2(/*QIODeviceBase::OpenMode m = QIODevice::ReadOnly*/);
-        std::shared_ptr<CSVFile> read_file(QIODeviceBase::OpenMode m = QIODevice::ReadOnly);
+        std::shared_ptr<CSVFile> read_file(QIODevice::OpenMode m = QIODevice::ReadOnly);
 
         void process_expression(Expression& rhs);
 

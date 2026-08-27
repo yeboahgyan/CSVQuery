@@ -9,7 +9,7 @@
 
 namespace csvquery {
 	
-    CSVFile::CSVFile(const QString& file_path, QIODeviceBase::OpenMode mode)
+    CSVFile::CSVFile(const QString& file_path, QIODevice::OpenMode mode)
         : file_(std::make_unique<QFile>(file_path)),
         mapped_data_(nullptr),
         file_size_(0),
@@ -17,7 +17,7 @@ namespace csvquery {
         file_name{ file_path }
         
     {
-        QIODeviceBase::OpenMode flags;
+        QIODevice::OpenMode flags;
         if (mode == QIODevice::ReadOnly) {
             flags = mode | QIODevice::Text;
         }

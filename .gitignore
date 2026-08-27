@@ -1,21 +1,32 @@
-# Build folders
+# CMake build directories
+out/
 build/
-debug/
-release/
+cmake-build-*/
 
-# Qt / MSVC artifacts
-*.pdb
-*.obj
-*.ilk
+# CMake generated files
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+CTestTestfile.cmake
+compile_commands.json
+
+# FetchContent dependencies
+_deps/
+
+# Visual Studio
+.vs/
+*.suo
+*.user
+
+# Build output
+Debug/
+Release/
+x64/
+x86/
+
+# Compiled binaries
 *.exe
-
-# Qt Creator local settings
-*.pro.user
-
-# Visual Studio local user settings and filters
-*.vcxproj.user
-*.aps
-*.qtvscr
-
-# QMake cache
-.qmake.stash
+*.dll
+*.lib
+*.obj
+*.pdb

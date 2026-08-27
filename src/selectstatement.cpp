@@ -257,7 +257,7 @@ namespace csvquery {
     }
 
 
-    std::shared_ptr<CSVFile> SelectStatement::read_file(QIODeviceBase::OpenMode m)
+    std::shared_ptr<CSVFile> SelectStatement::read_file(QIODevice::OpenMode m)
     {
 
         throw_exception_if_unexpected_end();
@@ -2212,7 +2212,9 @@ namespace csvquery {
 
             QMap<QString, QStringList> data_rows;
             QList<QStringList> res;
-            data_rows["$"] = { "" };
+            //data_rows["$"] = { "" };
+            data_rows.insert("$", QStringList{ "" });
+
             auto comp_f = compile_columns(data_rows);
             res.append(comp_f(data_rows));
             //res.append(compute_columns(data_rows));

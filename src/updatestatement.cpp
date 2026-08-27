@@ -28,7 +28,7 @@ namespace csvquery {
         }
     }
 
-    std::shared_ptr<CSVFile> UpdateStatement::read_file(QIODeviceBase::OpenMode m)
+    std::shared_ptr<CSVFile> UpdateStatement::read_file(QIODevice::OpenMode m)
     {
         throw_exception_if_unexpected_end();
 

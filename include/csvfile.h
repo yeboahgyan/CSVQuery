@@ -10,8 +10,12 @@
 #include <QFile>
 #include "Types.h"
 #include <fstream>
+
 //#include <csv-parser/include/csv.hpp>
-#include <vincentlaucsb-csv-parser/csv.hpp> // uses single header code in exterl_lib folder in the project directory; this path is set under Additional Include Directories in the project settings
+//#include <vincentlaucsb-csv-parser/csv.hpp> // uses single header code in exterl_lib folder in the project directory; this path is set under Additional Include Directories in the project settings
+
+#include "csv.hpp"
+
 
 namespace csvquery {
 
@@ -29,7 +33,7 @@ namespace csvquery {
         std::unique_ptr < csv::CSVWriter<std::ofstream>> csv_writer_ = nullptr;
 
     public:
-        CSVFile(const QString& file_path, QIODeviceBase::OpenMode mode = QIODevice::ReadOnly);
+        CSVFile(const QString& file_path, QIODevice::OpenMode mode = QIODevice::ReadOnly);
         ~CSVFile();
 
         QStringList readRow();

@@ -48,7 +48,8 @@ namespace csvquery {
     void AssignStatement::process_expression(Expression& rhs)
     {
         QMap<QString, QStringList> dummy;
-        dummy["$"] = { "" };
+        //dummy["$"] = { "" };
+        dummy.insert("$", QStringList{ "" });
 
         //qDebug()<<"processing right hand side of assignment...";
         Term t = rhs.eval(dummy);

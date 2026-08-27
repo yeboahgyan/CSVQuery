@@ -151,7 +151,7 @@ namespace csvquery {
 		void set_query_index(const Term& t, int& file_index); //updates query_index or left_query_index based on file_index value
 
         QList<Expression> read_column_expressions();
-        std::shared_ptr<CSVFile> read_file(QIODeviceBase::OpenMode m = QIODevice::ReadOnly);
+        std::shared_ptr<CSVFile> read_file(QIODevice::OpenMode m = QIODevice::ReadOnly);
         std::shared_ptr<CSVFile2> read_file2(); // used to sets left_file2 or right_file2
         void read_out_file(); // sets std::unique_ptr<QFile> out_file2;
         std::shared_ptr<ConditionalExpression> read_on_clause();
